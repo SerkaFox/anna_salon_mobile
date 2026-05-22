@@ -1709,32 +1709,22 @@ class _TimeBlockFormSheet extends StatefulWidget {
 }
 
 class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
+  static const _pauseReasons = ['Reunion', 'Enfermedad', 'Comida'];
+
   final _formKey = GlobalKey<FormState>();
-  final _reasonController = TextEditingController();
   late Future<ApiCollection> _employees = widget.api.employees();
   late DateTime _date = _initialDate();
   late TimeOfDay _startTime = _initialStartTime();
   late TimeOfDay _endTime = _initialEndTime();
   late String? _employeeId =
       widget.block?.employeeId ?? widget.draft?.employeeId;
+  late String _reason = _initialReason();
   _BlockRecurrence _recurrence = _BlockRecurrence.none;
   DateTime? _repeatUntil;
   bool _saving = false;
   String? _error;
 
   bool get _isEditing => widget.block != null;
-
-  @override
-  void initState() {
-    super.initState();
-    _reasonController.text = widget.block?.label ?? '';
-  }
-
-  @override
-  void dispose() {
-    _reasonController.dispose();
-    super.dispose();
-  }
 
   DateTime _initialDate() {
     final blockDate = _parseDate(widget.block?.date);
@@ -1763,6 +1753,12 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
     }
     final now = DateTime.now().add(const Duration(minutes: 30));
     return TimeOfDay.fromDateTime(now);
+  }
+
+  String _initialReason() {
+    final current = widget.block?.label.trim();
+    if (current != null && _pauseReasons.contains(current)) return current;
+    return _pauseReasons.first;
   }
 
   Future<void> _pickDate() async {
@@ -1854,7 +1850,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
         'recurring': true,
         'start_time': _formatTimeOfDay(_startTime),
         'end_time': _formatTimeOfDay(_endTime),
-        'reason': _reasonController.text.trim(),
+        'reason': _reason,
         'color': '#111111',
       };
     }
@@ -1862,7 +1858,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
       'employee': _coerceId(_employeeId),
       'start_at': _dateTimeText(_date, _startTime),
       'end_at': _dateTimeText(_date, _endTime),
-      'reason': _reasonController.text.trim(),
+      'reason': _reason,
       'color': '#111111',
     };
   }
@@ -1874,7 +1870,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
           'employee': _coerceId(_employeeId),
           'start_at': _dateTimeText(_date, _startTime),
           'end_at': _dateTimeText(_date, _endTime),
-          'reason': _reasonController.text.trim(),
+          'reason': _reason,
           'color': '#111111',
         }
       ];
@@ -1894,7 +1890,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
           'date_from': DateFormat('yyyy-MM-dd').format(_date),
           if (_repeatUntil != null)
             'date_to': DateFormat('yyyy-MM-dd').format(_repeatUntil!),
-          'reason': _reasonController.text.trim(),
+          'reason': _reason,
           'color': '#111111',
         }
     ];
@@ -2006,17 +2002,26 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     onTap: _pickEndTime,
                   ),
                   const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _reasonController,
+                  DropdownButtonFormField<String>(
+                    initialValue: _reason,
+                    isExpanded: true,
+                    dropdownColor: AnnaColors.accentDeep,
                     decoration: const InputDecoration(
                       labelText: 'Motivo',
                       prefixIcon: Icon(Icons.notes_outlined),
                     ),
-                    validator: (value) {
-                      if ((value ?? '').trim().isEmpty) {
-                        return 'Indica un motivo';
-                      }
-                      return null;
+                    items: [
+                      for (final reason in _pauseReasons)
+                        DropdownMenuItem(
+                          value: reason,
+                          child: Text(reason),
+                        ),
+                    ],
+                    validator: (value) =>
+                        value == null ? 'Selecciona un motivo' : null,
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _reason = value);
                     },
                   ),
                   if (!_isEditing) ...[
