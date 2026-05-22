@@ -1,0 +1,395 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+
+import '../app_settings_controller.dart';
+import '../api/anna_api.dart';
+import '../theme/app_theme.dart';
+import 'color_palette_picker.dart';
+import 'shared.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({
+    required this.api,
+    required this.settings,
+    required this.onSignOut,
+    super.key,
+  });
+
+  final AnnaApi api;
+  final AppSettingsController settings;
+  final VoidCallback onSignOut;
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  late Future<Map<String, dynamic>> _profile = _loadProfile();
+  Object? _profileKey;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _loadProfile() async {
+    return (await widget.api.me()).data;
+  }
+
+  void _reload() {
+    setState(() {
+      _profile = _loadProfile();
+      _profileKey = null;
+      _error = null;
+    });
+  }
+
+  void _syncProfile(Map<String, dynamic> data) {
+    final key = jsonEncode([
+      data['id'],
+      data['first_name'],
+      data['last_name'],
+      data['email'],
+    ]);
+    if (_profileKey == key) return;
+    _profileKey = key;
+    _firstNameController.text = _text(data['first_name']);
+    _lastNameController.text = _text(data['last_name']);
+    _emailController.text = _text(data['email']);
+  }
+
+  Future<void> _saveProfile() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final payload = <String, dynamic>{
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'email': _emailController.text.trim(),
+      };
+      final newPassword = _newPasswordController.text;
+      if (newPassword.isNotEmpty) {
+        payload['current_password'] = _currentPasswordController.text;
+        payload['new_password'] = newPassword;
+      }
+      final updated = await widget.api.updateMe(payload);
+      if (!mounted) return;
+      setState(() {
+        _profile = Future.value(updated.data);
+        _profileKey = null;
+      });
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil actualizado.')),
+      );
+    } on AnnaApiException catch (error) {
+      setState(() => _error = _apiErrorText(error));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScreenScaffold(
+      title: 'Ajustes',
+      action: IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _AppearanceCard(settings: widget.settings),
+          const SizedBox(height: 16),
+          FutureBuilder<Map<String, dynamic>>(
+            future: _profile,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (snapshot.hasError) {
+                return ErrorState(error: snapshot.error!, onRetry: _reload);
+              }
+              final profile = snapshot.data ?? const <String, dynamic>{};
+              _syncProfile(profile);
+              return _ProfileCard(
+                formKey: _formKey,
+                profile: profile,
+                firstNameController: _firstNameController,
+                lastNameController: _lastNameController,
+                emailController: _emailController,
+                currentPasswordController: _currentPasswordController,
+                newPasswordController: _newPasswordController,
+                confirmPasswordController: _confirmPasswordController,
+                saving: _saving,
+                error: _error,
+                onSave: _saveProfile,
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          PanelCard(
+            padding: const EdgeInsets.all(18),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: widget.onSignOut,
+                icon: const Icon(Icons.logout),
+                label: const Text('Cerrar sesion'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AppearanceCard extends StatelessWidget {
+  const _AppearanceCard({required this.settings});
+
+  final AppSettingsController settings;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) {
+        return PanelCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Apariencia', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 14),
+              ColorPalettePicker(
+                label: 'Color de la aplicacion',
+                value: settings.primaryColorHex,
+                onChanged: settings.setPrimaryColorHex,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.format_size, color: AnnaColors.muted),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tamano de texto',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  AnnaBadge('${(settings.fontScale * 100).round()}%'),
+                ],
+              ),
+              Slider(
+                value: settings.fontScale,
+                min: 0.9,
+                max: 1.2,
+                divisions: 6,
+                label: '${(settings.fontScale * 100).round()}%',
+                onChanged: settings.setFontScale,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.formKey,
+    required this.profile,
+    required this.firstNameController,
+    required this.lastNameController,
+    required this.emailController,
+    required this.currentPasswordController,
+    required this.newPasswordController,
+    required this.confirmPasswordController,
+    required this.saving,
+    required this.onSave,
+    this.error,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final Map<String, dynamic> profile;
+  final TextEditingController firstNameController;
+  final TextEditingController lastNameController;
+  final TextEditingController emailController;
+  final TextEditingController currentPasswordController;
+  final TextEditingController newPasswordController;
+  final TextEditingController confirmPasswordController;
+  final bool saving;
+  final String? error;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final username = _text(profile['username']);
+    final role = _text(profile['role']);
+    final employeeName = _text(profile['employee_name']);
+
+    return PanelCard(
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Mi cuenta', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (username.isNotEmpty) AnnaBadge(username),
+                if (role.isNotEmpty) AnnaBadge(role),
+                if (employeeName.isNotEmpty) AnnaBadge(employeeName),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: firstNameController,
+              decoration: const InputDecoration(
+                labelText: 'Nombre',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: lastNameController,
+              decoration: const InputDecoration(
+                labelText: 'Apellido',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.alternate_email),
+              ),
+              validator: (value) {
+                final text = value?.trim() ?? '';
+                if (text.isEmpty) return null;
+                if (!text.contains('@')) return 'Email invalido';
+                return null;
+              },
+            ),
+            const SizedBox(height: 18),
+            Text('Cambiar contrasena',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: currentPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Contrasena actual',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+              validator: (value) {
+                final wantsPassword = newPasswordController.text.isNotEmpty ||
+                    confirmPasswordController.text.isNotEmpty;
+                if (wantsPassword && (value == null || value.isEmpty)) {
+                  return 'Introduce la contrasena actual';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: newPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Nueva contrasena',
+                prefixIcon: Icon(Icons.lock_reset_outlined),
+              ),
+              validator: (value) {
+                final text = value ?? '';
+                final wantsPassword =
+                    currentPasswordController.text.isNotEmpty ||
+                        confirmPasswordController.text.isNotEmpty;
+                if (!wantsPassword && text.isEmpty) return null;
+                if (text.length < 4) return 'Minimo 4 caracteres';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirmar nueva contrasena',
+                prefixIcon: Icon(Icons.lock_reset_outlined),
+              ),
+              validator: (value) {
+                if (newPasswordController.text.isEmpty &&
+                    (value == null || value.isEmpty)) {
+                  return null;
+                }
+                if (value != newPasswordController.text) {
+                  return 'Las contrasenas no coinciden';
+                }
+                return null;
+              },
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 12),
+              AnnaErrorBanner(error!),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: saving ? null : onSave,
+                icon: saving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: const Text('Guardar cambios'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _text(Object? value) {
+  if (value == null) return '';
+  final text = value.toString().trim();
+  return text == 'null' ? '' : text;
+}
+
+String _apiErrorText(AnnaApiException error) {
+  return formatApiError(error);
+}
