@@ -513,6 +513,17 @@ class _ServiceFormSheetState extends State<_ServiceFormSheet> {
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    final activeZoneIds = widget.refs.zones.items
+        .map((zone) => zone.valueAsText('id'))
+        .whereType<String>()
+        .toSet();
+    final allowedZoneIds = _allowedZones.where(activeZoneIds.contains).toList()
+      ..sort();
+    if (_requiresZone && allowedZoneIds.isEmpty) {
+      setState(
+          () => _error = 'Selecciona al menos una zona para este servicio.');
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -524,8 +535,9 @@ class _ServiceFormSheetState extends State<_ServiceFormSheet> {
       'price': _price.text.trim(),
       'color': _color,
       'requires_zone': _requiresZone,
-      'allowed_zones':
-          _allowedZones.map((id) => int.tryParse(id) ?? id).toList(),
+      'allowed_zones': _requiresZone
+          ? allowedZoneIds.map((id) => int.tryParse(id) ?? id).toList()
+          : <Object>[],
       'is_active': _isActive,
     };
     try {
