@@ -38,7 +38,7 @@ class ClientFormSheet extends StatefulWidget {
 }
 
 class _ClientFormSheetState extends State<ClientFormSheet> {
-  static const _demoAppLink = 'https://brimoon-studio.example/app';
+  static const _demoAppLink = 'https://brimoon.es/app/';
 
   final _formKey = GlobalKey<FormState>();
   late final _firstNameController = TextEditingController(

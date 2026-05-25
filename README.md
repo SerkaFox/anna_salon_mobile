@@ -2,7 +2,7 @@
 
 Flutter mobile app for BRIMOON Studio, connected to the Django REST API.
 
-Base API URL: `https://anna.listoya.es/api/v1/`
+Base API URL: `https://brimoon.es/api/v1/`
 
 ## Current Capabilities
 

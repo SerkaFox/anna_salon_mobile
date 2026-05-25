@@ -22,7 +22,7 @@ class AnnaApi {
   AnnaApi({
     http.Client? client,
     FlutterSecureStorage? storage,
-    this.baseUrl = 'https://anna.listoya.es/api/v1/',
+    this.baseUrl = 'https://brimoon.es/api/v1/',
   })  : _client = client ?? http.Client(),
         _storage = storage ?? const FlutterSecureStorage();
 

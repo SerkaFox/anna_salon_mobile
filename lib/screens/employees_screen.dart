@@ -1099,7 +1099,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     final message = 'Hola! Tu acceso a BRIMOON Studio:\n\n'
         'Usuario: $username\n'
         'Contrasena: $password\n'
-        'App: https://brimoon-studio.example/app';
+        'App: https://brimoon.es/app/';
     final uri = Uri.parse(
       'https://wa.me/$phone?text=${Uri.encodeComponent(message)}',
     );
