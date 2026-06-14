@@ -641,12 +641,13 @@ class _BookingFormCard extends StatelessWidget {
               style: TextStyle(color: AnnaColors.muted),
             ),
             const SizedBox(height: 18),
-            _DropdownField(
+            _SearchableDropdownField(
               label: 'Cliente',
               value: clientId,
               options: refs.clientOptions,
               icon: Icons.person_outline,
               onChanged: onClientChanged,
+              searchHint: 'Nombre, apellido, telefono, email o login',
             ),
             const SizedBox(height: 10),
             Align(
@@ -673,12 +674,13 @@ class _BookingFormCard extends StatelessWidget {
               const _HelperText('Este empleado no tiene servicios disponibles'),
               const SizedBox(height: 10),
             ],
-            _DropdownField(
+            _SearchableDropdownField(
               label: 'Servicio',
               value: serviceId,
               options: serviceOptions,
               icon: Icons.spa_outlined,
               onChanged: serviceOptions.isEmpty ? null : onServiceChanged,
+              searchHint: 'Nombre o descripcion del servicio',
             ),
             if (service != null) ...[
               const SizedBox(height: 10),
@@ -830,6 +832,219 @@ class _DropdownField extends StatelessWidget {
       ],
       validator: (value) => value == null ? 'Selecciona $label' : null,
       onChanged: onChanged,
+    );
+  }
+}
+
+class _SearchableDropdownField extends StatelessWidget {
+  const _SearchableDropdownField({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.icon,
+    required this.onChanged,
+    required this.searchHint,
+  });
+
+  final String label;
+  final String? value;
+  final List<_BookingOption> options;
+  final IconData icon;
+  final ValueChanged<String?>? onChanged;
+  final String searchHint;
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredOptions = _dedupeBookingOptions(options);
+    _BookingOption? selected;
+    for (final option in filteredOptions) {
+      if (option.id == value) {
+        selected = option;
+        break;
+      }
+    }
+    final enabled = onChanged != null && filteredOptions.isNotEmpty;
+    final display = selected?.label ?? 'Selecciona $label';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(AnnaRadii.md),
+      onTap: enabled
+          ? () async {
+              final picked = await _SearchableOptionsSheet.show(
+                context,
+                title: label,
+                searchHint: searchHint,
+                options: filteredOptions,
+                selectedId: selected?.id,
+              );
+              if (picked != null) onChanged?.call(picked.id);
+            }
+          : null,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          suffixIcon: const Icon(Icons.search),
+          enabled: enabled,
+        ),
+        child: Text(
+          display,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: selected == null ? AnnaColors.muted : AnnaColors.text,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchableOptionsSheet extends StatefulWidget {
+  const _SearchableOptionsSheet({
+    required this.title,
+    required this.searchHint,
+    required this.options,
+    required this.selectedId,
+  });
+
+  final String title;
+  final String searchHint;
+  final List<_BookingOption> options;
+  final String? selectedId;
+
+  static Future<_BookingOption?> show(
+    BuildContext context, {
+    required String title,
+    required String searchHint,
+    required List<_BookingOption> options,
+    required String? selectedId,
+  }) {
+    return showModalBottomSheet<_BookingOption>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (_) => _SearchableOptionsSheet(
+        title: title,
+        searchHint: searchHint,
+        options: options,
+        selectedId: selectedId,
+      ),
+    );
+  }
+
+  @override
+  State<_SearchableOptionsSheet> createState() =>
+      _SearchableOptionsSheetState();
+}
+
+class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final query = _normalizeSearch(_query);
+    final visible = query.isEmpty
+        ? widget.options
+        : widget.options
+            .where((option) => option.searchText.contains(query))
+            .toList();
+
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.86,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(18, 14, 18, bottom + 18),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Buscar',
+                hintText: widget.searchHint,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _controller.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+              ),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: visible.isEmpty
+                  ? const EmptyState('No hay resultados.')
+                  : ListView.separated(
+                      itemCount: visible.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final option = visible[index];
+                        final selected = option.id == widget.selectedId;
+                        return PanelCard(
+                          padding: EdgeInsets.zero,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            title: Text(
+                              option.label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AnnaColors.text,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            trailing: selected
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  )
+                                : const Icon(
+                                    Icons.chevron_right,
+                                    color: AnnaColors.muted,
+                                  ),
+                            onTap: () => Navigator.pop(context, option),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1345,6 +1560,7 @@ class _BookingReferences {
           return _BookingOption(
             id: id,
             label: labelBuilder(record),
+            searchText: _searchText(record, labelBuilder(record)),
             record: record,
             durationMinutes:
                 _intValue(record, const ['duration_minutes', 'duration']),
@@ -1394,6 +1610,31 @@ class _BookingReferences {
   static String _zoneLabel(ApiRecord record) {
     return _textValue(record, const ['name', 'title', 'display_name']) ??
         'Zona ${_id(record)}';
+  }
+
+  static String _searchText(ApiRecord record, String label) {
+    final values = <String>[label];
+    void collect(Object? value) {
+      if (value == null) return;
+      if (value is String || value is num || value is bool) {
+        values.add(value.toString());
+        return;
+      }
+      if (value is Map) {
+        for (final nested in value.values) {
+          collect(nested);
+        }
+        return;
+      }
+      if (value is List) {
+        for (final nested in value) {
+          collect(nested);
+        }
+      }
+    }
+
+    collect(record.data);
+    return _normalizeSearch(values.join(' '));
   }
 
   static String? _textValue(ApiRecord record, List<String> keys) {
@@ -1475,10 +1716,23 @@ List<_BookingOption> _dedupeBookingOptions(List<_BookingOption> options) {
   return byId.values.toList();
 }
 
+String _normalizeSearch(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll(RegExp(r'[áàäâ]'), 'a')
+      .replaceAll(RegExp(r'[éèëê]'), 'e')
+      .replaceAll(RegExp(r'[íìïî]'), 'i')
+      .replaceAll(RegExp(r'[óòöô]'), 'o')
+      .replaceAll(RegExp(r'[úùüû]'), 'u')
+      .replaceAll('ñ', 'n')
+      .trim();
+}
+
 class _BookingOption {
   const _BookingOption({
     required this.id,
     required this.label,
+    required this.searchText,
     required this.record,
     required this.durationMinutes,
     required this.price,
@@ -1490,6 +1744,7 @@ class _BookingOption {
 
   final String id;
   final String label;
+  final String searchText;
   final ApiRecord record;
   final int? durationMinutes;
   final String? price;
