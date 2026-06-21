@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'color_palette_picker.dart';
@@ -51,8 +52,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ScreenScaffold(
-      title: widget.canManageStaff ? 'Empleados' : 'Mi ficha',
+      title: widget.canManageStaff ? t.tr('Empleados') : t.tr('Mi ficha'),
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -112,8 +114,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
               if (filtered.isEmpty)
                 EmptyState(
                   employees.isEmpty
-                      ? 'No hay empleados todavia.'
-                      : 'No hay empleados para esta busqueda.',
+                      ? t.tr('No hay empleados todavia.')
+                      : t.tr('No hay empleados para esta busqueda.'),
                 )
               else
                 for (final employee in filtered) ...[
@@ -151,6 +153,7 @@ class _EmployeeSearchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PanelCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -159,8 +162,8 @@ class _EmployeeSearchCard extends StatelessWidget {
           TextField(
             controller: controller,
             decoration: InputDecoration(
-              labelText: 'Buscar empleado',
-              hintText: 'Nombre, telefono, email o servicio',
+              labelText: t.tr('Buscar empleado'),
+              hintText: t.tr('Nombre, telefono, email o servicio'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: controller.text.isEmpty
                   ? null
@@ -176,8 +179,8 @@ class _EmployeeSearchCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              AnnaBadge('$total empleados'),
-              if (visible != total) AnnaBadge('$visible visibles'),
+              AnnaBadge(t.employeesCount(total)),
+              if (visible != total) AnnaBadge(t.visibleCount(visible)),
             ],
           ),
         ],
@@ -202,22 +205,25 @@ class _EmployeeCard extends StatelessWidget {
   final String? currentEmployeeId;
 
   Future<void> _deleteEmployee(BuildContext context) async {
+    final t = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar empleado'),
+        title: Text(t.tr('Eliminar empleado')),
         content: Text(
-          'Quieres eliminar a ${employee.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
+          t.isRussian
+              ? 'Удалить ${employee.name}? Если есть история, сотрудник будет скрыт из активного списка, а записи останутся.'
+              : 'Quieres eliminar a ${employee.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(t.tr('Cancelar')),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.delete_outline),
-            label: const Text('Eliminar'),
+            label: Text(t.tr('Eliminar')),
           ),
         ],
       ),
@@ -228,7 +234,7 @@ class _EmployeeCard extends StatelessWidget {
       if (!context.mounted) return;
       onChanged();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Empleado eliminado.')),
+        SnackBar(content: Text(t.tr('Empleado eliminado.'))),
       );
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
@@ -240,6 +246,7 @@ class _EmployeeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PanelCard(
       padding: EdgeInsets.zero,
       child: InkWell(
@@ -315,7 +322,7 @@ class _EmployeeCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     _EmployeeInfoLine(
                       icon: Icons.phone_outlined,
-                      label: employee.phone ?? 'Sin telefono',
+                      label: employee.phone ?? t.tr('Sin telefono'),
                       onTap: employee.phone == null
                           ? null
                           : () => showPhoneActions(
@@ -327,7 +334,7 @@ class _EmployeeCard extends StatelessWidget {
                       const SizedBox(height: 6),
                       _EmployeeInfoLine(
                         icon: Icons.percent,
-                        label: 'Comision ${employee.commissionPercent ?? '-'}%',
+                        label: t.commission(employee.commissionPercent ?? '-'),
                       ),
                     ],
                     const SizedBox(height: 10),
@@ -335,7 +342,10 @@ class _EmployeeCard extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        AnnaBadge(employee.isActive ? 'Activo' : 'Inactivo',
+                        AnnaBadge(
+                            employee.isActive
+                                ? t.tr('Activo')
+                                : t.tr('Inactivo'),
                             warning: !employee.isActive),
                         if (employee.username != null)
                           AnnaBadge('@${employee.username}'),
@@ -349,7 +359,7 @@ class _EmployeeCard extends StatelessWidget {
                 children: [
                   if (canManageStaff && currentEmployeeId != employee.id)
                     IconButton(
-                      tooltip: 'Eliminar',
+                      tooltip: t.tr('Eliminar'),
                       onPressed: () => _deleteEmployee(context),
                       icon: const Icon(Icons.delete_outline),
                       color: AnnaColors.danger,
@@ -490,22 +500,25 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
     BuildContext context,
     _EmployeeView employee,
   ) async {
+    final t = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar empleado'),
+        title: Text(t.tr('Eliminar empleado')),
         content: Text(
-          'Quieres eliminar a ${employee.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
+          t.isRussian
+              ? 'Удалить ${employee.name}? Если есть история, сотрудник будет скрыт из активного списка, а записи останутся.'
+              : 'Quieres eliminar a ${employee.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(t.tr('Cancelar')),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.delete_outline),
-            label: const Text('Eliminar'),
+            label: Text(t.tr('Eliminar')),
           ),
         ],
       ),
@@ -517,7 +530,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
       Navigator.pop(context);
       onChanged();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Empleado eliminado.')),
+        SnackBar(content: Text(t.tr('Empleado eliminado.'))),
       );
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
@@ -529,6 +542,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.9,
@@ -604,11 +618,11 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                 _EmployeeStatsGrid(stats: detail.stats),
                 const SizedBox(height: 14),
                 _EmployeeDetailSection(
-                  title: 'Informacion',
+                  title: t.tr('Informacion'),
                   children: [
                     _EmployeeInfoLine(
                         icon: Icons.phone_outlined,
-                        label: detail.employee.phone ?? 'Sin telefono',
+                        label: detail.employee.phone ?? t.tr('Sin telefono'),
                         onTap: detail.employee.phone == null
                             ? null
                             : () => showPhoneActions(
@@ -617,7 +631,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                                 )),
                     _EmployeeInfoLine(
                         icon: Icons.mail_outline,
-                        label: detail.employee.email ?? 'Sin email',
+                        label: detail.employee.email ?? t.tr('Sin email'),
                         onTap: detail.employee.email == null
                             ? null
                             : () => writeEmail(
@@ -627,21 +641,36 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                     if (canManageStaff)
                       _EmployeeInfoLine(
                           icon: Icons.percent,
-                          label:
-                              'Comision ${detail.employee.commissionPercent ?? '-'}%'),
+                          label: t.commission(
+                              detail.employee.commissionPercent ?? '-')),
                     _EmployeeInfoLine(
                         icon: Icons.person_outline,
                         label: detail.employee.username == null
-                            ? 'Sin usuario vinculado'
+                            ? t.tr('Sin usuario vinculado')
                             : '@${detail.employee.username}'),
                   ],
                 ),
+                if (canManageStaff) ...[
+                  _EmployeeScheduleSummary(
+                    api: api,
+                    employeeId: detail.employee.id,
+                    onEdit: () async {
+                      final changed = await _EmployeeScheduleSheet.show(
+                        context,
+                        api: api,
+                        employee: detail.employee,
+                      );
+                      if (changed == true && mounted) setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _EmployeeDetailSection(
-                  title: 'Servicios',
+                  title: t.tr('Servicios'),
                   children: detail.employee.serviceNames.isEmpty
-                      ? const [
-                          Text('No definidos.',
-                              style: TextStyle(color: AnnaColors.muted))
+                      ? [
+                          Text(t.tr('No definidos.'),
+                              style: const TextStyle(color: AnnaColors.muted))
                         ]
                       : [
                           Wrap(
@@ -656,7 +685,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                         ],
                 ),
                 _EmployeeCountListSection(
-                    title: 'Servicios mas realizados',
+                    title: t.tr('Servicios mas realizados'),
                     items: detail.topServices),
                 _EmployeeClientListSection(items: detail.topClients),
                 _EmployeeBookingHistorySection(bookings: detail.bookings),
@@ -676,13 +705,14 @@ class _EmployeeStatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final entries = [
-      ('Gana empleado', '${stats['employee_earnings'] ?? '0.00'} EUR'),
-      ('Facturado', '${stats['client_revenue'] ?? '0.00'} EUR'),
-      ('Salon', '${stats['salon_revenue'] ?? '0.00'} EUR'),
-      ('Visitas', stats['bookings_count'] ?? '0'),
-      ('Clientes', stats['clients_count'] ?? '0'),
-      ('Ticket medio', '${stats['avg_ticket'] ?? '0.00'} EUR'),
+      (t.tr('Gana empleado'), '${stats['employee_earnings'] ?? '0.00'} EUR'),
+      (t.tr('Facturado'), '${stats['client_revenue'] ?? '0.00'} EUR'),
+      (t.tr('Salon'), '${stats['salon_revenue'] ?? '0.00'} EUR'),
+      (t.tr('Visitas'), stats['bookings_count'] ?? '0'),
+      (t.tr('Clientes'), stats['clients_count'] ?? '0'),
+      (t.tr('Ticket medio'), '${stats['avg_ticket'] ?? '0.00'} EUR'),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -716,6 +746,607 @@ class _EmployeeStatsGrid extends StatelessWidget {
   }
 }
 
+class _EmployeeScheduleSummary extends StatelessWidget {
+  const _EmployeeScheduleSummary({
+    required this.api,
+    required this.employeeId,
+    required this.onEdit,
+  });
+
+  final AnnaApi api;
+  final String employeeId;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return FutureBuilder<ApiDocument>(
+      future: api.employeeSchedule(employeeId),
+      builder: (context, snapshot) {
+        final children = <Widget>[
+          Row(
+            children: [
+              Expanded(
+                child: Text(t.tr('Horario'),
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              TextButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_calendar_outlined),
+                label: Text(t.tr('Editar horario')),
+              ),
+            ],
+          ),
+        ];
+        if (snapshot.connectionState != ConnectionState.done) {
+          children.add(const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: LinearProgressIndicator(),
+          ));
+        } else if (snapshot.hasData) {
+          final schedule = _EmployeeSchedule.fromMap(snapshot.data!.data);
+          children.add(Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final shift in schedule.weekly)
+                AnnaBadge(
+                  '${_weekdayShort(context, shift.weekday)} ${shift.isDayOff ? t.tr('Dia libre') : '${shift.startTime}-${shift.endTime}'}',
+                ),
+            ],
+          ));
+        } else {
+          children.add(AnnaErrorBanner(formatApiError(snapshot.error!)));
+        }
+        return PanelCard(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EmployeeScheduleSheet extends StatefulWidget {
+  const _EmployeeScheduleSheet({
+    required this.api,
+    required this.employee,
+  });
+
+  final AnnaApi api;
+  final _EmployeeView employee;
+
+  static Future<bool?> show(
+    BuildContext context, {
+    required AnnaApi api,
+    required _EmployeeView employee,
+  }) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => _EmployeeScheduleSheet(
+        api: api,
+        employee: employee,
+      ),
+    );
+  }
+
+  @override
+  State<_EmployeeScheduleSheet> createState() => _EmployeeScheduleSheetState();
+}
+
+class _EmployeeScheduleSheetState extends State<_EmployeeScheduleSheet> {
+  late Future<ApiDocument> _future = widget.api.employeeSchedule(
+    widget.employee.id,
+  );
+  var _saving = false;
+  String? _error;
+  _EmployeeSchedule? _schedule;
+
+  Future<void> _save() async {
+    final schedule = _schedule;
+    if (schedule == null) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.updateEmployeeSchedule(widget.employee.id, {
+        'weekly_shifts': [
+          for (final shift in schedule.weekly) shift.toPayload(),
+        ],
+        'overrides': [
+          for (final override in schedule.overrides) override.toPayload(),
+        ],
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).tr('Horario guardado.'))),
+      );
+      Navigator.pop(context, true);
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = _apiErrorText(error));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, 16, 18, bottomInset + 18),
+      child: FutureBuilder<ApiDocument>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return ErrorState(
+              error: snapshot.error!,
+              onRetry: () => setState(() {
+                _future = widget.api.employeeSchedule(widget.employee.id);
+              }),
+            );
+          }
+          _schedule ??= _EmployeeSchedule.fromMap(snapshot.data?.data ?? {});
+          final schedule = _schedule!;
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        t.tr('Horario de trabajo'),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _saving ? null : () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                for (final shift in schedule.weekly) ...[
+                  _WeeklyShiftEditor(
+                    shift: shift,
+                    onChanged: () => setState(() {}),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(t.tr('Dias especiales'),
+                          style: Theme.of(context).textTheme.titleMedium),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => setState(() {
+                        schedule.overrides.add(_ScheduleOverride.empty());
+                      }),
+                      icon: const Icon(Icons.add),
+                      label: Text(t.tr('Anadir dia especial')),
+                    ),
+                  ],
+                ),
+                if (schedule.overrides.isEmpty)
+                  Text(t.tr('Sin dias especiales.'),
+                      style: const TextStyle(color: AnnaColors.muted))
+                else
+                  for (final override in schedule.overrides) ...[
+                    _ScheduleOverrideEditor(
+                      scheduleOverride: override,
+                      onDelete: () => setState(() {
+                        override.delete = true;
+                        schedule.overrides.remove(override);
+                      }),
+                      onChanged: () => setState(() {}),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  AnnaErrorBanner(_error!),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: Text(t.tr('Guardar horario')),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _WeeklyShiftEditor extends StatelessWidget {
+  const _WeeklyShiftEditor({
+    required this.shift,
+    required this.onChanged,
+  });
+
+  final _WeeklyShift shift;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return PanelCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(_weekdayName(context, shift.weekday)),
+            subtitle:
+                Text(shift.isDayOff ? t.tr('Dia libre') : t.tr('Trabaja')),
+            value: !shift.isDayOff,
+            onChanged: (value) {
+              shift.isDayOff = !value;
+              onChanged();
+            },
+          ),
+          if (!shift.isDayOff) ...[
+            _TimeRow(
+              firstLabel: t.tr('Desde'),
+              firstValue: shift.startTime,
+              onFirstChanged: (value) {
+                shift.startTime = value;
+                onChanged();
+              },
+              secondLabel: t.tr('Hasta'),
+              secondValue: shift.endTime,
+              onSecondChanged: (value) {
+                shift.endTime = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 8),
+            _TimeRow(
+              firstLabel: t.tr('Pausa desde'),
+              firstValue: shift.breakStart,
+              onFirstChanged: (value) {
+                shift.breakStart = value;
+                onChanged();
+              },
+              secondLabel: t.tr('Pausa hasta'),
+              secondValue: shift.breakEnd,
+              onSecondChanged: (value) {
+                shift.breakEnd = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              initialValue: shift.note,
+              decoration: InputDecoration(labelText: t.tr('Nota')),
+              onChanged: (value) => shift.note = value,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ScheduleOverrideEditor extends StatelessWidget {
+  const _ScheduleOverrideEditor({
+    required this.scheduleOverride,
+    required this.onChanged,
+    required this.onDelete,
+  });
+
+  final _ScheduleOverride scheduleOverride;
+  final VoidCallback onChanged;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return PanelCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: scheduleOverride.date,
+                  decoration: InputDecoration(labelText: t.tr('Fecha')),
+                  onChanged: (value) => scheduleOverride.date = value,
+                ),
+              ),
+              IconButton(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline),
+                color: AnnaColors.danger,
+              ),
+            ],
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(t.tr('Trabaja')),
+            subtitle: Text(scheduleOverride.isDayOff ? t.tr('Dia libre') : ''),
+            value: !scheduleOverride.isDayOff,
+            onChanged: (value) {
+              scheduleOverride.isDayOff = !value;
+              onChanged();
+            },
+          ),
+          if (!scheduleOverride.isDayOff) ...[
+            _TimeRow(
+              firstLabel: t.tr('Desde'),
+              firstValue: scheduleOverride.startTime,
+              onFirstChanged: (value) {
+                scheduleOverride.startTime = value;
+                onChanged();
+              },
+              secondLabel: t.tr('Hasta'),
+              secondValue: scheduleOverride.endTime,
+              onSecondChanged: (value) {
+                scheduleOverride.endTime = value;
+                onChanged();
+              },
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              initialValue: scheduleOverride.label,
+              decoration: InputDecoration(labelText: t.tr('Etiqueta')),
+              onChanged: (value) => scheduleOverride.label = value,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeRow extends StatelessWidget {
+  const _TimeRow({
+    required this.firstLabel,
+    required this.firstValue,
+    required this.onFirstChanged,
+    required this.secondLabel,
+    required this.secondValue,
+    required this.onSecondChanged,
+  });
+
+  final String firstLabel;
+  final String? firstValue;
+  final ValueChanged<String?> onFirstChanged;
+  final String secondLabel;
+  final String? secondValue;
+  final ValueChanged<String?> onSecondChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _TimeButton(
+            label: firstLabel,
+            value: firstValue,
+            onChanged: onFirstChanged,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _TimeButton(
+            label: secondLabel,
+            value: secondValue,
+            onChanged: onSecondChanged,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TimeButton extends StatelessWidget {
+  const _TimeButton({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: () async {
+        final current = _parseTime(value);
+        final picked = await showTimePicker(
+          context: context,
+          initialTime: current ?? const TimeOfDay(hour: 9, minute: 0),
+        );
+        if (picked == null) return;
+        onChanged(_formatTime(picked));
+      },
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text('$label: ${value ?? '--:--'}'),
+      ),
+    );
+  }
+}
+
+class _EmployeeSchedule {
+  _EmployeeSchedule({required this.weekly, required this.overrides});
+
+  final List<_WeeklyShift> weekly;
+  final List<_ScheduleOverride> overrides;
+
+  factory _EmployeeSchedule.fromMap(Map<String, dynamic> data) {
+    return _EmployeeSchedule(
+      weekly: _mapList(data['weekly_shifts']).map(_WeeklyShift.fromMap).toList()
+        ..sort((a, b) => a.weekday.compareTo(b.weekday)),
+      overrides:
+          _mapList(data['overrides']).map(_ScheduleOverride.fromMap).toList(),
+    );
+  }
+}
+
+class _WeeklyShift {
+  _WeeklyShift({
+    required this.weekday,
+    required this.isDayOff,
+    required this.startTime,
+    required this.endTime,
+    required this.breakStart,
+    required this.breakEnd,
+    required this.note,
+  });
+
+  final int weekday;
+  bool isDayOff;
+  String? startTime;
+  String? endTime;
+  String? breakStart;
+  String? breakEnd;
+  String note;
+
+  factory _WeeklyShift.fromMap(Map<String, dynamic> data) {
+    return _WeeklyShift(
+      weekday: int.tryParse(data['weekday']?.toString() ?? '') ?? 0,
+      isDayOff: data['is_day_off'] == true,
+      startTime: _timeText(data['start_time']),
+      endTime: _timeText(data['end_time']),
+      breakStart: _timeText(data['break_start']),
+      breakEnd: _timeText(data['break_end']),
+      note: data['note']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toPayload() => {
+        'weekday': weekday,
+        'is_day_off': isDayOff,
+        'start_time': isDayOff ? null : (startTime ?? '09:00'),
+        'end_time': isDayOff ? null : (endTime ?? '18:00'),
+        'break_start': isDayOff ? null : breakStart,
+        'break_end': isDayOff ? null : breakEnd,
+        'note': note,
+      };
+}
+
+class _ScheduleOverride {
+  _ScheduleOverride({
+    required this.date,
+    required this.isDayOff,
+    required this.startTime,
+    required this.endTime,
+    required this.label,
+    this.id,
+  });
+
+  String? id;
+  String date;
+  bool isDayOff;
+  String? startTime;
+  String? endTime;
+  String label;
+  bool delete = false;
+
+  factory _ScheduleOverride.empty() {
+    return _ScheduleOverride(
+      date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      isDayOff: false,
+      startTime: '09:00',
+      endTime: '18:00',
+      label: '',
+    );
+  }
+
+  factory _ScheduleOverride.fromMap(Map<String, dynamic> data) {
+    return _ScheduleOverride(
+      id: data['id']?.toString(),
+      date: data['date']?.toString() ?? '',
+      isDayOff: data['is_day_off'] == true,
+      startTime: _timeText(data['start_time']),
+      endTime: _timeText(data['end_time']),
+      label: data['label']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toPayload() => {
+        if (id != null) 'id': id,
+        'date': date,
+        'is_day_off': isDayOff,
+        'start_time': isDayOff ? null : (startTime ?? '09:00'),
+        'end_time': isDayOff ? null : (endTime ?? '18:00'),
+        'label': label,
+        if (delete) 'delete': true,
+      };
+}
+
+String _weekdayName(BuildContext context, int weekday) {
+  final t = AppLocalizations.of(context);
+  const es = [
+    'Lunes',
+    'Martes',
+    'Miercoles',
+    'Jueves',
+    'Viernes',
+    'Sabado',
+    'Domingo'
+  ];
+  return t.tr(es[weekday.clamp(0, 6)]);
+}
+
+String _weekdayShort(BuildContext context, int weekday) {
+  final t = AppLocalizations.of(context);
+  const es = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
+  return t.tr(es[weekday.clamp(0, 6)]);
+}
+
+String? _timeText(Object? value) {
+  final text = value?.toString();
+  if (text == null || text.isEmpty) return null;
+  return text.length >= 5 ? text.substring(0, 5) : text;
+}
+
+TimeOfDay? _parseTime(String? value) {
+  if (value == null || !value.contains(':')) return null;
+  final parts = value.split(':');
+  final hour = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+  if (hour == null || minute == null) return null;
+  return TimeOfDay(hour: hour, minute: minute);
+}
+
+String _formatTime(TimeOfDay value) {
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
+}
+
 class _EmployeeStatsRangeSelector extends StatelessWidget {
   const _EmployeeStatsRangeSelector({
     required this.range,
@@ -742,12 +1373,13 @@ class _EmployeeStatsRangeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PanelCard(
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Periodo de estadistica',
+          Text(t.tr('Periodo de estadistica'),
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),
           Wrap(
@@ -755,24 +1387,26 @@ class _EmployeeStatsRangeSelector extends StatelessWidget {
             runSpacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('Este mes'),
+                label: Text(t.tr('Este mes')),
                 selected: range.kind == _StatsRangeKind.thisMonth,
                 onSelected: (_) => onChanged(_StatsRange.thisMonth()),
               ),
               ChoiceChip(
-                label: const Text('Mes pasado'),
+                label: Text(t.tr('Mes pasado')),
                 selected: range.kind == _StatsRangeKind.lastMonth,
                 onSelected: (_) => onChanged(_StatsRange.lastMonth()),
               ),
               ChoiceChip(
-                label: const Text('Todo'),
+                label: Text(t.tr('Todo')),
                 selected: range.kind == _StatsRangeKind.all,
                 onSelected: (_) => onChanged(_StatsRange.all()),
               ),
               ActionChip(
                 avatar: const Icon(Icons.date_range_outlined, size: 18),
                 label: Text(
-                  range.kind == _StatsRangeKind.custom ? range.label : 'Rango',
+                  range.kind == _StatsRangeKind.custom
+                      ? range.label
+                      : t.tr('Rango'),
                 ),
                 onPressed: () => _pickCustomRange(context),
               ),
@@ -877,11 +1511,13 @@ class _EmployeeCountListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _EmployeeDetailSection(
       title: title,
       children: items.isEmpty
-          ? const [
-              Text('Sin datos.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin datos.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
@@ -899,11 +1535,13 @@ class _EmployeeClientListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _EmployeeDetailSection(
-      title: 'Clientes habituales',
+      title: t.tr('Clientes habituales'),
       children: items.isEmpty
-          ? const [
-              Text('Sin datos.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin datos.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
@@ -923,11 +1561,13 @@ class _EmployeeBookingHistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _EmployeeDetailSection(
-      title: 'Reservas',
+      title: t.tr('Reservas'),
       children: bookings.isEmpty
-          ? const [
-              Text('Sin reservas.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin reservas.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final booking in bookings)
@@ -1074,24 +1714,27 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   }
 
   Future<void> _copyUsername() async {
+    final t = AppLocalizations.of(context);
     final username = _usernameController.text.trim();
     if (username.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: username));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Usuario copiado.')),
+      SnackBar(content: Text(t.tr('Usuario copiado.'))),
     );
   }
 
   Future<void> _sendAccessByWhatsapp() async {
+    final t = AppLocalizations.of(context);
     final phone = _normalizePhone(_phoneController.text);
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
     if (phone == null || username.isEmpty || password.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hace falta telefono, usuario y nueva contrasena.'),
+        SnackBar(
+          content:
+              Text(t.tr('Hace falta telefono, usuario y nueva contrasena.')),
         ),
       );
       return;
@@ -1106,12 +1749,13 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (opened || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No se pudo abrir WhatsApp.')),
+      SnackBar(content: Text(t.tr('No se pudo abrir WhatsApp.'))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottomInset + 18),
@@ -1131,10 +1775,10 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       Expanded(
                         child: Text(
                           widget.employee == null
-                              ? 'Nuevo empleado'
+                              ? t.tr('Nuevo empleado')
                               : widget.canManageStaff
-                                  ? 'Editar empleado'
-                                  : 'Mi perfil y servicios',
+                                  ? t.tr('Editar empleado')
+                                  : t.tr('Mi perfil y servicios'),
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ),
@@ -1147,27 +1791,27 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _firstNameController,
-                    decoration: const InputDecoration(labelText: 'Nombre'),
+                    decoration: InputDecoration(labelText: t.tr('Nombre')),
                     validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Introduce el nombre'
+                        ? t.tr('Introduce el nombre')
                         : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                       controller: _lastNameController,
                       decoration:
-                          const InputDecoration(labelText: 'Apellidos')),
+                          InputDecoration(labelText: t.tr('Apellidos'))),
                   const SizedBox(height: 12),
                   TextFormField(
                       controller: _phoneController,
-                      decoration: const InputDecoration(labelText: 'Telefono')),
+                      decoration: InputDecoration(labelText: t.tr('Telefono'))),
                   const SizedBox(height: 12),
                   TextFormField(
                       controller: _emailController,
                       decoration: const InputDecoration(labelText: 'Email')),
                   const SizedBox(height: 12),
                   ColorPalettePicker(
-                    label: 'Color calendario',
+                    label: t.tr('Color calendario'),
                     value: _color,
                     onChanged: (value) => setState(() => _color = value),
                   ),
@@ -1176,9 +1820,9 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                     TextFormField(
                       controller: _usernameController,
                       enabled: !_hasExistingEmployeeAccess,
-                      decoration: const InputDecoration(
-                        labelText: 'Usuario para entrar',
-                        prefixIcon: Icon(Icons.account_circle_outlined),
+                      decoration: InputDecoration(
+                        labelText: t.tr('Usuario para entrar'),
+                        prefixIcon: const Icon(Icons.account_circle_outlined),
                       ),
                     ),
                     if (_hasExistingEmployeeAccess) ...[
@@ -1188,7 +1832,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                         child: OutlinedButton.icon(
                           onPressed: _copyUsername,
                           icon: const Icon(Icons.copy_outlined),
-                          label: const Text('Copiar usuario'),
+                          label: Text(t.tr('Copiar usuario')),
                         ),
                       ),
                     ],
@@ -1203,8 +1847,8 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                             onPressed: _generatePassword,
                             icon: const Icon(Icons.auto_awesome_outlined),
                             label: Text(_hasExistingEmployeeAccess
-                                ? 'Generar nueva contrasena'
-                                : 'Generar contrasena'),
+                                ? t.tr('Generar nueva contrasena')
+                                : t.tr('Generar contrasena')),
                           ),
                           OutlinedButton.icon(
                             onPressed: _sendAccessByWhatsapp,
@@ -1220,8 +1864,8 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       obscureText: true,
                       decoration: InputDecoration(
                         labelText: widget.employee == null
-                            ? 'Contrasena inicial'
-                            : 'Nueva contrasena',
+                            ? t.tr('Contrasena inicial')
+                            : t.tr('Nueva contrasena'),
                         prefixIcon: const Icon(Icons.lock_outline),
                       ),
                       validator: (value) {
@@ -1230,13 +1874,13 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                         if (widget.employee == null &&
                             username.isNotEmpty &&
                             password.isEmpty) {
-                          return 'Introduce una contrasena inicial';
+                          return t.tr('Introduce una contrasena inicial');
                         }
                         if (username.isEmpty && password.isNotEmpty) {
-                          return 'Introduce un usuario';
+                          return t.tr('Introduce un usuario');
                         }
                         if (password.isNotEmpty && password.length < 4) {
-                          return 'Minimo 4 caracteres';
+                          return t.tr('Minimo 4 caracteres');
                         }
                         return null;
                       },
@@ -1246,18 +1890,18 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       controller: _commissionController,
                       keyboardType: TextInputType.number,
                       decoration:
-                          const InputDecoration(labelText: 'Comision %'),
+                          InputDecoration(labelText: t.tr('Comision %')),
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Activo'),
+                      title: Text(t.tr('Activo')),
                       value: _isActive,
                       onChanged: (value) => setState(() => _isActive = value),
                     ),
                     const SizedBox(height: 8),
                   ],
-                  Text('Servicios',
+                  Text(t.tr('Servicios'),
                       style: Theme.of(context).textTheme.titleMedium),
                   if (snapshot.connectionState != ConnectionState.done)
                     const Padding(
@@ -1269,7 +1913,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(service.valueAsText('name') ??
-                            'Servicio ${service.valueAsText('id')}'),
+                            '${t.tr('Servicio')} ${service.valueAsText('id')}'),
                         value: _serviceIds.contains(service.valueAsText('id')),
                         onChanged: (value) {
                           final id = service.valueAsText('id');
@@ -1288,7 +1932,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       controller: _notesController,
                       minLines: 3,
                       maxLines: 5,
-                      decoration: const InputDecoration(labelText: 'Notas'),
+                      decoration: InputDecoration(labelText: t.tr('Notas')),
                     ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
@@ -1305,8 +1949,8 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(widget.employee == null
-                              ? 'Crear empleado'
-                              : 'Guardar'),
+                              ? t.tr('Crear empleado')
+                              : t.tr('Guardar')),
                     ),
                   ),
                 ],

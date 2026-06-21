@@ -197,6 +197,19 @@ class AnnaApi {
         await _patch('employees/$employeeId/', payload));
   }
 
+  Future<ApiDocument> employeeSchedule(Object employeeId) async {
+    return ApiDocument.fromJson(await _get('employees/$employeeId/schedule/'));
+  }
+
+  Future<ApiDocument> updateEmployeeSchedule(
+    Object employeeId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _patch('employees/$employeeId/schedule/', payload),
+    );
+  }
+
   Future<void> deleteEmployee(Object employeeId) async {
     await _delete('employees/$employeeId/');
   }

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'client_form_sheet.dart';
@@ -383,6 +384,7 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Future<void> _pickBookingPhoto(String type) async {
+    final t = AppLocalizations.of(context);
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: AnnaColors.bgSoft,
@@ -392,12 +394,12 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Camara'),
+              title: Text(t.tr('Camara')),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Galeria'),
+              title: Text(t.tr('Galeria')),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
           ],
@@ -440,7 +442,7 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     return ScreenScaffold(
-      title: 'Nueva reserva',
+      title: AppLocalizations.of(context).tr('Nueva reserva'),
       action: IconButton(
           onPressed: _reloadReferences, icon: const Icon(Icons.refresh)),
       child: FutureBuilder<_BookingReferences>(
@@ -626,6 +628,7 @@ class _BookingFormCard extends StatelessWidget {
         clientId != null &&
         !creating;
     final dateText = DateFormat('d MMM yyyy', 'es').format(selectedDate);
+    final t = AppLocalizations.of(context);
 
     return PanelCard(
       child: Form(
@@ -633,21 +636,21 @@ class _BookingFormCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Datos de la reserva',
+            Text(t.tr('Datos de la reserva'),
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 6),
-            const Text(
-              'Selecciona cliente, empleado, servicio y horario.',
-              style: TextStyle(color: AnnaColors.muted),
+            Text(
+              t.tr('Selecciona cliente, empleado, servicio y horario.'),
+              style: const TextStyle(color: AnnaColors.muted),
             ),
             const SizedBox(height: 18),
             _SearchableDropdownField(
-              label: 'Cliente',
+              label: t.tr('Cliente'),
               value: clientId,
               options: refs.clientOptions,
               icon: Icons.person_outline,
               onChanged: onClientChanged,
-              searchHint: 'Nombre, apellido, telefono, email o login',
+              searchHint: t.tr('Nombre, apellido, telefono, email o login'),
             ),
             const SizedBox(height: 10),
             Align(
@@ -655,7 +658,7 @@ class _BookingFormCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: creating ? null : onCreateClient,
                 icon: const Icon(Icons.person_add_alt_1_outlined),
-                label: const Text('Crear cliente'),
+                label: Text(t.tr('Crear cliente')),
               ),
             ),
             const SizedBox(height: 14),
@@ -671,16 +674,16 @@ class _BookingFormCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             if (selectedEmployee != null && serviceOptions.isEmpty) ...[
-              const _HelperText('Este empleado no tiene servicios disponibles'),
+              _HelperText(t.tr('Este empleado no tiene servicios disponibles')),
               const SizedBox(height: 10),
             ],
             _SearchableDropdownField(
-              label: 'Servicio',
+              label: t.tr('Servicio'),
               value: serviceId,
               options: serviceOptions,
               icon: Icons.spa_outlined,
               onChanged: serviceOptions.isEmpty ? null : onServiceChanged,
-              searchHint: 'Nombre o descripcion del servicio',
+              searchHint: t.tr('Nombre o descripcion del servicio'),
             ),
             if (service != null) ...[
               const SizedBox(height: 10),
@@ -691,17 +694,18 @@ class _BookingFormCard extends StatelessWidget {
                   if (service.durationMinutes != null)
                     AnnaBadge('${service.durationMinutes} min'),
                   if (service.price != null) AnnaBadge('${service.price} EUR'),
-                  AnnaBadge(zoneNeeded ? 'Zona requerida' : 'Sin zona'),
+                  AnnaBadge(
+                      zoneNeeded ? t.tr('Zona requerida') : t.tr('Sin zona')),
                 ],
               ),
             ],
             const SizedBox(height: 14),
             if (service != null && employeeOptions.isEmpty) ...[
-              const _HelperText('Este servicio no tiene empleados disponibles'),
+              _HelperText(t.tr('Este servicio no tiene empleados disponibles')),
               const SizedBox(height: 10),
             ],
             _DropdownField(
-              label: 'Empleado',
+              label: t.tr('Empleado'),
               value: employeeId,
               options: employeeOptions,
               icon: Icons.badge_outlined,
@@ -709,10 +713,10 @@ class _BookingFormCard extends StatelessWidget {
             ),
             if (zoneNeeded) ...[
               const SizedBox(height: 14),
-              const _HelperText('Este servicio requiere zona'),
+              _HelperText(t.tr('Este servicio requiere zona')),
               const SizedBox(height: 10),
               _DropdownField(
-                label: 'Zona',
+                label: t.tr('Zona'),
                 value: zoneId,
                 options: zoneOptions,
                 icon: Icons.place_outlined,
@@ -721,7 +725,7 @@ class _BookingFormCard extends StatelessWidget {
             ],
             const SizedBox(height: 14),
             _PickerField(
-              label: 'Fecha',
+              label: t.tr('Fecha'),
               value: dateText,
               icon: Icons.event_outlined,
               onTap: onPickDate,
@@ -738,10 +742,10 @@ class _BookingFormCard extends StatelessWidget {
               controller: notesController,
               minLines: 3,
               maxLines: 5,
-              decoration: const InputDecoration(
-                labelText: 'Notas',
+              decoration: InputDecoration(
+                labelText: t.tr('Notas'),
                 alignLabelWithHint: true,
-                prefixIcon: Icon(Icons.notes_outlined),
+                prefixIcon: const Icon(Icons.notes_outlined),
               ),
             ),
             const SizedBox(height: 14),
@@ -749,7 +753,7 @@ class _BookingFormCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _BookingPhotoField(
-                    label: 'Foto antes',
+                    label: t.tr('Foto antes'),
                     path: beforePhotoPath,
                     icon: Icons.photo_camera_outlined,
                     onPick: creating ? null : onPickBeforePhoto,
@@ -759,7 +763,7 @@ class _BookingFormCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _BookingPhotoField(
-                    label: 'Foto despues',
+                    label: t.tr('Foto despues'),
                     path: afterPhotoPath,
                     icon: Icons.photo_library_outlined,
                     onPick: creating ? null : onPickAfterPhoto,
@@ -787,7 +791,7 @@ class _BookingFormCard extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: canCreate ? onCreateBooking : null,
-                child: creating ? const _ButtonSpinner() : const Text('Crear'),
+                child: creating ? const _ButtonSpinner() : Text(t.tr('Crear')),
               ),
             ),
           ],
@@ -830,7 +834,9 @@ class _DropdownField extends StatelessWidget {
             child: Text(option.label, overflow: TextOverflow.ellipsis),
           ),
       ],
-      validator: (value) => value == null ? 'Selecciona $label' : null,
+      validator: (value) => value == null
+          ? AppLocalizations.of(context).selectField(label)
+          : null,
       onChanged: onChanged,
     );
   }
@@ -952,6 +958,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     final query = _normalizeSearch(_query);
     final visible = query.isEmpty
@@ -985,7 +992,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
               controller: _controller,
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Buscar',
+                labelText: t.tr('Buscar'),
                 hintText: widget.searchHint,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _query.isEmpty
@@ -1003,7 +1010,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
             const SizedBox(height: 12),
             Expanded(
               child: visible.isEmpty
-                  ? const EmptyState('No hay resultados.')
+                  ? EmptyState(t.tr('No hay resultados.'))
                   : ListView.separated(
                       itemCount: visible.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -1073,6 +1080,7 @@ class _SourceDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final byId = <String, _SourceOption>{};
     for (final option in _options) {
       byId.putIfAbsent(option.id, () => option);
@@ -1084,19 +1092,19 @@ class _SourceDropdownField extends StatelessWidget {
       initialValue: selected,
       isExpanded: true,
       dropdownColor: AnnaColors.accentDeep,
-      decoration: const InputDecoration(
-        labelText: 'Origen de la reserva',
-        prefixIcon: Icon(Icons.campaign_outlined),
+      decoration: InputDecoration(
+        labelText: t.tr('Origen de la reserva'),
+        prefixIcon: const Icon(Icons.campaign_outlined),
       ),
       items: [
         for (final option in options)
           DropdownMenuItem(
             value: option.id,
-            child: Text(option.label, overflow: TextOverflow.ellipsis),
+            child: Text(t.tr(option.label), overflow: TextOverflow.ellipsis),
           ),
       ],
       validator: (value) =>
-          value == null ? 'Selecciona el origen de la reserva' : null,
+          value == null ? t.selectField(t.tr('Origen de la reserva')) : null,
       onChanged: onChanged,
     );
   }
@@ -1122,15 +1130,16 @@ class _RewardSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final future = rewardsFuture;
     if (future == null) {
-      return const _HelperText('Selecciona cliente para ver premios.');
+      return _HelperText(t.tr('Selecciona cliente para ver premios.'));
     }
     return FutureBuilder<ApiCollection>(
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const _HelperText('Cargando premios...');
+          return _HelperText(t.tr('Cargando premios...'));
         }
         if (snapshot.hasError) {
           return Text(
@@ -1142,8 +1151,8 @@ class _RewardSelector extends StatelessWidget {
             .where((record) => _intFromRecord(record, 'available') > 0)
             .toList();
         if (rewards.isEmpty) {
-          return const _HelperText(
-              'Este cliente aun no tiene premios disponibles.');
+          return _HelperText(
+              t.tr('Este cliente aun no tiene premios disponibles.'));
         }
         final selected =
             rewards.any((record) => record.valueAsText('id') == value)
@@ -1153,18 +1162,18 @@ class _RewardSelector extends StatelessWidget {
           initialValue: selected,
           isExpanded: true,
           dropdownColor: AnnaColors.accentDeep,
-          decoration: const InputDecoration(
-            labelText: 'Premio del cliente',
-            prefixIcon: Icon(Icons.card_giftcard_outlined),
+          decoration: InputDecoration(
+            labelText: t.tr('Premio del cliente'),
+            prefixIcon: const Icon(Icons.card_giftcard_outlined),
           ),
           items: [
-            const DropdownMenuItem(
-                value: null, child: Text('No aplicar premio')),
+            DropdownMenuItem(
+                value: null, child: Text(t.tr('No aplicar premio'))),
             for (final reward in rewards)
               DropdownMenuItem(
                 value: reward.valueAsText('id'),
                 child: Text(
-                  '${reward.valueAsText('name') ?? 'Premio'} · ${reward.valueAsText('discount_percent') ?? '0'}%',
+                  '${reward.valueAsText('name') ?? t.tr('Premio')} · ${reward.valueAsText('discount_percent') ?? '0'}%',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1317,6 +1326,7 @@ class _AvailableSlotField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final normalizedSelected =
         selectedValue == null ? null : _normalizeSlotValue(selectedValue!);
     final selectedLabel =
@@ -1324,12 +1334,12 @@ class _AvailableSlotField extends StatelessWidget {
 
     if (!enabled) {
       return InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Hora',
-          prefixIcon: Icon(Icons.schedule),
+        decoration: InputDecoration(
+          labelText: t.tr('Hora'),
+          prefixIcon: const Icon(Icons.schedule),
         ),
         child: Text(
-          selectedLabel ?? 'Selecciona servicio, empleado y zona',
+          selectedLabel ?? t.tr('Selecciona servicio, empleado y zona'),
           style: TextStyle(
             color: selectedLabel == null ? AnnaColors.muted : AnnaColors.text,
             fontWeight:
@@ -1341,14 +1351,14 @@ class _AvailableSlotField extends StatelessWidget {
 
     final future = slotsFuture;
     if (future == null) {
-      return const InputDecorator(
+      return InputDecorator(
         decoration: InputDecoration(
-          labelText: 'Hora',
-          prefixIcon: Icon(Icons.schedule),
+          labelText: t.tr('Hora'),
+          prefixIcon: const Icon(Icons.schedule),
         ),
         child: Text(
-          'Sin datos de disponibilidad',
-          style: TextStyle(color: AnnaColors.muted),
+          t.tr('Sin datos de disponibilidad'),
+          style: const TextStyle(color: AnnaColors.muted),
         ),
       );
     }
@@ -1357,28 +1367,28 @@ class _AvailableSlotField extends StatelessWidget {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const InputDecorator(
+          return InputDecorator(
             decoration: InputDecoration(
-              labelText: 'Hora',
-              prefixIcon: Icon(Icons.schedule),
+              labelText: t.tr('Hora'),
+              prefixIcon: const Icon(Icons.schedule),
             ),
             child: Row(
               children: [
-                SizedBox.square(
+                const SizedBox.square(
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                SizedBox(width: 10),
-                Text('Buscando horarios...'),
+                const SizedBox(width: 10),
+                Text(t.tr('Buscando horarios...')),
               ],
             ),
           );
         }
         if (snapshot.hasError) {
           return InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'Hora',
-              prefixIcon: Icon(Icons.schedule),
+            decoration: InputDecoration(
+              labelText: t.tr('Hora'),
+              prefixIcon: const Icon(Icons.schedule),
             ),
             child: Text(
               formatApiError(snapshot.error!),
@@ -1392,14 +1402,14 @@ class _AvailableSlotField extends StatelessWidget {
             ? normalizedSelected
             : null;
         if (slots.isEmpty) {
-          return const InputDecorator(
+          return InputDecorator(
             decoration: InputDecoration(
-              labelText: 'Hora',
-              prefixIcon: Icon(Icons.schedule),
+              labelText: t.tr('Hora'),
+              prefixIcon: const Icon(Icons.schedule),
             ),
             child: Text(
-              'No hay horarios disponibles',
-              style: TextStyle(color: AnnaColors.muted),
+              t.tr('No hay horarios disponibles'),
+              style: const TextStyle(color: AnnaColors.muted),
             ),
           );
         }
@@ -1408,9 +1418,9 @@ class _AvailableSlotField extends StatelessWidget {
           initialValue: value,
           isExpanded: true,
           dropdownColor: AnnaColors.accentDeep,
-          decoration: const InputDecoration(
-            labelText: 'Hora disponible',
-            prefixIcon: Icon(Icons.schedule),
+          decoration: InputDecoration(
+            labelText: t.tr('Hora disponible'),
+            prefixIcon: const Icon(Icons.schedule),
           ),
           items: [
             for (final slot in slots)
@@ -1420,7 +1430,7 @@ class _AvailableSlotField extends StatelessWidget {
               ),
           ],
           validator: (value) =>
-              value == null ? 'Selecciona un horario disponible' : null,
+              value == null ? t.selectField(t.tr('Hora disponible')) : null,
           onChanged: onChanged,
         );
       },

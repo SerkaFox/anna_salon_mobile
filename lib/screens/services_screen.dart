@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'color_palette_picker.dart';
@@ -42,8 +43,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ScreenScaffold(
-      title: 'Servicios',
+      title: t.tr('Servicios'),
       action: IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
       child: FutureBuilder<_ServiceReferences>(
         future: _future,
@@ -59,11 +61,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
             length: 3,
             child: Column(
               children: [
-                const TabBar(
+                TabBar(
                   tabs: [
-                    Tab(text: 'Servicios'),
-                    Tab(text: 'Zonas'),
-                    Tab(text: 'Premios'),
+                    Tab(text: t.tr('Servicios')),
+                    Tab(text: t.tr('Zonas')),
+                    Tab(text: t.tr('Premios')),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -114,14 +116,16 @@ class _ServicesTab extends StatelessWidget {
   final VoidCallback onChanged;
 
   Future<void> _deleteService(BuildContext context, ApiRecord service) async {
+    final t = AppLocalizations.of(context);
     final id = service.valueAsText('id');
-    final name = service.valueAsText('name') ?? 'Servicio';
+    final name = service.valueAsText('name') ?? t.tr('Servicio');
     if (id == null) return;
     final confirmed = await _confirmDelete(
       context,
-      title: 'Eliminar servicio',
-      message:
-          'Quieres eliminar $name? Si tiene historial, se desactivara sin borrar reservas anteriores.',
+      title: t.tr('Eliminar servicio'),
+      message: t.isRussian
+          ? 'Удалить $name? Если есть история, услуга будет отключена без удаления старых записей.'
+          : 'Quieres eliminar $name? Si tiene historial, se desactivara sin borrar reservas anteriores.',
     );
     if (confirmed != true || !context.mounted) return;
     try {
@@ -129,7 +133,7 @@ class _ServicesTab extends StatelessWidget {
       if (!context.mounted) return;
       onChanged();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Servicio eliminado.')),
+        SnackBar(content: Text(t.tr('Servicio eliminado.'))),
       );
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
@@ -141,6 +145,7 @@ class _ServicesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ListView(
       children: [
         if (canManageStaff) ...[
@@ -151,7 +156,7 @@ class _ServicesTab extends StatelessWidget {
               if (changed == true && context.mounted) onChanged();
             },
             icon: const Icon(Icons.add),
-            label: const Text('Crear servicio'),
+            label: Text(t.tr('Crear servicio')),
           ),
           const SizedBox(height: 12),
         ],
@@ -160,12 +165,12 @@ class _ServicesTab extends StatelessWidget {
             icon: Icons.spa_outlined,
             color: parseHexColor(service.valueAsText('color')) ??
                 Theme.of(context).colorScheme.primary,
-            title: service.valueAsText('name') ?? 'Servicio',
+            title: service.valueAsText('name') ?? t.tr('Servicio'),
             chips: [
               '${service.valueAsText('duration_minutes') ?? '-'} min',
               '${service.valueAsText('price') ?? '0.00'} EUR',
               if (_bool(service.data['requires_zone'], fallback: false))
-                'Con zona',
+                t.tr('Con zona'),
             ],
             description: service.valueAsText('description'),
             onTap: canManageStaff
@@ -198,14 +203,16 @@ class _ZonesTab extends StatelessWidget {
   final VoidCallback onChanged;
 
   Future<void> _deleteZone(BuildContext context, ApiRecord zone) async {
+    final t = AppLocalizations.of(context);
     final id = zone.valueAsText('id');
-    final name = zone.valueAsText('name') ?? 'Zona';
+    final name = zone.valueAsText('name') ?? t.tr('Zona');
     if (id == null) return;
     final confirmed = await _confirmDelete(
       context,
-      title: 'Eliminar zona',
-      message:
-          'Quieres eliminar $name? Si tiene historial, se desactivara sin borrar reservas anteriores.',
+      title: t.tr('Eliminar zona'),
+      message: t.isRussian
+          ? 'Удалить $name? Если есть история, зона будет отключена без удаления старых записей.'
+          : 'Quieres eliminar $name? Si tiene historial, se desactivara sin borrar reservas anteriores.',
     );
     if (confirmed != true || !context.mounted) return;
     try {
@@ -213,7 +220,7 @@ class _ZonesTab extends StatelessWidget {
       if (!context.mounted) return;
       onChanged();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Zona eliminada.')),
+        SnackBar(content: Text(t.tr('Zona eliminada.'))),
       );
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
@@ -225,6 +232,7 @@ class _ZonesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ListView(
       children: [
         if (canManageStaff) ...[
@@ -235,7 +243,7 @@ class _ZonesTab extends StatelessWidget {
               if (changed == true && context.mounted) onChanged();
             },
             icon: const Icon(Icons.add),
-            label: const Text('Crear zona'),
+            label: Text(t.tr('Crear zona')),
           ),
           const SizedBox(height: 12),
         ],
@@ -244,10 +252,10 @@ class _ZonesTab extends StatelessWidget {
             icon: Icons.place_outlined,
             color: parseHexColor(zone.valueAsText('color')) ??
                 Theme.of(context).colorScheme.primary,
-            title: zone.valueAsText('name') ?? 'Zona',
+            title: zone.valueAsText('name') ?? t.tr('Zona'),
             chips: [
-              zone.valueAsText('zone_type_label') ?? 'Otro',
-              'Capacidad ${zone.valueAsText('capacity') ?? '1'}',
+              zone.valueAsText('zone_type_label') ?? t.tr('Otro'),
+              '${t.tr('Capacidad')} ${zone.valueAsText('capacity') ?? '1'}',
               _bool(zone.data['is_active'], fallback: true)
                   ? 'Activa'
                   : 'Inactiva',
@@ -284,6 +292,7 @@ class _RewardsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ListView(
       children: [
         for (final reward in refs.rewards.items) ...[
@@ -291,14 +300,14 @@ class _RewardsTab extends StatelessWidget {
             icon: _rewardIcon(reward.valueAsText('icon')),
             color: parseHexColor(reward.valueAsText('color')) ??
                 Theme.of(context).colorScheme.primary,
-            title: reward.valueAsText('name') ?? 'Premio',
+            title: reward.valueAsText('name') ?? t.tr('Premio'),
             chips: [
-              reward.valueAsText('reward_type_label') ?? 'Premio',
-              'Meta ${reward.valueAsText('threshold') ?? '0'}',
+              reward.valueAsText('reward_type_label') ?? t.tr('Premio'),
+              '${t.tr('Meta')} ${reward.valueAsText('threshold') ?? '0'}',
               '${reward.valueAsText('discount_percent') ?? '0'}%',
               _bool(reward.data['is_active'], fallback: true)
-                  ? 'Activa'
-                  : 'Inactiva',
+                  ? t.tr('Activa')
+                  : t.tr('Inactiva'),
             ],
             description: _rewardDescription(reward),
             onTap: canManageStaff
@@ -557,6 +566,7 @@ class _ServiceFormSheetState extends State<_ServiceFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 18),
@@ -569,46 +579,46 @@ class _ServiceFormSheetState extends State<_ServiceFormSheet> {
             children: [
               _SheetTitle(
                   title: widget.service == null
-                      ? 'Crear servicio'
-                      : 'Editar servicio'),
+                      ? t.tr('Crear servicio')
+                      : t.tr('Editar servicio')),
               TextFormField(
                   controller: _name,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
+                  decoration: InputDecoration(labelText: t.tr('Nombre')),
                   validator: _required),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _duration,
-                  decoration: const InputDecoration(labelText: 'Duracion min'),
+                  decoration: InputDecoration(labelText: t.tr('Duracion min')),
                   keyboardType: TextInputType.number),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _price,
-                  decoration: const InputDecoration(labelText: 'Precio'),
+                  decoration: InputDecoration(labelText: t.tr('Precio')),
                   keyboardType: TextInputType.number),
               const SizedBox(height: 12),
               ColorPalettePicker(
-                label: 'Color servicio',
+                label: t.tr('Color servicio'),
                 value: _color,
                 onChanged: (value) => setState(() => _color = value),
               ),
               const SizedBox(height: 12),
               SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Requiere zona'),
+                  title: Text(t.tr('Requiere zona')),
                   value: _requiresZone,
                   onChanged: (v) => setState(() => _requiresZone = v)),
               SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Activo'),
+                  title: Text(t.tr('Activo')),
                   value: _isActive,
                   onChanged: (v) => setState(() => _isActive = v)),
               const SizedBox(height: 8),
-              Text('Zonas permitidas',
+              Text(t.tr('Zonas permitidas'),
                   style: Theme.of(context).textTheme.titleMedium),
               for (final zone in widget.refs.zones.items)
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(zone.valueAsText('name') ?? 'Zona'),
+                  title: Text(zone.valueAsText('name') ?? t.tr('Zona')),
                   value: _allowedZones.contains(zone.valueAsText('id')),
                   onChanged: !_requiresZone
                       ? null
@@ -624,7 +634,7 @@ class _ServiceFormSheetState extends State<_ServiceFormSheet> {
                   controller: _description,
                   minLines: 3,
                   maxLines: 5,
-                  decoration: const InputDecoration(labelText: 'Descripcion')),
+                  decoration: InputDecoration(labelText: t.tr('Descripcion'))),
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 AnnaErrorBanner(_error!),
@@ -634,8 +644,9 @@ class _ServiceFormSheetState extends State<_ServiceFormSheet> {
                   width: double.infinity,
                   child: FilledButton(
                       onPressed: _saving ? null : _save,
-                      child:
-                          Text(widget.service == null ? 'Crear' : 'Guardar'))),
+                      child: Text(widget.service == null
+                          ? t.tr('Crear')
+                          : t.tr('Guardar')))),
             ],
           ),
         ),

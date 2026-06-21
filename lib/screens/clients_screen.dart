@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'api_cached_image.dart';
@@ -80,8 +81,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ScreenScaffold(
-      title: 'Clientes',
+      title: t.tr('Clientes'),
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -132,8 +134,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
               if (filtered.isEmpty)
                 EmptyState(
                   clients.isEmpty
-                      ? 'No hay clientes todavia.'
-                      : 'No hay clientes para esta busqueda.',
+                      ? t.tr('No hay clientes todavia.')
+                      : t.tr('No hay clientes para esta busqueda.'),
                 )
               else
                 for (final client in filtered) ...[
@@ -170,6 +172,7 @@ class _ClientSearchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return PanelCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -178,8 +181,8 @@ class _ClientSearchCard extends StatelessWidget {
           TextField(
             controller: controller,
             decoration: InputDecoration(
-              labelText: 'Buscar cliente',
-              hintText: 'Nombre, telefono o email',
+              labelText: t.tr('Buscar cliente'),
+              hintText: t.tr('Nombre, telefono o email'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: controller.text.isEmpty
                   ? null
@@ -195,8 +198,8 @@ class _ClientSearchCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              AnnaBadge('$total clientes'),
-              if (visible != total) AnnaBadge('$visible visibles'),
+              AnnaBadge(t.clientsCount(total)),
+              if (visible != total) AnnaBadge(t.visibleCount(visible)),
             ],
           ),
         ],
@@ -219,22 +222,25 @@ class _ClientCard extends StatelessWidget {
   final VoidCallback onChanged;
 
   Future<void> _deleteClient(BuildContext context) async {
+    final t = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar cliente'),
+        title: Text(t.tr('Eliminar cliente')),
         content: Text(
-          'Quieres eliminar a ${client.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
+          t.isRussian
+              ? 'Удалить ${client.name}? Если есть история, клиент будет скрыт из активного списка, а записи останутся.'
+              : 'Quieres eliminar a ${client.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(t.tr('Cancelar')),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.delete_outline),
-            label: const Text('Eliminar'),
+            label: Text(t.tr('Eliminar')),
           ),
         ],
       ),
@@ -245,7 +251,7 @@ class _ClientCard extends StatelessWidget {
       if (!context.mounted) return;
       onChanged();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cliente eliminado.')),
+        SnackBar(content: Text(t.tr('Cliente eliminado.'))),
       );
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
@@ -257,6 +263,7 @@ class _ClientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final initials = client.initials;
     return PanelCard(
       padding: EdgeInsets.zero,
@@ -294,7 +301,7 @@ class _ClientCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     _ClientInfoLine(
                       icon: Icons.phone_outlined,
-                      label: client.phone ?? 'Sin telefono',
+                      label: client.phone ?? t.tr('Sin telefono'),
                       onTap: client.phone == null
                           ? null
                           : () => showPhoneActions(
@@ -305,7 +312,7 @@ class _ClientCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     _ClientInfoLine(
                       icon: Icons.mail_outline,
-                      label: client.email ?? 'Sin email',
+                      label: client.email ?? t.tr('Sin email'),
                       onTap: client.email == null
                           ? null
                           : () => writeEmail(context, email: client.email!),
@@ -315,7 +322,8 @@ class _ClientCard extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        AnnaBadge(client.isActive ? 'Activo' : 'Inactivo',
+                        AnnaBadge(
+                            client.isActive ? t.tr('Activo') : t.tr('Inactivo'),
                             warning: !client.isActive),
                         if (client.createdText != null)
                           AnnaBadge('Creado ${client.createdText}'),
@@ -329,7 +337,7 @@ class _ClientCard extends StatelessWidget {
                 children: [
                   if (canManagePhotos)
                     IconButton(
-                      tooltip: 'Eliminar',
+                      tooltip: t.tr('Eliminar'),
                       onPressed: () => _deleteClient(context),
                       icon: const Icon(Icons.delete_outline),
                       color: AnnaColors.danger,
@@ -476,22 +484,25 @@ class _ClientDetailSheet extends StatelessWidget {
   }
 
   Future<void> _deleteClient(BuildContext context, _ClientView client) async {
+    final t = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar cliente'),
+        title: Text(t.tr('Eliminar cliente')),
         content: Text(
-          'Quieres eliminar a ${client.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
+          t.isRussian
+              ? 'Удалить ${client.name}? Если есть история, клиент будет скрыт из активного списка, а записи останутся.'
+              : 'Quieres eliminar a ${client.name}? Si tiene historial, se ocultara de la lista activa sin borrar sus reservas.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text(t.tr('Cancelar')),
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.delete_outline),
-            label: const Text('Eliminar'),
+            label: Text(t.tr('Eliminar')),
           ),
         ],
       ),
@@ -503,7 +514,7 @@ class _ClientDetailSheet extends StatelessWidget {
       Navigator.pop(context);
       onChanged();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cliente eliminado.')),
+        SnackBar(content: Text(t.tr('Cliente eliminado.'))),
       );
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
@@ -515,6 +526,7 @@ class _ClientDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.92,
@@ -590,13 +602,13 @@ class _ClientDetailSheet extends StatelessWidget {
                 _StatsGrid(stats: detail.stats),
                 const SizedBox(height: 14),
                 _DetailSection(
-                  title: 'Informacion',
+                  title: t.tr('Informacion'),
                   children: [
                     _ClientInfoLine(
                         icon: Icons.person_outline, label: detail.client.name),
                     _ClientInfoLine(
                         icon: Icons.phone_outlined,
-                        label: detail.client.phone ?? 'Sin telefono',
+                        label: detail.client.phone ?? t.tr('Sin telefono'),
                         onTap: detail.client.phone == null
                             ? null
                             : () => showPhoneActions(
@@ -605,7 +617,7 @@ class _ClientDetailSheet extends StatelessWidget {
                                 )),
                     _ClientInfoLine(
                         icon: Icons.mail_outline,
-                        label: detail.client.email ?? 'Sin email',
+                        label: detail.client.email ?? t.tr('Sin email'),
                         onTap: detail.client.email == null
                             ? null
                             : () => writeEmail(
@@ -615,31 +627,35 @@ class _ClientDetailSheet extends StatelessWidget {
                     _ClientInfoLine(
                         icon: Icons.cake_outlined,
                         label: detail.client.birthDate ??
-                            'Sin fecha de nacimiento'),
+                            t.tr('Sin fecha de nacimiento')),
                     _ClientInfoLine(
                         icon: Icons.group_add_outlined,
                         label: detail.client.referredByName ??
-                            'Sin recomendado por'),
+                            t.tr('Sin recomendado por')),
                   ],
                 ),
                 _DetailSection(
-                  title: 'Actividad',
+                  title: t.tr('Actividad'),
                   children: [
                     _ClientInfoLine(
                         icon: Icons.history,
-                        label: 'Ultima visita: ${detail.lastVisitText}'),
+                        label:
+                            '${t.tr('Ultima visita')}: ${detail.lastVisitText}'),
                     _ClientInfoLine(
                         icon: Icons.event_available_outlined,
-                        label: 'Proxima cita: ${detail.nextBookingText}'),
+                        label:
+                            '${t.tr('Proxima cita')}: ${detail.nextBookingText}'),
                     _ClientInfoLine(
                         icon: Icons.card_giftcard,
-                        label: 'Para proximo premio: ${detail.rewardText}'),
+                        label:
+                            '${t.tr('Para proximo premio')}: ${detail.rewardText}'),
                   ],
                 ),
                 _CountListSection(
-                    title: 'Servicios favoritos', items: detail.topServices),
+                    title: t.tr('Servicios favoritos'),
+                    items: detail.topServices),
                 _CountListSection(
-                  title: 'Empleados habituales',
+                  title: t.tr('Empleados habituales'),
                   items: detail.topEmployees,
                   onTap: (item) {
                     if (item.id == null) return;
@@ -648,7 +664,7 @@ class _ClientDetailSheet extends StatelessWidget {
                   },
                 ),
                 _ClickableClientListSection(
-                  title: 'Clientes referidos',
+                  title: t.tr('Clientes referidos'),
                   items: detail.referredClients,
                   onClientTap: (client) {
                     Navigator.pop(context);
