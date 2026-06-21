@@ -228,38 +228,39 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   bool _validate(_BookingReferences refs, {bool includeClient = true}) {
+    final t = AppLocalizations.of(context);
     final valid = _formKey.currentState?.validate() ?? false;
     if (!valid) return false;
     final service = _selectedService(refs);
     final needsZone = service?.requiresZone ?? false;
     if (service == null) {
-      setState(() => _error = 'Selecciona primero un servicio.');
+      setState(() => _error = t.tr('Selecciona primero un servicio.'));
       return false;
     }
     if (_employeeId == null) {
-      setState(() => _error = 'Selecciona un empleado.');
+      setState(() => _error = t.tr('Selecciona un empleado.'));
       return false;
     }
     if (!refs.employeeSupportsService(_employeeId, service)) {
-      setState(
-          () => _error = 'Este empleado no realiza el servicio seleccionado.');
+      setState(() =>
+          _error = t.tr('Este empleado no realiza el servicio seleccionado.'));
       return false;
     }
     if (needsZone && _zoneId == null) {
-      setState(() => _error = 'Selecciona una zona para este servicio.');
+      setState(() => _error = t.tr('Selecciona una zona para este servicio.'));
       return false;
     }
     if (needsZone && !refs.zoneAllowedForService(_zoneId, service)) {
       setState(() => _error =
-          'La zona seleccionada no esta permitida para este servicio.');
+          t.tr('La zona seleccionada no esta permitida para este servicio.'));
       return false;
     }
     if (_selectedSlotValue == null) {
-      setState(() => _error = 'Selecciona un horario disponible.');
+      setState(() => _error = t.tr('Selecciona un horario disponible.'));
       return false;
     }
     if (includeClient && _clientId == null) {
-      setState(() => _error = 'Selecciona un cliente.');
+      setState(() => _error = t.tr('Selecciona un cliente.'));
       return false;
     }
     return true;
@@ -861,6 +862,7 @@ class _SearchableDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final filteredOptions = _dedupeBookingOptions(options);
     _BookingOption? selected;
     for (final option in filteredOptions) {
@@ -870,7 +872,7 @@ class _SearchableDropdownField extends StatelessWidget {
       }
     }
     final enabled = onChanged != null && filteredOptions.isNotEmpty;
-    final display = selected?.label ?? 'Selecciona $label';
+    final display = selected?.label ?? t.selectField(label);
 
     return InkWell(
       borderRadius: BorderRadius.circular(AnnaRadii.md),

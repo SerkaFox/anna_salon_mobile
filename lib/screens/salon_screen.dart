@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'employees_screen.dart';
 import 'services_screen.dart';
@@ -20,17 +21,18 @@ class SalonScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ScreenScaffold(
-      title: canManageStaff ? 'Salon' : 'Mi trabajo',
+      title: canManageStaff ? t.tr('Salon') : t.tr('Mi trabajo'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SalonActionCard(
             icon: Icons.badge_outlined,
-            title: canManageStaff ? 'Empleados' : 'Mi ficha',
+            title: canManageStaff ? t.tr('Empleados') : t.tr('Mi ficha'),
             subtitle: canManageStaff
-                ? 'Datos, servicios, comision, estadisticas y color.'
-                : 'Datos propios, servicios que realizas y estadisticas.',
+                ? t.tr('Datos, servicios, comision, estadisticas y color.')
+                : t.tr('Datos propios, servicios que realizas y estadisticas.'),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => DecoratedBox(
@@ -50,8 +52,9 @@ class SalonScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _SalonActionCard(
               icon: Icons.spa_outlined,
-              title: 'Servicios y zonas',
-              subtitle: 'Servicios, precios, duracion, colores y recursos.',
+              title: t.tr('Servicios y zonas'),
+              subtitle:
+                  t.tr('Servicios, precios, duracion, colores y recursos.'),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => DecoratedBox(

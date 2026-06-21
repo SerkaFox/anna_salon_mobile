@@ -529,8 +529,8 @@ class _ServiceFormSheetState extends State<_ServiceFormSheet> {
     final allowedZoneIds = _allowedZones.where(activeZoneIds.contains).toList()
       ..sort();
     if (_requiresZone && allowedZoneIds.isEmpty) {
-      setState(
-          () => _error = 'Selecciona al menos una zona para este servicio.');
+      setState(() => _error = AppLocalizations.of(context)
+          .tr('Selecciona al menos una zona para este servicio.'));
       return;
     }
     setState(() {
@@ -729,6 +729,7 @@ class _ZoneFormSheetState extends State<_ZoneFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 18),
@@ -740,45 +741,49 @@ class _ZoneFormSheetState extends State<_ZoneFormSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _SheetTitle(
-                  title: widget.zone == null ? 'Crear zona' : 'Editar zona'),
+                  title: widget.zone == null
+                      ? t.tr('Crear zona')
+                      : t.tr('Editar zona')),
               TextFormField(
                   controller: _name,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
+                  decoration: InputDecoration(labelText: t.tr('Nombre')),
                   validator: _required),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Tipo'),
-                items: const [
-                  DropdownMenuItem(value: 'cabin', child: Text('Cabina')),
-                  DropdownMenuItem(value: 'table', child: Text('Mesa')),
-                  DropdownMenuItem(value: 'wash', child: Text('Lavacabezas')),
-                  DropdownMenuItem(value: 'makeup', child: Text('Maquillaje')),
-                  DropdownMenuItem(value: 'other', child: Text('Otro')),
+                decoration: InputDecoration(labelText: t.tr('Tipo')),
+                items: [
+                  DropdownMenuItem(value: 'cabin', child: Text(t.tr('Cabina'))),
+                  DropdownMenuItem(value: 'table', child: Text(t.tr('Mesa'))),
+                  DropdownMenuItem(
+                      value: 'wash', child: Text(t.tr('Lavacabezas'))),
+                  DropdownMenuItem(
+                      value: 'makeup', child: Text(t.tr('Maquillaje'))),
+                  DropdownMenuItem(value: 'other', child: Text(t.tr('Otro'))),
                 ],
                 onChanged: (value) => setState(() => _type = value ?? 'other'),
               ),
               const SizedBox(height: 12),
               TextFormField(
                   controller: _capacity,
-                  decoration: const InputDecoration(labelText: 'Capacidad'),
+                  decoration: InputDecoration(labelText: t.tr('Capacidad')),
                   keyboardType: TextInputType.number),
               const SizedBox(height: 12),
               ColorPalettePicker(
-                label: 'Color zona',
+                label: t.tr('Color zona'),
                 value: _color,
                 onChanged: (value) => setState(() => _color = value),
               ),
               SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Activa'),
+                  title: Text(t.tr('Activa')),
                   value: _isActive,
                   onChanged: (v) => setState(() => _isActive = v)),
               TextFormField(
                   controller: _notes,
                   minLines: 3,
                   maxLines: 5,
-                  decoration: const InputDecoration(labelText: 'Notas')),
+                  decoration: InputDecoration(labelText: t.tr('Notas'))),
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 AnnaErrorBanner(_error!),
@@ -788,7 +793,9 @@ class _ZoneFormSheetState extends State<_ZoneFormSheet> {
                   width: double.infinity,
                   child: FilledButton(
                       onPressed: _saving ? null : _save,
-                      child: Text(widget.zone == null ? 'Crear' : 'Guardar'))),
+                      child: Text(widget.zone == null
+                          ? t.tr('Crear')
+                          : t.tr('Guardar')))),
             ],
           ),
         ),
@@ -873,6 +880,7 @@ class _RewardFormSheetState extends State<_RewardFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 18),
@@ -883,33 +891,33 @@ class _RewardFormSheetState extends State<_RewardFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SheetTitle(title: 'Editar premio'),
+              _SheetTitle(title: t.tr('Editar premio')),
               TextFormField(
                 controller: _name,
-                decoration: const InputDecoration(labelText: 'Nombre'),
+                decoration: InputDecoration(labelText: t.tr('Nombre')),
                 validator: _required,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _threshold,
-                decoration: const InputDecoration(labelText: 'Meta'),
+                decoration: InputDecoration(labelText: t.tr('Meta')),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _discount,
-                decoration: const InputDecoration(labelText: 'Descuento %'),
+                decoration: InputDecoration(labelText: t.tr('Descuento %')),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               ColorPalettePicker(
-                label: 'Color premio',
+                label: t.tr('Color premio'),
                 value: _color,
                 onChanged: (value) => setState(() => _color = value),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Activa'),
+                title: Text(t.tr('Activa')),
                 value: _isActive,
                 onChanged: (value) => setState(() => _isActive = value),
               ),
@@ -922,7 +930,7 @@ class _RewardFormSheetState extends State<_RewardFormSheet> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _saving ? null : _save,
-                  child: const Text('Guardar'),
+                  child: Text(t.tr('Guardar')),
                 ),
               ),
             ],

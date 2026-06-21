@@ -722,11 +722,12 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final entries = [
-      ('Visitas hechas', stats['total_visits'] ?? '0'),
-      ('Gastado total', '${stats['total_spent'] ?? '0.00'} EUR'),
-      ('Ticket medio', '${stats['avg_ticket'] ?? '0.00'} EUR'),
-      ('Clientes traidos', stats['referred_clients_count'] ?? '0'),
+      (t.tr('Visitas hechas'), stats['total_visits'] ?? '0'),
+      (t.tr('Gastado total'), '${stats['total_spent'] ?? '0.00'} EUR'),
+      (t.tr('Ticket medio'), '${stats['avg_ticket'] ?? '0.00'} EUR'),
+      (t.tr('Clientes traidos'), stats['referred_clients_count'] ?? '0'),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -801,11 +802,13 @@ class _CountListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _DetailSection(
       title: title,
       children: items.isEmpty
-          ? const [
-              Text('Sin datos.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin datos.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
@@ -830,11 +833,13 @@ class _BookingHistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _DetailSection(
-      title: 'Historial de reservas',
+      title: t.tr('Historial de reservas'),
       children: bookings.isEmpty
-          ? const [
-              Text('Sin reservas.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin reservas.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final booking in bookings)
@@ -871,11 +876,13 @@ class _ClickableClientListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _DetailSection(
       title: title,
       children: items.isEmpty
-          ? const [
-              Text('Sin referidos.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin referidos.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
@@ -883,7 +890,8 @@ class _ClickableClientListSection extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: Text(item.name,
                       style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text(item.phone ?? item.email ?? 'Sin telefono'),
+                  subtitle:
+                      Text(item.phone ?? item.email ?? t.tr('Sin telefono')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => onClientTap(item),
                 ),
@@ -903,11 +911,13 @@ class _ClickableBookingHistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _DetailSection(
-      title: 'Historial de reservas',
+      title: t.tr('Historial de reservas'),
       children: bookings.isEmpty
-          ? const [
-              Text('Sin reservas.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin reservas.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final booking in bookings)
@@ -957,12 +967,14 @@ class _ReferralTreeSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final node = root;
     return _DetailSection(
-      title: 'Piramide de recomendaciones',
+      title: t.tr('Piramide de recomendaciones'),
       children: node == null
-          ? const [
-              Text('Sin referidos.', style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(t.tr('Sin referidos.'),
+                  style: const TextStyle(color: AnnaColors.muted))
             ]
           : [_ReferralTreeNode(node: node, depth: 0, onClientTap: onClientTap)],
     );

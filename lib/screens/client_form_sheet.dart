@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'shared.dart';
@@ -137,12 +138,13 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
   }
 
   Future<void> _copyUsername() async {
+    final t = AppLocalizations.of(context);
     final username = _usernameController.text.trim();
     if (username.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: username));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Usuario copiado.')),
+      SnackBar(content: Text(t.tr('Usuario copiado.'))),
     );
   }
 
@@ -174,6 +176,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
     required String username,
     required String password,
   }) async {
+    final t = AppLocalizations.of(context);
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AnnaColors.bgSoft,
@@ -187,7 +190,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Acceso cliente creado',
+              Text(t.tr('Acceso cliente creado'),
                   style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 10),
               SelectableText(
@@ -201,7 +204,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.check),
-                      label: const Text('Listo'),
+                      label: Text(t.tr('Listo')),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -230,10 +233,11 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
     required String username,
     required String password,
   }) async {
+    final t = AppLocalizations.of(context);
     final phone = _normalizePhone(_phoneController.text);
     if (phone == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Este cliente no tiene telefono valido.')),
+        SnackBar(content: Text(t.tr('Este cliente no tiene telefono valido.'))),
       );
       return;
     }
@@ -243,7 +247,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (opened || !context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No se pudo abrir WhatsApp.')),
+      SnackBar(content: Text(t.tr('No se pudo abrir WhatsApp.'))),
     );
   }
 
@@ -259,6 +263,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottomInset + 18),
@@ -274,8 +279,8 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                   Expanded(
                     child: Text(
                       widget.client == null
-                          ? 'Nuevo cliente'
-                          : 'Editar cliente',
+                          ? t.tr('Nuevo cliente')
+                          : t.tr('Editar cliente'),
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
@@ -289,21 +294,21 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
               TextFormField(
                 controller: _firstNameController,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  prefixIcon: Icon(Icons.person_outline),
+                decoration: InputDecoration(
+                  labelText: t.tr('Nombre'),
+                  prefixIcon: const Icon(Icons.person_outline),
                 ),
                 validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Introduce el nombre'
+                    ? t.tr('Introduce el nombre')
                     : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _lastNameController,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Apellidos',
-                  prefixIcon: Icon(Icons.person_outline),
+                decoration: InputDecoration(
+                  labelText: t.tr('Apellidos'),
+                  prefixIcon: const Icon(Icons.person_outline),
                 ),
               ),
               const SizedBox(height: 12),
@@ -311,9 +316,9 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Telefono',
-                  prefixIcon: Icon(Icons.phone_outlined),
+                decoration: InputDecoration(
+                  labelText: t.tr('Telefono'),
+                  prefixIcon: const Icon(Icons.phone_outlined),
                 ),
               ),
               const SizedBox(height: 12),
@@ -330,10 +335,10 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
               TextFormField(
                 controller: _birthDateController,
                 keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Fecha de nacimiento',
+                decoration: InputDecoration(
+                  labelText: t.tr('Fecha de nacimiento'),
                   hintText: 'YYYY-MM-DD',
-                  prefixIcon: Icon(Icons.cake_outlined),
+                  prefixIcon: const Icon(Icons.cake_outlined),
                 ),
               ),
               const SizedBox(height: 12),
@@ -341,14 +346,14 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 controller: _notesController,
                 minLines: 3,
                 maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Notas',
+                decoration: InputDecoration(
+                  labelText: t.tr('Notas'),
                   alignLabelWithHint: true,
-                  prefixIcon: Icon(Icons.notes_outlined),
+                  prefixIcon: const Icon(Icons.notes_outlined),
                 ),
               ),
               const SizedBox(height: 14),
-              Text('Acceso cliente',
+              Text(t.tr('Acceso cliente'),
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Align(
@@ -356,7 +361,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 child: OutlinedButton.icon(
                   onPressed: _saving ? null : _generateClientAccess,
                   icon: const Icon(Icons.auto_awesome_outlined),
-                  label: const Text('Generar acceso'),
+                  label: Text(t.tr('Generar acceso')),
                 ),
               ),
               const SizedBox(height: 12),
@@ -364,9 +369,9 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 controller: _usernameController,
                 enabled: !_hasExistingClientAccess,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Usuario para cliente',
-                  prefixIcon: Icon(Icons.account_circle_outlined),
+                decoration: InputDecoration(
+                  labelText: t.tr('Usuario para cliente'),
+                  prefixIcon: const Icon(Icons.account_circle_outlined),
                 ),
               ),
               if (_hasExistingClientAccess) ...[
@@ -376,7 +381,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                   child: OutlinedButton.icon(
                     onPressed: _copyUsername,
                     icon: const Icon(Icons.copy_outlined),
-                    label: const Text('Copiar usuario'),
+                    label: Text(t.tr('Copiar usuario')),
                   ),
                 ),
               ],
@@ -386,13 +391,13 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: widget.client == null
-                      ? 'Contraseña inicial'
-                      : 'Nueva contraseña',
+                      ? t.tr('Contraseña inicial')
+                      : t.tr('Nueva contraseña'),
                   prefixIcon: const Icon(Icons.lock_outline),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return null;
-                  return value.length < 4 ? 'Minimo 4 caracteres' : null;
+                  return value.length < 4 ? t.tr('Minimo 4 caracteres') : null;
                 },
               ),
               if (_error != null) ...[
@@ -409,8 +414,9 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                           dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          widget.client == null ? 'Crear cliente' : 'Guardar'),
+                      : Text(widget.client == null
+                          ? t.tr('Crear cliente')
+                          : t.tr('Guardar')),
                 ),
               ),
             ],

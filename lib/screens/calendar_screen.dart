@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'shared.dart';
@@ -533,10 +534,11 @@ class _CalendarToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeCode = AppLocalizations.of(context).locale.languageCode;
     final endDate = startDate.add(const Duration(days: 2));
     final label = mode == _CalendarMode.days
-        ? '${DateFormat('d MMM', 'es').format(startDate)} - ${DateFormat('d MMM yyyy', 'es').format(endDate)}'
-        : DateFormat('EEEE, d MMM yyyy', 'es').format(startDate);
+        ? '${DateFormat('d MMM', localeCode).format(startDate)} - ${DateFormat('d MMM yyyy', localeCode).format(endDate)}'
+        : DateFormat('EEEE, d MMM yyyy', localeCode).format(startDate);
 
     return PanelCard(
       padding: const EdgeInsets.all(10),
@@ -688,7 +690,7 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
           final timeRailWidth =
               isMobile ? _mobileTimeRailWidth : _desktopTimeRailWidth;
           final columns = mode == _CalendarMode.days
-              ? _dayColumns(Theme.of(context).colorScheme.primary)
+              ? _dayColumns(context, Theme.of(context).colorScheme.primary)
               : _teamColumns(days.isEmpty ? null : days.first);
           if (columns.isEmpty) {
             return const EmptyState('Sin columnas visibles.');
@@ -772,13 +774,14 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
     );
   }
 
-  List<_CalendarColumn> _dayColumns(Color primary) {
+  List<_CalendarColumn> _dayColumns(BuildContext context, Color primary) {
+    final localeCode = AppLocalizations.of(context).locale.languageCode;
     return [
       for (final day in days)
         _CalendarColumn(
           date: day.date,
-          title: DateFormat('EEE', 'es').format(day.date),
-          subtitle: DateFormat('d/M', 'es').format(day.date),
+          title: DateFormat('EEE', localeCode).format(day.date),
+          subtitle: DateFormat('d/M', localeCode).format(day.date),
           color:
               _isSameDate(day.date, DateTime.now()) ? primary : AnnaColors.line,
           bookings: day.bookings,
@@ -888,6 +891,7 @@ class _TodayHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return SizedBox(
       height: 46,
       child: TextButton(
@@ -897,11 +901,11 @@ class _TodayHeader extends StatelessWidget {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: const Text(
-          'Hoy',
+        child: Text(
+          t.tr('Hoy'),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: const TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -1028,10 +1032,11 @@ class _GridColumnState extends State<_GridColumn> {
                     onTap: () => widget.onTimeBlockTap(block),
                   ),
               if (widget.column.bookings.isEmpty)
-                const Center(
+                Center(
                   child: Text(
-                    'Sin reservas',
-                    style: TextStyle(color: AnnaColors.muted, fontSize: 12),
+                    AppLocalizations.of(context).tr('Sin reservas'),
+                    style:
+                        const TextStyle(color: AnnaColors.muted, fontSize: 12),
                   ),
                 ),
               if (_previewStartAt != null && _previewBooking != null)
@@ -1371,6 +1376,8 @@ class _SlotActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final localeCode = t.locale.languageCode;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1378,25 +1385,25 @@ class _SlotActionSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Nuevo en calendario',
+            Text(t.tr('Nuevo en calendario'),
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 6),
             Text(
-              DateFormat('d MMM yyyy HH:mm', 'es').format(draft.startAt),
+              DateFormat('d MMM yyyy HH:mm', localeCode).format(draft.startAt),
               style: const TextStyle(color: AnnaColors.muted),
             ),
             const SizedBox(height: 16),
             _SheetActionTile(
               icon: Icons.add_circle_outline,
-              title: 'Nueva reserva',
-              subtitle: 'Crear reserva con este empleado y horario.',
+              title: t.tr('Nueva reserva'),
+              subtitle: t.tr('Crear reserva con este empleado y horario.'),
               onTap: () => Navigator.of(context).pop(_SlotAction.booking),
             ),
             const SizedBox(height: 10),
             _SheetActionTile(
               icon: Icons.block_outlined,
-              title: 'Nueva pausa / bloqueo',
-              subtitle: 'Bloquear este tramo en el calendario.',
+              title: t.tr('Nueva pausa / bloqueo'),
+              subtitle: t.tr('Bloquear este tramo en el calendario.'),
               onTap: () => Navigator.of(context).pop(_SlotAction.timeBlock),
             ),
           ],
@@ -1471,7 +1478,8 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = block.editable ? 'Bloqueo' : block.label;
+    final t = AppLocalizations.of(context);
+    final title = block.editable ? t.tr('Bloqueo') : block.label;
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -1488,18 +1496,19 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
             const SizedBox(height: 12),
             _DetailGrid(
               rows: [
-                _DetailRow('Motivo', block.label),
-                _DetailRow('Empleado', block.employeeName),
-                _DetailRow('Fecha', block.date),
-                _DetailRow('Inicio', block.startTime),
-                _DetailRow('Fin', block.endTime),
+                _DetailRow(t.tr('Motivo'), block.label),
+                _DetailRow(t.tr('Empleado'), block.employeeName),
+                _DetailRow(t.tr('Fecha'), block.date),
+                _DetailRow(t.tr('Inicio'), block.startTime),
+                _DetailRow(t.tr('Fin'), block.endTime),
                 _DetailRow('ID', block.id),
               ],
             ),
             const SizedBox(height: 14),
             if (!block.editable)
-              const _ErrorPanel(
-                'Este bloque pertenece al horario del empleado. Editalo desde la configuracion del horario del empleado.',
+              _ErrorPanel(
+                t.tr(
+                    'Este bloque pertenece al horario del empleado. Editalo desde la configuracion del horario del empleado.'),
               ),
             const SizedBox(height: 18),
             if (block.editable)
@@ -1517,7 +1526,7 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
                         );
                       },
                       icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Editar'),
+                      label: Text(t.tr('Editar')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1536,7 +1545,7 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
                         );
                       },
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('Borrar'),
+                      label: Text(t.tr('Borrar')),
                     ),
                   ),
                 ],
@@ -1546,7 +1555,7 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cerrar'),
+                  child: Text(t.tr('Cerrar')),
                 ),
               ),
           ],
@@ -1598,7 +1607,8 @@ class _DeleteTimeBlockSheetState extends State<_DeleteTimeBlockSheet> {
   Future<void> _delete() async {
     final id = widget.block.id;
     if (id == null) {
-      setState(() => _error = 'No se encontro el identificador del bloqueo.');
+      setState(() => _error = AppLocalizations.of(context)
+          .tr('No se encontro el identificador del bloqueo.'));
       return;
     }
     setState(() {
@@ -1620,6 +1630,7 @@ class _DeleteTimeBlockSheetState extends State<_DeleteTimeBlockSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1627,7 +1638,7 @@ class _DeleteTimeBlockSheetState extends State<_DeleteTimeBlockSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Borrar bloqueo',
+            Text(t.tr('Borrar bloqueo'),
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
@@ -1898,10 +1909,12 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final dateText = DateFormat('d MMM yyyy', 'es').format(_date);
+    final t = AppLocalizations.of(context);
+    final localeCode = t.locale.languageCode;
+    final dateText = DateFormat('d MMM yyyy', localeCode).format(_date);
     final untilText = _repeatUntil == null
-        ? 'Seleccionar'
-        : DateFormat('d MMM yyyy', 'es').format(_repeatUntil!);
+        ? t.tr('Seleccionar')
+        : DateFormat('d MMM yyyy', localeCode).format(_repeatUntil!);
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -1946,7 +1959,9 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _isEditing ? 'Editar bloqueo' : 'Nueva pausa / bloqueo',
+                    _isEditing
+                        ? t.tr('Editar bloqueo')
+                        : t.tr('Nueva pausa / bloqueo'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 16),
@@ -1954,9 +1969,9 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     initialValue: selectedEmployeeId,
                     isExpanded: true,
                     dropdownColor: AnnaColors.accentDeep,
-                    decoration: const InputDecoration(
-                      labelText: 'Empleado',
-                      prefixIcon: Icon(Icons.badge_outlined),
+                    decoration: InputDecoration(
+                      labelText: t.tr('Empleado'),
+                      prefixIcon: const Icon(Icons.badge_outlined),
                     ),
                     items: [
                       for (final employee in employees)
@@ -1969,7 +1984,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                         ),
                     ],
                     validator: (value) =>
-                        value == null ? 'Selecciona empleado' : null,
+                        value == null ? t.tr('Selecciona empleado') : null,
                     onChanged: (value) => setState(() => _employeeId = value),
                   ),
                   const SizedBox(height: 14),
@@ -1977,7 +1992,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     children: [
                       Expanded(
                         child: _SheetPickerField(
-                          label: 'Fecha',
+                          label: t.tr('Fecha'),
                           value: dateText,
                           icon: Icons.event_outlined,
                           onTap: _pickDate,
@@ -1986,7 +2001,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _SheetPickerField(
-                          label: 'Inicio',
+                          label: t.tr('Inicio'),
                           value: _startTime.format(context),
                           icon: Icons.schedule,
                           onTap: _pickStartTime,
@@ -1996,7 +2011,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                   ),
                   const SizedBox(height: 14),
                   _SheetPickerField(
-                    label: 'Fin',
+                    label: t.tr('Fin'),
                     value: _endTime.format(context),
                     icon: Icons.schedule_outlined,
                     onTap: _pickEndTime,
@@ -2006,9 +2021,9 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     initialValue: _reason,
                     isExpanded: true,
                     dropdownColor: AnnaColors.accentDeep,
-                    decoration: const InputDecoration(
-                      labelText: 'Motivo',
-                      prefixIcon: Icon(Icons.notes_outlined),
+                    decoration: InputDecoration(
+                      labelText: t.tr('Motivo'),
+                      prefixIcon: const Icon(Icons.notes_outlined),
                     ),
                     items: [
                       for (final reason in _pauseReasons)
@@ -2018,7 +2033,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                         ),
                     ],
                     validator: (value) =>
-                        value == null ? 'Selecciona un motivo' : null,
+                        value == null ? t.tr('Selecciona un motivo') : null,
                     onChanged: (value) {
                       if (value == null) return;
                       setState(() => _reason = value);
@@ -2030,9 +2045,9 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                       initialValue: _recurrence,
                       isExpanded: true,
                       dropdownColor: AnnaColors.accentDeep,
-                      decoration: const InputDecoration(
-                        labelText: 'Recurrencia',
-                        prefixIcon: Icon(Icons.repeat),
+                      decoration: InputDecoration(
+                        labelText: t.tr('Recurrencia'),
+                        prefixIcon: const Icon(Icons.repeat),
                       ),
                       items: [
                         for (final value in _BlockRecurrence.values)
@@ -2057,7 +2072,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     if (_recurrence != _BlockRecurrence.none) ...[
                       const SizedBox(height: 14),
                       _SheetPickerField(
-                        label: 'Hasta',
+                        label: t.tr('Hasta'),
                         value: untilText,
                         icon: Icons.event_repeat_outlined,
                         onTap: _pickRepeatUntil,
@@ -2076,7 +2091,8 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                       icon: _saving
                           ? const _ButtonSpinner()
                           : const Icon(Icons.check),
-                      label: Text(_isEditing ? 'Guardar' : 'Crear bloqueo'),
+                      label: Text(
+                          _isEditing ? t.tr('Guardar') : t.tr('Crear bloqueo')),
                     ),
                   ),
                 ],
@@ -2694,6 +2710,8 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final localeCode = t.locale.languageCode;
     return SafeArea(
       child: FutureBuilder<_BookingEditReferences>(
         future: _references,
@@ -2753,7 +2771,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                   ),
                   const SizedBox(height: 12),
                   _EditDropdown(
-                    label: 'Cliente',
+                    label: t.tr('Cliente'),
                     icon: Icons.person_outline,
                     value: _clientId,
                     options: refs.clientOptions,
@@ -2761,7 +2779,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                   ),
                   const SizedBox(height: 12),
                   _EditDropdown(
-                    label: 'Servicio',
+                    label: t.tr('Servicio'),
                     icon: Icons.spa_outlined,
                     value: _serviceId,
                     options: serviceOptions,
@@ -2769,7 +2787,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                   ),
                   const SizedBox(height: 12),
                   _EditDropdown(
-                    label: 'Empleado',
+                    label: t.tr('Empleado'),
                     icon: Icons.badge_outlined,
                     value: _employeeId,
                     options: employeeOptions,
@@ -2777,11 +2795,11 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                   ),
                   const SizedBox(height: 12),
                   _EditDropdown(
-                    label: 'Zona',
+                    label: t.tr('Zona'),
                     icon: Icons.place_outlined,
                     value: _zoneId,
                     options: [
-                      const _EditOption('', 'Zona automatica'),
+                      _EditOption('', t.tr('Zona automatica')),
                       ...zoneOptions,
                     ],
                     requiredField: false,
@@ -2792,8 +2810,9 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                     children: [
                       Expanded(
                         child: _SheetPickerField(
-                          label: 'Fecha',
-                          value: DateFormat('d MMM yyyy', 'es').format(_date),
+                          label: t.tr('Fecha'),
+                          value: DateFormat('d MMM yyyy', localeCode)
+                              .format(_date),
                           icon: Icons.event_outlined,
                           onTap: _saving ? null : _pickDate,
                         ),
@@ -2801,7 +2820,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _SheetPickerField(
-                          label: 'Hora',
+                          label: t.tr('Hora'),
                           value: _time.format(context),
                           icon: Icons.schedule,
                           onTap: _saving ? null : _pickTime,
@@ -2811,7 +2830,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                   ),
                   const SizedBox(height: 12),
                   _EditDropdown(
-                    label: 'Estado',
+                    label: t.tr('Estado'),
                     icon: Icons.flag_outlined,
                     value: _status,
                     options: _statusOptions,
@@ -2820,7 +2839,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                   ),
                   const SizedBox(height: 12),
                   _EditDropdown(
-                    label: 'Origen',
+                    label: t.tr('Origen'),
                     icon: Icons.campaign_outlined,
                     value: _source,
                     options: _sourceOptions,
@@ -2832,9 +2851,9 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                     controller: _notesController,
                     minLines: 3,
                     maxLines: 5,
-                    decoration: const InputDecoration(
-                      labelText: 'Notas',
-                      prefixIcon: Icon(Icons.notes_outlined),
+                    decoration: InputDecoration(
+                      labelText: t.tr('Notas'),
+                      prefixIcon: const Icon(Icons.notes_outlined),
                       alignLabelWithHint: true,
                     ),
                   ),
@@ -2853,7 +2872,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.save_outlined),
-                      label: const Text('Guardar cambios'),
+                      label: Text(t.tr('Guardar cambios')),
                     ),
                   ),
                 ],
@@ -3026,6 +3045,7 @@ class _EditDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final byId = <String, _EditOption>{};
     for (final option in options) {
       byId.putIfAbsent(option.id, () => option);
@@ -3046,7 +3066,7 @@ class _EditDropdown extends StatelessWidget {
           ),
       ],
       validator: (value) => requiredField && (value == null || value.isEmpty)
-          ? 'Selecciona $label'
+          ? t.selectField(label)
           : null,
       onChanged: onChanged,
     );
@@ -3255,6 +3275,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -3288,17 +3309,17 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
             const SizedBox(height: 14),
             _DetailGrid(
               rows: [
-                _DetailRow('Cliente', booking.clientName),
-                _DetailRow('Servicio', booking.serviceName),
-                _DetailRow('Empleado', booking.employeeName),
-                _DetailRow('Zona', booking.zoneName),
-                _DetailRow('Inicio', _formatDateTime(booking.startAt)),
-                _DetailRow('Fin', _formatDateTime(booking.endAt)),
-                _DetailRow('Estado', booking.statusLabel),
-                _DetailRow('Origen', booking.sourceLabel),
-                _DetailRow('Precio', booking.priceSnapshot),
-                _DetailRow('Duracion', booking.durationSnapshot),
-                _DetailRow('Notas', booking.notes),
+                _DetailRow(t.tr('Cliente'), booking.clientName),
+                _DetailRow(t.tr('Servicio'), booking.serviceName),
+                _DetailRow(t.tr('Empleado'), booking.employeeName),
+                _DetailRow(t.tr('Zona'), booking.zoneName),
+                _DetailRow(t.tr('Inicio'), _formatDateTime(booking.startAt)),
+                _DetailRow(t.tr('Fin'), _formatDateTime(booking.endAt)),
+                _DetailRow(t.tr('Estado'), booking.statusLabel),
+                _DetailRow(t.tr('Origen'), booking.sourceLabel),
+                _DetailRow(t.tr('Precio'), booking.priceSnapshot),
+                _DetailRow(t.tr('Duracion'), booking.durationSnapshot),
+                _DetailRow(t.tr('Notas'), booking.notes),
               ],
             ),
             if (_error != null) ...[
