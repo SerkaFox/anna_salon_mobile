@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app_settings_controller.dart';
 import 'api/anna_api.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/app_shell.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
@@ -11,6 +12,7 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es');
+  await initializeDateFormatting('ru');
   runApp(const AnnaSalonApp());
 }
 
@@ -74,9 +76,10 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
               child: child,
             );
           },
-          locale: const Locale('es'),
-          supportedLocales: const [Locale('es'), Locale('en')],
+          locale: _settings.locale,
+          supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: const [
+            AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,

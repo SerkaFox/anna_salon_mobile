@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app_settings_controller.dart';
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'color_palette_picker.dart';
 import 'shared.dart';
@@ -102,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _newPasswordController.clear();
       _confirmPasswordController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil actualizado.')),
+        SnackBar(content: Text(AppLocalizations.of(context).profileUpdated)),
       );
     } on AnnaApiException catch (error) {
       setState(() => _error = _apiErrorText(error));
@@ -113,9 +114,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return ScreenScaffold(
-      title: 'Ajustes',
-      action: IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+      title: t.settings,
+      action: IconButton(
+        tooltip: t.refresh,
+        onPressed: _reload,
+        icon: const Icon(Icons.refresh),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -160,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: OutlinedButton.icon(
                 onPressed: widget.onSignOut,
                 icon: const Icon(Icons.logout),
-                label: const Text('Cerrar sesion'),
+                label: Text(t.signOut),
               ),
             ),
           ),
@@ -177,6 +183,7 @@ class _AppearanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return AnimatedBuilder(
       animation: settings,
       builder: (context, _) {
@@ -184,12 +191,33 @@ class _AppearanceCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Apariencia', style: Theme.of(context).textTheme.titleLarge),
+              Text(t.appearance, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 14),
               ColorPalettePicker(
-                label: 'Color de la aplicacion',
+                label: t.appColor,
                 value: settings.primaryColorHex,
                 onChanged: settings.setPrimaryColorHex,
+              ),
+              const SizedBox(height: 16),
+              Text(t.language, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 10),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(
+                    value: 'es',
+                    icon: const Icon(Icons.language),
+                    label: Text(t.spanish),
+                  ),
+                  ButtonSegment(
+                    value: 'ru',
+                    icon: const Icon(Icons.translate),
+                    label: Text(t.russian),
+                  ),
+                ],
+                selected: {settings.languageCode},
+                onSelectionChanged: (values) {
+                  settings.setLanguageCode(values.first);
+                },
               ),
               const SizedBox(height: 16),
               Row(
@@ -198,7 +226,7 @@ class _AppearanceCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Tamano de texto',
+                      t.textSize,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
@@ -250,6 +278,7 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final username = _text(profile['username']);
     final role = _text(profile['role']);
     final employeeName = _text(profile['employee_name']);
@@ -260,7 +289,7 @@ class _ProfileCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Mi cuenta', style: Theme.of(context).textTheme.titleLarge),
+            Text(t.myAccount, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -274,17 +303,17 @@ class _ProfileCard extends StatelessWidget {
             const SizedBox(height: 16),
             TextFormField(
               controller: firstNameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre',
-                prefixIcon: Icon(Icons.person_outline),
+              decoration: InputDecoration(
+                labelText: t.firstName,
+                prefixIcon: const Icon(Icons.person_outline),
               ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: lastNameController,
-              decoration: const InputDecoration(
-                labelText: 'Apellido',
-                prefixIcon: Icon(Icons.person_outline),
+              decoration: InputDecoration(
+                labelText: t.lastName,
+                prefixIcon: const Icon(Icons.person_outline),
               ),
             ),
             const SizedBox(height: 12),
@@ -298,26 +327,26 @@ class _ProfileCard extends StatelessWidget {
               validator: (value) {
                 final text = value?.trim() ?? '';
                 if (text.isEmpty) return null;
-                if (!text.contains('@')) return 'Email invalido';
+                if (!text.contains('@')) return t.invalidEmail;
                 return null;
               },
             ),
             const SizedBox(height: 18),
-            Text('Cambiar contrasena',
+            Text(t.changePassword,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
             TextFormField(
               controller: currentPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Contrasena actual',
-                prefixIcon: Icon(Icons.lock_outline),
+              decoration: InputDecoration(
+                labelText: t.currentPassword,
+                prefixIcon: const Icon(Icons.lock_outline),
               ),
               validator: (value) {
                 final wantsPassword = newPasswordController.text.isNotEmpty ||
                     confirmPasswordController.text.isNotEmpty;
                 if (wantsPassword && (value == null || value.isEmpty)) {
-                  return 'Introduce la contrasena actual';
+                  return t.enterCurrentPassword;
                 }
                 return null;
               },
@@ -326,9 +355,9 @@ class _ProfileCard extends StatelessWidget {
             TextFormField(
               controller: newPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Nueva contrasena',
-                prefixIcon: Icon(Icons.lock_reset_outlined),
+              decoration: InputDecoration(
+                labelText: t.newPassword,
+                prefixIcon: const Icon(Icons.lock_reset_outlined),
               ),
               validator: (value) {
                 final text = value ?? '';
@@ -336,7 +365,7 @@ class _ProfileCard extends StatelessWidget {
                     currentPasswordController.text.isNotEmpty ||
                         confirmPasswordController.text.isNotEmpty;
                 if (!wantsPassword && text.isEmpty) return null;
-                if (text.length < 4) return 'Minimo 4 caracteres';
+                if (text.length < 4) return t.minFourChars;
                 return null;
               },
             ),
@@ -344,9 +373,9 @@ class _ProfileCard extends StatelessWidget {
             TextFormField(
               controller: confirmPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirmar nueva contrasena',
-                prefixIcon: Icon(Icons.lock_reset_outlined),
+              decoration: InputDecoration(
+                labelText: t.confirmNewPassword,
+                prefixIcon: const Icon(Icons.lock_reset_outlined),
               ),
               validator: (value) {
                 if (newPasswordController.text.isEmpty &&
@@ -354,7 +383,7 @@ class _ProfileCard extends StatelessWidget {
                   return null;
                 }
                 if (value != newPasswordController.text) {
-                  return 'Las contrasenas no coinciden';
+                  return t.passwordsDontMatch;
                 }
                 return null;
               },
@@ -374,7 +403,7 @@ class _ProfileCard extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save_outlined),
-                label: const Text('Guardar cambios'),
+                label: Text(t.saveChanges),
               ),
             ),
           ],

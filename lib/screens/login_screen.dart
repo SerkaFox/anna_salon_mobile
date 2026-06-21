@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'shared.dart';
 
@@ -72,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       body: DecoratedBox(
         decoration: annaBackgroundDecoration(context),
@@ -93,40 +95,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 18),
                         Center(
                           child: Text(
-                            'BRIMOON Studio',
+                            t.appTitle,
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.headlineMedium,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Accede a tu calendario y reservas.',
-                          style: TextStyle(color: AnnaColors.muted),
+                        Text(
+                          t.loginSubtitle,
+                          style: const TextStyle(color: AnnaColors.muted),
                         ),
                         const SizedBox(height: 24),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Usuario',
-                            prefixIcon: Icon(Icons.person_outline),
+                          decoration: InputDecoration(
+                            labelText: t.username,
+                            prefixIcon: const Icon(Icons.person_outline),
                           ),
                           textInputAction: TextInputAction.next,
                           validator: (value) =>
                               value == null || value.trim().isEmpty
-                                  ? 'Introduce usuario'
+                                  ? t.enterUsername
                                   : null,
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _passwordController,
-                          decoration: const InputDecoration(
-                            labelText: 'Contraseña',
-                            prefixIcon: Icon(Icons.lock_outline),
+                          decoration: InputDecoration(
+                            labelText: t.password,
+                            prefixIcon: const Icon(Icons.lock_outline),
                           ),
                           obscureText: true,
                           onFieldSubmitted: (_) => _submit(),
                           validator: (value) => value == null || value.isEmpty
-                              ? 'Introduce contrasena'
+                              ? t.enterPassword
                               : null,
                         ),
                         if (_error != null) ...[
@@ -144,14 +146,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2),
                                   )
-                                : const Text('Entrar'),
+                                : Text(t.signIn),
                           ),
                         ),
                         const SizedBox(height: 10),
                         Center(
                           child: TextButton(
                             onPressed: _loading ? null : _forgotPassword,
-                            child: const Text('Olvide mi contraseña'),
+                            child: Text(t.forgotPassword),
                           ),
                         ),
                       ],
@@ -187,44 +189,40 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
     super.dispose();
   }
 
-  String get _message {
-    final contact = _contactController.text.trim();
-    return 'Hola, necesito recuperar el acceso a BRIMOON Studio.\n\n'
-        'Usuario, email o telefono: $contact\n\n'
-        'Por favor, enviadme mi usuario o una nueva contraseña.';
-  }
-
   Future<void> _sendWhatsApp() async {
+    final t = AppLocalizations.of(context);
     final contact = _contactController.text.trim();
     if (contact.isEmpty) {
-      setState(() => _error = 'Introduce tu usuario, email o telefono.');
+      setState(() => _error = t.enterRecoveryContact);
       return;
     }
     setState(() => _error = null);
     final uri = Uri.parse(
-      'https://wa.me/?text=${Uri.encodeComponent(_message)}',
+      'https://wa.me/?text=${Uri.encodeComponent(t.recoveryMessage(contact))}',
     );
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (opened || !mounted) return;
-    setState(() => _error = 'No se pudo abrir WhatsApp.');
+    setState(() => _error = t.cantOpenWhatsApp);
   }
 
   Future<void> _copyMessage() async {
+    final t = AppLocalizations.of(context);
     final contact = _contactController.text.trim();
     if (contact.isEmpty) {
-      setState(() => _error = 'Introduce tu usuario, email o telefono.');
+      setState(() => _error = t.enterRecoveryContact);
       return;
     }
-    await Clipboard.setData(ClipboardData(text: _message));
+    await Clipboard.setData(ClipboardData(text: t.recoveryMessage(contact)));
     if (!mounted) return;
     setState(() => _error = null);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Solicitud copiada.')),
+      SnackBar(content: Text(t.accessRequestCopied)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 18),
@@ -233,20 +231,20 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Recuperar contraseña',
+            t.recoverPassword,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Enviaremos una solicitud por WhatsApp para que administracion te entregue un nuevo acceso.',
-            style: TextStyle(color: AnnaColors.muted),
+          Text(
+            t.recoverPasswordHelp,
+            style: const TextStyle(color: AnnaColors.muted),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _contactController,
-            decoration: const InputDecoration(
-              labelText: 'Usuario, email o telefono',
-              prefixIcon: Icon(Icons.person_search_outlined),
+            decoration: InputDecoration(
+              labelText: t.usernameEmailPhone,
+              prefixIcon: const Icon(Icons.person_search_outlined),
             ),
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _sendWhatsApp(),
@@ -262,7 +260,7 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                 child: OutlinedButton.icon(
                   onPressed: _copyMessage,
                   icon: const Icon(Icons.copy_outlined),
-                  label: const Text('Copiar'),
+                  label: Text(t.copy),
                 ),
               ),
               const SizedBox(width: 10),
@@ -270,7 +268,7 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                 child: FilledButton.icon(
                   onPressed: _sendWhatsApp,
                   icon: const Icon(Icons.chat_outlined),
-                  label: const Text('WhatsApp'),
+                  label: Text(t.whatsapp),
                 ),
               ),
             ],
