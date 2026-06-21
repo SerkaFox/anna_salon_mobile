@@ -255,9 +255,10 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
     required String username,
     required String password,
   }) {
-    return 'Hola! Ya tienes acceso a BRIMOON Studio.\n\n'
-        'Usuario: $username\n'
-        'Contraseña: $password\n'
+    final t = AppLocalizations.of(context);
+    return '${t.tr('Acceso cliente creado')}\n\n'
+        '${t.username}: $username\n'
+        '${t.password}: $password\n'
         'App: $_demoAppLink';
   }
 
@@ -391,8 +392,8 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: widget.client == null
-                      ? t.tr('Contraseña inicial')
-                      : t.tr('Nueva contraseña'),
+                      ? t.tr('Contrasena inicial')
+                      : t.newPassword,
                   prefixIcon: const Icon(Icons.lock_outline),
                 ),
                 validator: (value) {

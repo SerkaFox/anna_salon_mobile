@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import 'cashbox_screen.dart';
 import 'employees_screen.dart';
 import 'services_screen.dart';
 import 'shared.dart';
@@ -64,6 +65,22 @@ class SalonScreen extends StatelessWidget {
                         api: api,
                         canManageStaff: canManageStaff,
                       ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SalonActionCard(
+              icon: Icons.point_of_sale_outlined,
+              title: t.tr('Caja'),
+              subtitle: t.tr('Cobros, documentos, caja del dia y cierres.'),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => DecoratedBox(
+                    decoration: annaBackgroundDecoration(context),
+                    child: SafeArea(
+                      child: CashboxScreen(api: api),
                     ),
                   ),
                 ),

@@ -495,8 +495,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _showCalendarMessage(
         context,
         moved
-            ? 'Reserva reprogramada.'
-            : 'Reserva reprogramada. Actualiza el calendario si no aparece en el nuevo horario.',
+            ? AppLocalizations.of(context).tr('Reserva reprogramada.')
+            : AppLocalizations.of(context).tr(
+                'Reserva reprogramada. Actualiza el calendario si no aparece en el nuevo horario.',
+              ),
       );
     } on AnnaApiException catch (error) {
       if (!mounted) return;
@@ -534,7 +536,8 @@ class _CalendarToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final localeCode = AppLocalizations.of(context).locale.languageCode;
+    final t = AppLocalizations.of(context);
+    final localeCode = t.locale.languageCode;
     final endDate = startDate.add(const Duration(days: 2));
     final label = mode == _CalendarMode.days
         ? '${DateFormat('d MMM', localeCode).format(startDate)} - ${DateFormat('d MMM yyyy', localeCode).format(endDate)}'
@@ -548,11 +551,14 @@ class _CalendarToolbar extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                tooltip:
-                    mode == _CalendarMode.days ? 'Ver empleados' : 'Ver dias',
+                tooltip: mode == _CalendarMode.days
+                    ? t.tr('Ver empleados')
+                    : t.tr('Ver dias'),
                 onPressed: onModeToggle,
                 icon: Text(
-                  mode == _CalendarMode.days ? 'Empl' : 'Day',
+                  mode == _CalendarMode.days
+                      ? (t.isRussian ? 'Сотр.' : 'Empl')
+                      : (t.isRussian ? 'Дни' : 'Day'),
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -574,7 +580,7 @@ class _CalendarToolbar extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Actualizar',
+                tooltip: t.refresh,
                 onPressed: onRefresh,
                 icon: const Icon(Icons.refresh),
               ),
@@ -584,12 +590,12 @@ class _CalendarToolbar extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                tooltip: 'Anterior',
+                tooltip: t.tr('Anterior'),
                 onPressed: onPrevious,
                 icon: const Icon(Icons.chevron_left),
               ),
               IconButton(
-                tooltip: 'Siguiente',
+                tooltip: t.tr('Siguiente'),
                 onPressed: onNext,
                 icon: const Icon(Icons.chevron_right),
               ),
@@ -628,6 +634,7 @@ class _EmployeeDropdownButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final allSelected = selectedEmployeeIds == null;
     final count = allSelected ? employees.length : selectedEmployeeIds!.length;
     return MenuAnchor(
@@ -635,14 +642,14 @@ class _EmployeeDropdownButton extends StatelessWidget {
         return OutlinedButton.icon(
           onPressed: controller.isOpen ? controller.close : controller.open,
           icon: const Icon(Icons.groups_outlined),
-          label: Text(allSelected ? 'Todos' : '$count'),
+          label: Text(allSelected ? t.tr('Todos') : '$count'),
         );
       },
       menuChildren: [
         CheckboxMenuButton(
           value: allSelected,
           onChanged: (_) => onAllSelected(),
-          child: const Text('Todos'),
+          child: Text(t.tr('Todos')),
         ),
         for (final employee in employees)
           CheckboxMenuButton(
@@ -691,7 +698,7 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
               isMobile ? _mobileTimeRailWidth : _desktopTimeRailWidth;
           final columns = mode == _CalendarMode.days
               ? _dayColumns(context, Theme.of(context).colorScheme.primary)
-              : _teamColumns(days.isEmpty ? null : days.first);
+              : _teamColumns(context, days.isEmpty ? null : days.first);
           if (columns.isEmpty) {
             return const EmptyState('Sin columnas visibles.');
           }
@@ -794,8 +801,12 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
     ];
   }
 
-  List<_CalendarColumn> _teamColumns(_CalendarDayData? day) {
+  List<_CalendarColumn> _teamColumns(
+    BuildContext context,
+    _CalendarDayData? day,
+  ) {
     if (day == null) return const [];
+    final t = AppLocalizations.of(context);
     final activeDayEmployees = _mergeEmployees([day]);
     final sourceEmployees = selectedEmployeeIds == null
         ? activeDayEmployees
@@ -809,7 +820,7 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
           employeeId: employee.id,
           hasSchedule: employee.hasSchedule,
           title: employee.firstName ?? employee.name,
-          subtitle: employee.hasSchedule ? 'Turno' : 'Sin turno',
+          subtitle: employee.hasSchedule ? t.tr('Turno') : t.tr('Sin turno'),
           color: employee.color,
           bookings: day.bookings
               .where((booking) => booking.matchesEmployee(employee))
@@ -1326,7 +1337,7 @@ class _PositionedScheduleBlock extends StatelessWidget {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             block.startTime == null || block.endTime == null
-                ? 'Turno'
+                ? AppLocalizations.of(context).tr('Turno')
                 : '${block.startTime} - ${block.endTime}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1655,7 +1666,7 @@ class _DeleteTimeBlockSheetState extends State<_DeleteTimeBlockSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _working ? null : () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
+                    child: Text(t.tr('Cancelar')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1667,7 +1678,7 @@ class _DeleteTimeBlockSheetState extends State<_DeleteTimeBlockSheet> {
                     onPressed: _working ? null : _delete,
                     child: _working
                         ? const _ButtonSpinner()
-                        : const Text('Borrar'),
+                        : Text(t.tr('Borrar')),
                   ),
                 ),
               ],
@@ -2053,7 +2064,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                         for (final value in _BlockRecurrence.values)
                           DropdownMenuItem(
                             value: value,
-                            child: Text(value.label),
+                            child: Text(t.tr(value.label)),
                           ),
                       ],
                       onChanged: (value) {
@@ -2177,7 +2188,7 @@ class _BookingCardContent extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              booking.clientName ?? 'Reserva',
+              booking.clientName ?? AppLocalizations.of(context).booking,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -2260,7 +2271,8 @@ class _CompactBookingCardContent extends StatelessWidget {
                   const SizedBox(width: 5),
                   Expanded(
                     child: Text(
-                      booking.clientName ?? 'Reserva',
+                      booking.clientName ??
+                          AppLocalizations.of(context).booking,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -2363,7 +2375,7 @@ class _LegacyCompactBookingCardContent extends StatelessWidget {
         final maxLines = (constraints.maxHeight / 12).floor().clamp(1, 6);
         final text = [
           booking.timeRange,
-          booking.clientName ?? 'Reserva',
+          booking.clientName ?? AppLocalizations.of(context).booking,
           booking.serviceName,
           [
             booking.employeeName,
@@ -2699,7 +2711,10 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
       await widget.onChanged();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reserva actualizada.')),
+        SnackBar(
+          content:
+              Text(AppLocalizations.of(context).tr('Reserva actualizada.')),
+        ),
       );
     } on AnnaApiException catch (error) {
       if (mounted) setState(() => _error = _apiErrorText(error));
@@ -2760,7 +2775,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('Editar reserva',
+                        child: Text(t.tr('Editar reserva'),
                             style: Theme.of(context).textTheme.titleLarge),
                       ),
                       IconButton(
@@ -3062,7 +3077,10 @@ class _EditDropdown extends StatelessWidget {
         for (final option in filtered)
           DropdownMenuItem(
             value: option.id,
-            child: Text(option.label, overflow: TextOverflow.ellipsis),
+            child: Text(
+              t.tr(option.label),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
       ],
       validator: (value) => requiredField && (value == null || value.isEmpty)
@@ -3289,7 +3307,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              booking.clientName ?? 'Reserva',
+              booking.clientName ?? AppLocalizations.of(context).booking,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
@@ -3332,17 +3350,17 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
               runSpacing: 10,
               children: [
                 _StatusButton(
-                  label: 'Confirmar',
+                  label: AppLocalizations.of(context).tr('Confirmar'),
                   icon: Icons.check_circle_outline,
                   onPressed: _working ? null : () => _updateStatus('confirmed'),
                 ),
                 _StatusButton(
-                  label: 'Pendiente',
+                  label: AppLocalizations.of(context).tr('Pendiente'),
                   icon: Icons.hourglass_bottom,
                   onPressed: _working ? null : () => _updateStatus('pending'),
                 ),
                 _StatusButton(
-                  label: 'Cancelar',
+                  label: AppLocalizations.of(context).tr('Cancelar'),
                   icon: Icons.cancel_outlined,
                   danger: true,
                   onPressed: _working ? null : () => _updateStatus('cancelled'),
@@ -3360,7 +3378,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                               () => _showReschedule = !_showReschedule,
                             ),
                     icon: const Icon(Icons.schedule),
-                    label: const Text('Reprogramar'),
+                    label: Text(t.tr('Reprogramar')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -3373,7 +3391,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                             widget.onEdit();
                           },
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Editar'),
+                    label: Text(t.tr('Editar')),
                   ),
                 ),
               ],
@@ -3385,16 +3403,17 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Reprogramar',
+                    Text(t.tr('Reprogramar'),
                         style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
                           child: _SheetPickerField(
-                            label: 'Fecha',
-                            value: DateFormat('d MMM yyyy', 'es')
-                                .format(_rescheduleDate),
+                            label: t.tr('Fecha'),
+                            value:
+                                DateFormat('d MMM yyyy', t.locale.languageCode)
+                                    .format(_rescheduleDate),
                             icon: Icons.event_outlined,
                             onTap: _working ? null : _pickRescheduleDate,
                           ),
@@ -3402,7 +3421,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _SheetPickerField(
-                            label: 'Hora',
+                            label: t.tr('Hora'),
                             value: _rescheduleTime.format(context),
                             icon: Icons.schedule,
                             onTap: _working ? null : _pickRescheduleTime,
@@ -3422,7 +3441,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.check),
-                        label: const Text('Comprobar y reprogramar'),
+                        label: Text(t.tr('Comprobar y reprogramar')),
                       ),
                     ),
                   ],
@@ -3458,9 +3477,9 @@ class _DetailGrid extends StatelessWidget {
         .where((row) => row.value != null && row.value!.trim().isNotEmpty)
         .toList();
     if (visibleRows.isEmpty) {
-      return const Text(
-        'Sin datos adicionales.',
-        style: TextStyle(color: AnnaColors.muted),
+      return Text(
+        AppLocalizations.of(context).tr('Sin datos adicionales.'),
+        style: const TextStyle(color: AnnaColors.muted),
       );
     }
 

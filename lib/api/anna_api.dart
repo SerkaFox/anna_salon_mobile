@@ -343,6 +343,81 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> bookingStripeCheckout(Object bookingId) async {
+    return ApiDocument.fromJson(
+      await _post('bookings/$bookingId/stripe-checkout/', const {}),
+    );
+  }
+
+  Future<ApiDocument> editBookingService(
+    Object bookingId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('bookings/$bookingId/edit-services/', payload),
+    );
+  }
+
+  Future<ApiDocument> quickBookingPayment(
+    Object bookingId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('bookings/$bookingId/quick-payment/', payload),
+    );
+  }
+
+  Future<ApiDocument> createCashDocument(
+    Object bookingId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('bookings/$bookingId/cash-document/', payload),
+    );
+  }
+
+  Future<ApiDocument> cashbox({
+    DateTime? date,
+    String? method,
+    String? entryType,
+  }) async {
+    final query = <String, String>{};
+    if (date != null) {
+      query['date'] = DateFormat('yyyy-MM-dd').format(date);
+    }
+    if (method != null && method.isNotEmpty) query['method'] = method;
+    if (entryType != null && entryType.isNotEmpty) query['entry_type'] = entryType;
+    return ApiDocument.fromJson(
+      await _get('cashbox/', query: query.isEmpty ? null : query),
+    );
+  }
+
+  Future<ApiDocument> cashDocumentDetail(Object documentId) async {
+    return ApiDocument.fromJson(await _get('cashbox/documents/$documentId/'));
+  }
+
+  Future<ApiDocument> addCashDocumentLine(
+    Object documentId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('cashbox/documents/$documentId/lines/', payload),
+    );
+  }
+
+  Future<ApiDocument> addCashDocumentPayment(
+    Object documentId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('cashbox/documents/$documentId/payments/', payload),
+    );
+  }
+
+  Future<ApiDocument> closeCashbox(Map<String, dynamic> payload) async {
+    return ApiDocument.fromJson(await _post('cashbox/close/', payload));
+  }
+
   Future<ApiDocument> createTimeBlock(Map<String, dynamic> payload) async {
     return ApiDocument.fromJson(await _post('time-blocks/', payload));
   }

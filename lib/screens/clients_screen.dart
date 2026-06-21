@@ -326,7 +326,7 @@ class _ClientCard extends StatelessWidget {
                             client.isActive ? t.tr('Activo') : t.tr('Inactivo'),
                             warning: !client.isActive),
                         if (client.createdText != null)
-                          AnnaBadge('Creado ${client.createdText}'),
+                          AnnaBadge('${t.tr('Creado')} ${client.createdText}'),
                       ],
                     ),
                   ],
@@ -640,15 +640,15 @@ class _ClientDetailSheet extends StatelessWidget {
                     _ClientInfoLine(
                         icon: Icons.history,
                         label:
-                            '${t.tr('Ultima visita')}: ${detail.lastVisitText}'),
+                            '${t.tr('Ultima visita')}: ${detail.lastVisitText(context)}'),
                     _ClientInfoLine(
                         icon: Icons.event_available_outlined,
                         label:
-                            '${t.tr('Proxima cita')}: ${detail.nextBookingText}'),
+                            '${t.tr('Proxima cita')}: ${detail.nextBookingText(context)}'),
                     _ClientInfoLine(
                         icon: Icons.card_giftcard,
                         label:
-                            '${t.tr('Para proximo premio')}: ${detail.rewardText}'),
+                            '${t.tr('Para proximo premio')}: ${detail.rewardText(context)}'),
                   ],
                 ),
                 _CountListSection(
@@ -1028,7 +1028,9 @@ class _ReferralTreeNode extends StatelessWidget {
                     child: Text(node.name,
                         style: const TextStyle(fontWeight: FontWeight.w800)),
                   ),
-                  AnnaBadge('${node.children.length} referidos'),
+                  AnnaBadge(
+                    '${node.children.length} ${AppLocalizations.of(context).tr('referidos')}',
+                  ),
                 ],
               ),
             ),
@@ -1065,6 +1067,7 @@ class _BookingDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
       child: Column(
@@ -1074,7 +1077,7 @@ class _BookingDetailSheet extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Reserva',
+                child: Text(t.booking,
                     style: Theme.of(context).textTheme.titleLarge),
               ),
               IconButton(
@@ -1089,15 +1092,17 @@ class _BookingDetailSheet extends StatelessWidget {
           const SizedBox(height: 8),
           _ClientInfoLine(
               icon: Icons.spa_outlined,
-              label: booking['service_name']?.toString() ?? 'Sin servicio'),
+              label:
+                  booking['service_name']?.toString() ?? t.tr('Sin servicio')),
           const SizedBox(height: 8),
           _ClientInfoLine(
               icon: Icons.badge_outlined,
-              label: booking['employee_name']?.toString() ?? 'Sin empleado'),
+              label:
+                  booking['employee_name']?.toString() ?? t.tr('Sin empleado')),
           const SizedBox(height: 8),
           _ClientInfoLine(
               icon: Icons.place_outlined,
-              label: booking['zone_name']?.toString() ?? 'Sin zona'),
+              label: booking['zone_name']?.toString() ?? t.tr('Sin zona')),
           const SizedBox(height: 8),
           _ClientInfoLine(
               icon: Icons.sell_outlined,
@@ -1159,12 +1164,15 @@ class _PhotoHistorySectionState extends State<_PhotoHistorySection> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return _DetailSection(
-      title: 'Historial visual',
+      title: t.tr('Historial visual'),
       children: widget.photos.isEmpty
-          ? const [
-              Text('Todavia no hay fotos guardadas para este cliente.',
-                  style: TextStyle(color: AnnaColors.muted))
+          ? [
+              Text(
+                t.tr('Todavia no hay fotos guardadas para este cliente.'),
+                style: const TextStyle(color: AnnaColors.muted),
+              )
             ]
           : [
               GridView.count(
@@ -1235,11 +1243,12 @@ class _PhotoHistorySectionState extends State<_PhotoHistorySection> {
   }
 
   String _photoTitle(Map<String, dynamic> photo) {
+    final t = AppLocalizations.of(context);
     final type = photo['photo_type']?.toString();
     return switch (type) {
-      'before' => 'Foto antes',
-      'after' => 'Foto despues',
-      _ => 'Foto',
+      'before' => t.tr('Foto antes'),
+      'after' => t.tr('Foto despues'),
+      _ => t.tr('Foto'),
     };
   }
 }
@@ -1312,11 +1321,16 @@ class _ClientDetail {
   final int availableRewards;
   final int remainingForNextReward;
 
-  String get lastVisitText => _bookingSummary(lastVisit);
-  String get nextBookingText => _bookingSummary(nextBooking);
-  String get rewardText => availableRewards > 0
-      ? 'Ya disponible'
-      : '$remainingForNextReward visitas';
+  String lastVisitText(BuildContext context) =>
+      _bookingSummary(context, lastVisit);
+  String nextBookingText(BuildContext context) =>
+      _bookingSummary(context, nextBooking);
+  String rewardText(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return availableRewards > 0
+        ? t.tr('Ya disponible')
+        : '$remainingForNextReward ${t.tr('visitas')}';
+  }
 
   factory _ClientDetail.fromMap(Map<String, dynamic> data) {
     final clientRecord = data['client'] is Map
@@ -1549,8 +1563,9 @@ List<_NamedCount> _namedCounts(Object? value) {
       .toList();
 }
 
-String _bookingSummary(Map<String, dynamic>? booking) {
-  if (booking == null) return 'Sin datos';
+String _bookingSummary(BuildContext context, Map<String, dynamic>? booking) {
+  final t = AppLocalizations.of(context);
+  if (booking == null) return t.tr('Sin datos.');
   final date = _bookingDate(booking['start_at']);
   final service = booking['service_name']?.toString() ?? '';
   final employee = booking['employee_name']?.toString() ?? '';
