@@ -255,6 +255,9 @@ class _PaymentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+        );
     return PanelCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -262,7 +265,9 @@ class _PaymentCard extends StatelessWidget {
         children: [
           Text(
             '${payment.valueAsText('entry_type_label') ?? ''} · ${payment.valueAsText('method_label') ?? ''}',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: titleStyle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Text(
@@ -271,7 +276,11 @@ class _PaymentCard extends StatelessWidget {
               payment.valueAsText('amount'),
               payment.valueAsText('reference'),
             ].whereType<String>().where((v) => v.isNotEmpty).join(' · '),
-            style: const TextStyle(color: AnnaColors.muted),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AnnaColors.muted,
+                ),
           ),
         ],
       ),
@@ -293,6 +302,9 @@ class _PendingDocumentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+        );
     return PanelCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -300,7 +312,9 @@ class _PendingDocumentCard extends StatelessWidget {
         children: [
           Text(
             '${document.valueAsText('document_type_label') ?? t.tr('Recibo')} ${document.valueAsText('number') ?? ''}',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: titleStyle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Text(
@@ -309,7 +323,11 @@ class _PendingDocumentCard extends StatelessWidget {
               document.valueAsText('service_name'),
               '${t.tr('Saldo pendiente')}: ${document.valueAsText('balance_due') ?? '0.00'} EUR',
             ].whereType<String>().join(' · '),
-            style: const TextStyle(color: AnnaColors.muted),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AnnaColors.muted,
+                ),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -374,6 +392,9 @@ class _BookingDueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+        );
     return PanelCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -381,7 +402,9 @@ class _BookingDueCard extends StatelessWidget {
         children: [
           Text(
             booking.valueAsText('client_name') ?? t.tr('Cliente'),
-            style: Theme.of(context).textTheme.titleMedium,
+            style: titleStyle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Text(
@@ -390,7 +413,11 @@ class _BookingDueCard extends StatelessWidget {
               booking.valueAsText('service_name'),
               '${t.tr('Saldo pendiente')}: ${booking.valueAsText('amount_due') ?? '0.00'} EUR',
             ].whereType<String>().join(' · '),
-            style: const TextStyle(color: AnnaColors.muted),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AnnaColors.muted,
+                ),
           ),
           const SizedBox(height: 12),
           Wrap(
