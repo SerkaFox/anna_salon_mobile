@@ -436,6 +436,14 @@ class AppLocalizations {
         'Запись перенесена. Обновите календарь, если она не появилась в новом времени.',
     'Reserva actualizada.': 'Запись обновлена.',
     'referidos': 'приглашенных',
+    'Concepto manual': 'Своя позиция',
+    'Servicio extra': 'Доп. услуга',
+    'Cobrar': 'Оплатить',
+    'Cobro y documento': 'Оплата и документ',
+    'Documento cobrado completo.': 'Документ оплачен полностью.',
+    'Enviar documento': 'Отправить документ',
+    'Enviar por email': 'Отправить на email',
+    'Documento enviado por email.': 'Документ отправлен на email.',
   };
 }
 

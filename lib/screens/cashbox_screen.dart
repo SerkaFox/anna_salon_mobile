@@ -8,6 +8,20 @@ import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'shared.dart';
 
+Future<void> showCashDocumentSheet(
+  BuildContext context, {
+  required AnnaApi api,
+  required String documentId,
+  required VoidCallback onChanged,
+}) {
+  return _CashDocumentSheet.show(
+    context,
+    api: api,
+    documentId: documentId,
+    onChanged: onChanged,
+  );
+}
+
 class CashboxScreen extends StatefulWidget {
   const CashboxScreen({required this.api, super.key});
 
@@ -353,13 +367,18 @@ class _PendingDocumentCard extends StatelessWidget {
   Future<void> _registerPayment(BuildContext context, String method) async {
     final due = document.valueAsText('balance_due') ?? '0.00';
     try {
-      await api.addCashDocumentPayment(document.valueAsText('id')!, {
+      final response =
+          await api.addCashDocumentPayment(document.valueAsText('id')!, {
         'entry_type': 'payment',
         'amount': due,
         'method': method,
       });
       if (!context.mounted) return;
       onChanged();
+      final updatedDocument = ApiRecord(response.data);
+      if (_isPaid(updatedDocument)) {
+        await _showShareSheet(context, api: api, document: updatedDocument);
+      }
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -471,12 +490,16 @@ class _BookingDueCard extends StatelessWidget {
 
   Future<void> _quickPay(BuildContext context, String method) async {
     try {
-      await api.quickBookingPayment(
+      final response = await api.quickBookingPayment(
         booking.valueAsText('id')!,
         {'method': method},
       );
       if (!context.mounted) return;
       onChanged();
+      final document = ApiRecord(response.data);
+      if (_isPaid(document)) {
+        await _showShareSheet(context, api: api, document: document);
+      }
     } on AnnaApiException catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -560,6 +583,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
             return ErrorState(error: snapshot.error!, onRetry: _reload);
           }
           final data = snapshot.data!.data;
+          final document = ApiRecord(data);
           final lines = ApiCollection.fromJson(data['lines']).items;
           final payments = ApiCollection.fromJson(data['payments']).items;
           return SingleChildScrollView(
@@ -588,8 +612,17 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                     AnnaBadge('${t.tr('Precio')}: ${data['total_amount']} EUR'),
                     AnnaBadge(
                         '${t.tr('Saldo pendiente')}: ${data['balance_due']} EUR'),
+                    if (_isPaid(document))
+                      AnnaBadge(t.tr('Documento cobrado completo.')),
                   ],
                 ),
+                if (_isPaid(document)) ...[
+                  const SizedBox(height: 12),
+                  _DocumentShareActions(
+                    api: widget.api,
+                    document: document,
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Text(t.tr('Concepto e importe'),
                     style: Theme.of(context).textTheme.titleMedium),
@@ -653,22 +686,32 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
   }
 
   Future<void> _showAddLine(BuildContext context) async {
-    await _CashLineFormSheet.show(
+    final response = await _CashLineFormSheet.show(
       context,
       api: widget.api,
       documentId: widget.documentId,
       onChanged: _reload,
     );
+    if (response == null || !context.mounted) return;
+    setState(() => _future = Future.value(response));
+    widget.onChanged();
   }
 
   Future<void> _showPayment(BuildContext context, bool refund) async {
-    await _CashPaymentFormSheet.show(
+    final response = await _CashPaymentFormSheet.show(
       context,
       api: widget.api,
       documentId: widget.documentId,
       refund: refund,
       onChanged: _reload,
     );
+    if (response == null || !context.mounted) return;
+    setState(() => _future = Future.value(response));
+    widget.onChanged();
+    final document = ApiRecord(response.data);
+    if (_isPaid(document) && !refund) {
+      await _showShareSheet(context, api: widget.api, document: document);
+    }
   }
 }
 
@@ -683,13 +726,13 @@ class _CashLineFormSheet extends StatefulWidget {
   final String documentId;
   final VoidCallback onChanged;
 
-  static Future<void> show(
+  static Future<ApiDocument?> show(
     BuildContext context, {
     required AnnaApi api,
     required String documentId,
     required VoidCallback onChanged,
   }) {
-    return showModalBottomSheet<void>(
+    return showModalBottomSheet<ApiDocument>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -707,14 +750,19 @@ class _CashLineFormSheet extends StatefulWidget {
 }
 
 class _CashLineFormSheetState extends State<_CashLineFormSheet> {
+  late final Future<ApiCollection> _servicesFuture = widget.api.services();
   final _description = TextEditingController();
   final _amount = TextEditingController();
+  final _quantity = TextEditingController(text: '1');
+  String _mode = 'custom';
+  String? _serviceId;
   bool _saving = false;
 
   @override
   void dispose() {
     _description.dispose();
     _amount.dispose();
+    _quantity.dispose();
     super.dispose();
   }
 
@@ -724,28 +772,94 @@ class _CashLineFormSheetState extends State<_CashLineFormSheet> {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 18),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _description,
-            decoration: InputDecoration(labelText: t.tr('Concepto')),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: t.tr('Importe manual')),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _saving ? null : _save,
-              child: Text(t.tr('Guardar')),
-            ),
-          ),
-        ],
+      child: FutureBuilder<ApiCollection>(
+        future: _servicesFuture,
+        builder: (context, snapshot) {
+          final services = snapshot.data?.items ?? const <ApiRecord>[];
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'custom',
+                    label: Text(t.tr('Concepto manual')),
+                    icon: const Icon(Icons.edit_note_outlined),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'service',
+                    label: Text(t.tr('Servicio extra')),
+                    icon: const Icon(Icons.spa_outlined),
+                  ),
+                ],
+                selected: {_mode},
+                onSelectionChanged: _saving
+                    ? null
+                    : (selection) => setState(() => _mode = selection.first),
+              ),
+              const SizedBox(height: 12),
+              if (_mode == 'service')
+                DropdownButtonFormField<String>(
+                  initialValue: _serviceId,
+                  decoration: InputDecoration(labelText: t.tr('Servicio')),
+                  items: [
+                    for (final service in services)
+                      DropdownMenuItem(
+                        value: service.valueAsText('id'),
+                        child: Text(
+                          service.valueAsText('name') ??
+                              '${t.tr('Servicio')} ${service.valueAsText('id') ?? ''}',
+                        ),
+                      ),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _serviceId = value),
+                )
+              else
+                TextField(
+                  controller: _description,
+                  decoration: InputDecoration(labelText: t.tr('Concepto')),
+                ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _quantity,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(labelText: t.tr('Cantidad')),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _amount,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: _mode == 'service'
+                            ? t.tr('Precio unitario')
+                            : t.tr('Importe manual'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: Text(t.tr('Guardar')),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -753,12 +867,24 @@ class _CashLineFormSheetState extends State<_CashLineFormSheet> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      await widget.api.addCashDocumentLine(widget.documentId, {
-        'description': _description.text.trim(),
-        'manual_amount': _amount.text.trim(),
-      });
+      final payload = <String, dynamic>{
+        'quantity': _quantity.text.trim().isEmpty ? '1' : _quantity.text.trim(),
+      };
+      if (_mode == 'service') {
+        payload['service'] = _serviceId;
+        if (_amount.text.trim().isNotEmpty) {
+          payload['unit_amount'] = _amount.text.trim();
+        }
+      } else {
+        payload['description'] = _description.text.trim();
+        payload['manual_amount'] = _amount.text.trim();
+      }
+      final response = await widget.api.addCashDocumentLine(
+        widget.documentId,
+        payload,
+      );
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context, response);
       widget.onChanged();
     } on AnnaApiException catch (error) {
       if (!mounted) return;
@@ -783,14 +909,14 @@ class _CashPaymentFormSheet extends StatefulWidget {
   final bool refund;
   final VoidCallback onChanged;
 
-  static Future<void> show(
+  static Future<ApiDocument?> show(
     BuildContext context, {
     required AnnaApi api,
     required String documentId,
     required bool refund,
     required VoidCallback onChanged,
   }) {
-    return showModalBottomSheet<void>(
+    return showModalBottomSheet<ApiDocument>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -871,13 +997,14 @@ class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      await widget.api.addCashDocumentPayment(widget.documentId, {
+      final response =
+          await widget.api.addCashDocumentPayment(widget.documentId, {
         'entry_type': widget.refund ? 'refund' : 'payment',
         'amount': _amount.text.trim(),
         'method': _method,
       });
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context, response);
       widget.onChanged();
     } on AnnaApiException catch (error) {
       if (!mounted) return;
@@ -887,6 +1014,146 @@ class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
       setState(() => _saving = false);
     }
   }
+}
+
+class _DocumentShareActions extends StatefulWidget {
+  const _DocumentShareActions({
+    required this.api,
+    required this.document,
+  });
+
+  final AnnaApi api;
+  final ApiRecord document;
+
+  @override
+  State<_DocumentShareActions> createState() => _DocumentShareActionsState();
+}
+
+class _DocumentShareActionsState extends State<_DocumentShareActions> {
+  String? _sending;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final hasEmail =
+        (widget.document.valueAsText('client_email') ?? '').trim().isNotEmpty;
+    final hasPhone =
+        (widget.document.valueAsText('client_phone') ?? '').trim().isNotEmpty;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        if (hasEmail)
+          FilledButton.tonalIcon(
+            onPressed: _sending == null ? _sendEmail : null,
+            icon: _sending == 'email'
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.mail_outline),
+            label: Text(t.tr('Enviar por email')),
+          ),
+        if (hasPhone)
+          OutlinedButton.icon(
+            onPressed: _sending == null ? _sendWhatsApp : null,
+            icon: _sending == 'whatsapp'
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.chat_outlined),
+            label: const Text('WhatsApp'),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _sendEmail() async {
+    final t = AppLocalizations.of(context);
+    setState(() => _sending = 'email');
+    try {
+      await widget.api.shareCashDocument(
+        widget.document.valueAsText('id')!,
+        {'channel': 'email'},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.tr('Documento enviado por email.'))),
+      );
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = null);
+    }
+  }
+
+  Future<void> _sendWhatsApp() async {
+    setState(() => _sending = 'whatsapp');
+    try {
+      final response = await widget.api.shareCashDocument(
+        widget.document.valueAsText('id')!,
+        {'channel': 'whatsapp'},
+      );
+      final phone = response.data['phone']?.toString() ?? '';
+      final message = response.data['message']?.toString() ?? '';
+      if (!mounted) return;
+      final url = Uri.parse(
+        'https://wa.me/$phone?text=${Uri.encodeComponent(message)}',
+      );
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = null);
+    }
+  }
+}
+
+Future<void> _showShareSheet(
+  BuildContext context, {
+  required AnnaApi api,
+  required ApiRecord document,
+}) {
+  final t = AppLocalizations.of(context);
+  return showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    backgroundColor: AnnaColors.bgSoft,
+    builder: (context) => Padding(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.tr('Enviar documento'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            document.valueAsText('number') ?? '',
+            style: const TextStyle(color: AnnaColors.muted),
+          ),
+          const SizedBox(height: 16),
+          _DocumentShareActions(api: api, document: document),
+        ],
+      ),
+    ),
+  );
+}
+
+bool _isPaid(ApiRecord document) {
+  final value = document.data['is_paid'];
+  if (value is bool) return value;
+  return value?.toString() == 'true';
 }
 
 String _methodLabel(BuildContext context, String method) {

@@ -385,8 +385,12 @@ class AnnaApi {
     if (date != null) {
       query['date'] = DateFormat('yyyy-MM-dd').format(date);
     }
-    if (method != null && method.isNotEmpty) query['method'] = method;
-    if (entryType != null && entryType.isNotEmpty) query['entry_type'] = entryType;
+    if (method != null && method.isNotEmpty) {
+      query['method'] = method;
+    }
+    if (entryType != null && entryType.isNotEmpty) {
+      query['entry_type'] = entryType;
+    }
     return ApiDocument.fromJson(
       await _get('cashbox/', query: query.isEmpty ? null : query),
     );
@@ -411,6 +415,15 @@ class AnnaApi {
   ) async {
     return ApiDocument.fromJson(
       await _post('cashbox/documents/$documentId/payments/', payload),
+    );
+  }
+
+  Future<ApiDocument> shareCashDocument(
+    Object documentId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('cashbox/documents/$documentId/share/', payload),
     );
   }
 

@@ -10,6 +10,7 @@ import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
+import 'cashbox_screen.dart';
 import 'shared.dart';
 
 const _workStartHour = 9;
@@ -3212,6 +3213,71 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
     });
   }
 
+  Future<void> _openCheckoutDocument() async {
+    final id = booking.id;
+    if (id == null) {
+      setState(() => _error = 'No se encontro el identificador de la reserva.');
+      return;
+    }
+    final documentType = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (context) {
+        final t = AppLocalizations.of(context);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.tr('Cobro y documento'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  onPressed: () => Navigator.pop(context, 'receipt'),
+                  child: Text(t.tr('Recibo')),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, 'invoice'),
+                  child: Text(t.tr('Factura')),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted || documentType == null) return;
+    setState(() => _working = true);
+    try {
+      final response = await widget.api.createCashDocument(
+        id,
+        {'document_type': documentType},
+      );
+      if (!mounted) return;
+      await showCashDocumentSheet(
+        context,
+        api: widget.api,
+        documentId: response.data['id'].toString(),
+        onChanged: widget.onChanged,
+      );
+      await widget.onChanged();
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = _apiErrorText(error));
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
   Future<void> _pickRescheduleDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -3368,31 +3434,33 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
               children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _working
-                        ? null
-                        : () => setState(
-                              () => _showReschedule = !_showReschedule,
-                            ),
-                    icon: const Icon(Icons.schedule),
-                    label: Text(t.tr('Reprogramar')),
-                  ),
+                FilledButton.tonalIcon(
+                  onPressed: _working ? null : _openCheckoutDocument,
+                  icon: const Icon(Icons.point_of_sale_outlined),
+                  label: Text(t.tr('Cobrar')),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _working
-                        ? null
-                        : () {
-                            Navigator.of(context).pop();
-                            widget.onEdit();
-                          },
-                    icon: const Icon(Icons.edit_outlined),
-                    label: Text(t.tr('Editar')),
-                  ),
+                FilledButton.icon(
+                  onPressed: _working
+                      ? null
+                      : () => setState(
+                            () => _showReschedule = !_showReschedule,
+                          ),
+                  icon: const Icon(Icons.schedule),
+                  label: Text(t.tr('Reprogramar')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _working
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                          widget.onEdit();
+                        },
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(t.tr('Editar')),
                 ),
               ],
             ),
