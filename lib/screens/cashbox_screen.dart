@@ -648,7 +648,11 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                       label: Text(t.tr('Anadir linea')),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () => _showPayment(context, false),
+                      onPressed: () => _showPayment(
+                        context,
+                        false,
+                        initialAmount: data['balance_due']?.toString(),
+                      ),
                       icon: const Icon(Icons.payments_outlined),
                       label: Text(t.tr('Registrar pago')),
                     ),
@@ -697,11 +701,16 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
     widget.onChanged();
   }
 
-  Future<void> _showPayment(BuildContext context, bool refund) async {
+  Future<void> _showPayment(
+    BuildContext context,
+    bool refund, {
+    String? initialAmount,
+  }) async {
     final response = await _CashPaymentFormSheet.show(
       context,
       api: widget.api,
       documentId: widget.documentId,
+      initialAmount: refund ? null : initialAmount,
       refund: refund,
       onChanged: _reload,
     );
@@ -900,12 +909,14 @@ class _CashPaymentFormSheet extends StatefulWidget {
   const _CashPaymentFormSheet({
     required this.api,
     required this.documentId,
+    this.initialAmount,
     required this.refund,
     required this.onChanged,
   });
 
   final AnnaApi api;
   final String documentId;
+  final String? initialAmount;
   final bool refund;
   final VoidCallback onChanged;
 
@@ -913,6 +924,7 @@ class _CashPaymentFormSheet extends StatefulWidget {
     BuildContext context, {
     required AnnaApi api,
     required String documentId,
+    String? initialAmount,
     required bool refund,
     required VoidCallback onChanged,
   }) {
@@ -924,6 +936,7 @@ class _CashPaymentFormSheet extends StatefulWidget {
       builder: (context) => _CashPaymentFormSheet(
         api: api,
         documentId: documentId,
+        initialAmount: initialAmount,
         refund: refund,
         onChanged: onChanged,
       ),
@@ -935,7 +948,7 @@ class _CashPaymentFormSheet extends StatefulWidget {
 }
 
 class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
-  final _amount = TextEditingController();
+  late final _amount = TextEditingController(text: widget.initialAmount ?? '');
   String _method = 'cash';
   bool _saving = false;
 
@@ -1030,42 +1043,89 @@ class _DocumentShareActions extends StatefulWidget {
 }
 
 class _DocumentShareActionsState extends State<_DocumentShareActions> {
+  late final TextEditingController _emailController = TextEditingController(
+    text: widget.document.valueAsText('client_email') ?? '',
+  );
+  late final TextEditingController _phoneController = TextEditingController(
+    text: widget.document.valueAsText('client_phone') ?? '',
+  );
+  late final bool _showEmailField =
+      (widget.document.valueAsText('client_email') ?? '').trim().isEmpty;
+  late final bool _showPhoneField =
+      (widget.document.valueAsText('client_phone') ?? '').trim().isEmpty;
   String? _sending;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_handleContactChanged);
+    _phoneController.addListener(_handleContactChanged);
+  }
+
+  @override
+  void dispose() {
+    _emailController.removeListener(_handleContactChanged);
+    _phoneController.removeListener(_handleContactChanged);
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _handleContactChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final hasEmail =
-        (widget.document.valueAsText('client_email') ?? '').trim().isNotEmpty;
-    final hasPhone =
-        (widget.document.valueAsText('client_phone') ?? '').trim().isNotEmpty;
+    final hasEmail = _emailController.text.trim().isNotEmpty;
+    final hasPhone = _phoneController.text.trim().isNotEmpty;
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (hasEmail)
-          FilledButton.tonalIcon(
-            onPressed: _sending == null ? _sendEmail : null,
-            icon: _sending == 'email'
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.mail_outline),
-            label: Text(t.tr('Enviar por email')),
+        if (_showEmailField) ...[
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(labelText: t.tr('Email')),
           ),
-        if (hasPhone)
-          OutlinedButton.icon(
-            onPressed: _sending == null ? _sendWhatsApp : null,
-            icon: _sending == 'whatsapp'
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.chat_outlined),
-            label: const Text('WhatsApp'),
+          const SizedBox(height: 10),
+        ],
+        if (_showPhoneField) ...[
+          TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(labelText: t.tr('Telefono')),
           ),
+          const SizedBox(height: 10),
+        ],
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: _sending == null && hasEmail ? _sendEmail : null,
+              icon: _sending == 'email'
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.mail_outline),
+              label: Text(t.tr('Enviar por email')),
+            ),
+            OutlinedButton.icon(
+              onPressed: _sending == null && hasPhone ? _sendWhatsApp : null,
+              icon: _sending == 'whatsapp'
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.chat_outlined),
+              label: const Text('WhatsApp'),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -1076,7 +1136,11 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
     try {
       await widget.api.shareCashDocument(
         widget.document.valueAsText('id')!,
-        {'channel': 'email'},
+        {
+          'channel': 'email',
+          'email': _emailController.text.trim(),
+          'phone': _phoneController.text.trim(),
+        },
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1097,7 +1161,11 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
     try {
       final response = await widget.api.shareCashDocument(
         widget.document.valueAsText('id')!,
-        {'channel': 'whatsapp'},
+        {
+          'channel': 'whatsapp',
+          'email': _emailController.text.trim(),
+          'phone': _phoneController.text.trim(),
+        },
       );
       final phone = response.data['phone']?.toString() ?? '';
       final message = response.data['message']?.toString() ?? '';
