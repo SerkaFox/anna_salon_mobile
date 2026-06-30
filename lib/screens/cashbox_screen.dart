@@ -605,17 +605,20 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    AnnaBadge('${t.tr('Precio')}: ${data['total_amount']} EUR'),
-                    AnnaBadge(
-                        '${t.tr('Saldo pendiente')}: ${data['balance_due']} EUR'),
-                    if (_isPaid(document))
-                      AnnaBadge(t.tr('Documento cobrado completo.')),
-                  ],
-                ),
+                _DocumentAmountSummary(document: document),
+                if (!_isPaid(document)) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    t.tr(
+                      'Puedes registrar varios pagos hasta completar el saldo pendiente.',
+                    ),
+                    style: const TextStyle(color: AnnaColors.muted),
+                  ),
+                ],
+                if (_isPaid(document)) ...[
+                  const SizedBox(height: 8),
+                  AnnaBadge(t.tr('Documento cobrado completo.')),
+                ],
                 if (_isPaid(document)) ...[
                   const SizedBox(height: 12),
                   _DocumentShareActions(
@@ -651,13 +654,21 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                       onPressed: () => _showPayment(
                         context,
                         false,
-                        initialAmount: data['balance_due']?.toString(),
+                        initialAmount: document.valueAsText('balance_due'),
+                        balanceDue: document.valueAsText('balance_due'),
+                        paidAmount: document.valueAsText('payments_total'),
+                        totalAmount: document.valueAsText('total_amount'),
                       ),
                       icon: const Icon(Icons.payments_outlined),
                       label: Text(t.tr('Registrar pago')),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () => _showPayment(context, true),
+                      onPressed: () => _showPayment(
+                        context,
+                        true,
+                        paidAmount: document.valueAsText('payments_total'),
+                        totalAmount: document.valueAsText('total_amount'),
+                      ),
                       icon: const Icon(Icons.reply_outlined),
                       label: Text(t.tr('Devolucion')),
                     ),
@@ -705,12 +716,20 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
     BuildContext context,
     bool refund, {
     String? initialAmount,
+    String? initialMethod,
+    String? balanceDue,
+    String? paidAmount,
+    String? totalAmount,
   }) async {
     final response = await _CashPaymentFormSheet.show(
       context,
       api: widget.api,
       documentId: widget.documentId,
       initialAmount: refund ? null : initialAmount,
+      initialMethod: initialMethod,
+      balanceDue: balanceDue,
+      paidAmount: paidAmount,
+      totalAmount: totalAmount,
       refund: refund,
       onChanged: _reload,
     );
@@ -721,6 +740,58 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
     if (_isPaid(document) && !refund) {
       await _showShareSheet(context, api: widget.api, document: document);
     }
+  }
+}
+
+class _DocumentAmountSummary extends StatelessWidget {
+  const _DocumentAmountSummary({required this.document});
+
+  final ApiRecord document;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final balance = _money(document.valueAsText('balance_due'));
+    final paid = _money(document.valueAsText('payments_total'));
+    final total = _money(document.valueAsText('total_amount'));
+    final isPaid = balance <= 0;
+    final balanceColor = isPaid ? AnnaColors.accent2 : AnnaColors.warning;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: balanceColor.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AnnaRadii.md),
+        border: Border.all(color: balanceColor.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.tr('Saldo pendiente'),
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_formatMoney(balance)} EUR',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: balanceColor,
+                  fontSize: 28,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              AnnaBadge('${t.tr('Precio')}: ${_formatMoney(total)} EUR'),
+              AnnaBadge('${t.tr('Pagado')}: ${_formatMoney(paid)} EUR'),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -910,6 +981,10 @@ class _CashPaymentFormSheet extends StatefulWidget {
     required this.api,
     required this.documentId,
     this.initialAmount,
+    this.initialMethod,
+    this.balanceDue,
+    this.paidAmount,
+    this.totalAmount,
     required this.refund,
     required this.onChanged,
   });
@@ -917,6 +992,10 @@ class _CashPaymentFormSheet extends StatefulWidget {
   final AnnaApi api;
   final String documentId;
   final String? initialAmount;
+  final String? initialMethod;
+  final String? balanceDue;
+  final String? paidAmount;
+  final String? totalAmount;
   final bool refund;
   final VoidCallback onChanged;
 
@@ -925,6 +1004,10 @@ class _CashPaymentFormSheet extends StatefulWidget {
     required AnnaApi api,
     required String documentId,
     String? initialAmount,
+    String? initialMethod,
+    String? balanceDue,
+    String? paidAmount,
+    String? totalAmount,
     required bool refund,
     required VoidCallback onChanged,
   }) {
@@ -937,6 +1020,10 @@ class _CashPaymentFormSheet extends StatefulWidget {
         api: api,
         documentId: documentId,
         initialAmount: initialAmount,
+        initialMethod: initialMethod,
+        balanceDue: balanceDue,
+        paidAmount: paidAmount,
+        totalAmount: totalAmount,
         refund: refund,
         onChanged: onChanged,
       ),
@@ -949,7 +1036,7 @@ class _CashPaymentFormSheet extends StatefulWidget {
 
 class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
   late final _amount = TextEditingController(text: widget.initialAmount ?? '');
-  String _method = 'cash';
+  late String _method = widget.initialMethod ?? 'cash';
   bool _saving = false;
 
   @override
@@ -962,15 +1049,94 @@ class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final balance = _money(widget.balanceDue ?? widget.initialAmount);
+    final paid = _money(widget.paidAmount);
+    final total = _money(widget.totalAmount);
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 18),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            widget.refund ? t.tr('Devolucion') : t.tr('Registrar pago'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+          if (!widget.refund) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AnnaColors.warning.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(AnnaRadii.md),
+                border: Border.all(
+                  color: AnnaColors.warning.withValues(alpha: 0.45),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.tr('Falta por pagar'),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_formatMoney(balance)} EUR',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: AnnaColors.warning,
+                          fontSize: 28,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${t.tr('Total')}: ${_formatMoney(total)} EUR - ${t.tr('Pagado')}: ${_formatMoney(paid)} EUR',
+                    style: const TextStyle(color: AnnaColors.muted),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              t.tr(
+                'Puedes cobrar una parte ahora y el resto despues con otro metodo.',
+              ),
+              style: const TextStyle(color: AnnaColors.muted),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final method in const [
+                  'cash',
+                  'card',
+                  'bizum',
+                  'transfer',
+                ])
+                  OutlinedButton(
+                    onPressed: _saving
+                        ? null
+                        : () {
+                            setState(() => _method = method);
+                            _save(amountOverride: _amount.text.trim());
+                          },
+                    child: Text(_methodLabel(context, method)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _amount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: t.tr('Importe')),
+            decoration: InputDecoration(
+              labelText: t.tr('Importe a registrar'),
+              helperText: widget.refund
+                  ? null
+                  : t.tr('Por defecto se rellena con el saldo pendiente.'),
+            ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -1007,13 +1173,25 @@ class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
     );
   }
 
-  Future<void> _save() async {
+  Future<void> _save({String? amountOverride}) async {
+    final amount = (amountOverride ?? _amount.text).trim();
+    final fallbackAmount =
+        (widget.balanceDue ?? widget.initialAmount ?? '').toString().trim();
+    final finalAmount = amount.isEmpty ? fallbackAmount : amount;
+    if (finalAmount.isEmpty || _money(finalAmount) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context).tr('Introduce importe.'))),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       final response =
           await widget.api.addCashDocumentPayment(widget.documentId, {
         'entry_type': widget.refund ? 'refund' : 'payment',
-        'amount': _amount.text.trim(),
+        'amount': finalAmount,
         'method': _method,
       });
       if (!mounted) return;
@@ -1080,10 +1258,20 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
     final t = AppLocalizations.of(context);
     final hasEmail = _emailController.text.trim().isNotEmpty;
     final hasPhone = _phoneController.text.trim().isNotEmpty;
+    final needsContact = !hasEmail && !hasPhone;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          needsContact
+              ? t.tr(
+                  'Falta email o telefono de WhatsApp para enviar el documento.',
+                )
+              : t.tr('Elige como enviar el documento al cliente.'),
+          style: const TextStyle(color: AnnaColors.muted),
+        ),
+        const SizedBox(height: 10),
         if (_showEmailField) ...[
           TextField(
             controller: _emailController,
@@ -1238,6 +1426,14 @@ String _methodLabel(BuildContext context, String method) {
     default:
       return method;
   }
+}
+
+double _money(String? value) {
+  return double.tryParse((value ?? '0').replaceAll(',', '.')) ?? 0;
+}
+
+String _formatMoney(double value) {
+  return value.toStringAsFixed(2);
 }
 
 double _decimal(String? value) {

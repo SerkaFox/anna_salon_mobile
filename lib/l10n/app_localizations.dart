@@ -444,6 +444,21 @@ class AppLocalizations {
     'Enviar documento': 'Отправить документ',
     'Enviar por email': 'Отправить на email',
     'Documento enviado por email.': 'Документ отправлен на email.',
+    'Pagado': 'Оплачено',
+    'Total': 'Итого',
+    'Falta por pagar': 'Осталось оплатить',
+    'Importe a registrar': 'Сумма платежа',
+    'Introduce importe.': 'Введите сумму.',
+    'Por defecto se rellena con el saldo pendiente.':
+        'По умолчанию подставляется остаток к оплате.',
+    'Puedes registrar varios pagos hasta completar el saldo pendiente.':
+        'Можно зарегистрировать несколько платежей, пока остаток не будет закрыт.',
+    'Puedes cobrar una parte ahora y el resto despues con otro metodo.':
+        'Можно принять часть сейчас, а остаток другим способом.',
+    'Falta email o telefono de WhatsApp para enviar el documento.':
+        'Добавьте email или телефон WhatsApp, чтобы отправить документ.',
+    'Elige como enviar el documento al cliente.':
+        'Выберите, как отправить документ клиенту.',
   };
 }
 
