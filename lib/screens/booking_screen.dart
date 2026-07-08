@@ -325,6 +325,16 @@ class _BookingScreenState extends State<BookingScreen> {
     return null;
   }
 
+  String? _autoEmployeeIdForService(
+    _BookingReferences refs,
+    _BookingOption? service,
+  ) {
+    if (service == null) return null;
+    final employees = refs.employeesForService(service);
+    if (employees.length != 1) return null;
+    return employees.first.id;
+  }
+
   String? _slotsStateKey(_BookingReferences refs) {
     final service = _selectedService(refs);
     if (service == null || _employeeId == null) return null;
@@ -490,7 +500,14 @@ class _BookingScreenState extends State<BookingScreen> {
                   setState(() {
                     _serviceId = value;
                     final service = _selectedService(refs);
-                    if (!refs.employeeSupportsService(_employeeId, service)) {
+                    final autoEmployeeId =
+                        _autoEmployeeIdForService(refs, service);
+                    if (autoEmployeeId != null) {
+                      _employeeId = autoEmployeeId;
+                    } else if (!refs.employeeSupportsService(
+                      _employeeId,
+                      service,
+                    )) {
                       _employeeId = null;
                     }
                     if (service?.requiresZone != true ||
