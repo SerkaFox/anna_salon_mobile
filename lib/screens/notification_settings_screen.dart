@@ -341,6 +341,20 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
     }
   }
 
+  void _insertVariable(String variable) {
+    final token = _variableToken(variable);
+    final value = _bodyController.value;
+    final text = value.text;
+    final selection = value.selection;
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+    final nextText = text.replaceRange(start, end, token);
+    _bodyController.value = TextEditingValue(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: start + token.length),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = widget.record.data;
@@ -405,8 +419,18 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final variable in variables) AnnaBadge(variable)
+                  for (final variable in variables)
+                    _VariableInsertChip(
+                      variable: variable,
+                      enabled: !_saving && !_resetting,
+                      onPressed: () => _insertVariable(variable),
+                    ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Pulsa una variable para insertarla donde esta el cursor.',
+                style: TextStyle(color: AnnaColors.muted, height: 1.35),
               ),
             ],
             if (_error != null) ...[
@@ -451,22 +475,78 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
 }
 
 List<String> _variables(Object? value) {
-  if (value is List) {
-    return value
-        .map((item) => item.toString().trim())
-        .where(_notEmpty)
-        .toList();
+  final rawItems = value is List
+      ? value.map((item) => item.toString())
+      : value == null
+          ? const Iterable<String>.empty()
+          : value.toString().split(RegExp(r'[\s,]+'));
+  final variables = <String>[];
+  for (final item in rawItems) {
+    final variable = _variableName(item);
+    if (variable.isNotEmpty && !variables.contains(variable)) {
+      variables.add(variable);
+    }
   }
-  if (value == null) return const [];
-  return value
-      .toString()
-      .split(RegExp(r'[\s,]+'))
-      .map((item) => item.trim())
-      .where(_notEmpty)
-      .toList();
+  return variables;
 }
 
-bool _notEmpty(String value) => value.isNotEmpty;
+String _variableName(Object? value) {
+  return _text(value)
+      .replaceAll(RegExp(r'^[{]+'), '')
+      .replaceAll(RegExp(r'[}]+$'), '')
+      .trim();
+}
+
+String _variableToken(String variable) => '{${_variableName(variable)}}';
+
+String _variableLabel(String variable) {
+  switch (_variableName(variable)) {
+    case 'client_name':
+      return 'NOMBRE';
+    case 'salon_name':
+      return 'SALON';
+    case 'date':
+      return 'FECHA';
+    case 'time':
+      return 'HORA';
+    case 'service_name':
+      return 'SERVICIO';
+    case 'booking_url':
+      return 'LINK RESERVA';
+    case 'portal_url':
+      return 'LINK PORTAL';
+    case 'username':
+      return 'USUARIO';
+    case 'password':
+      return 'CONTRASENA';
+    case 'offer':
+      return 'OFERTA';
+    default:
+      return _variableName(variable).replaceAll('_', ' ').toUpperCase();
+  }
+}
+
+class _VariableInsertChip extends StatelessWidget {
+  const _VariableInsertChip({
+    required this.variable,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String variable;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      avatar: const Icon(Icons.add_circle_outline, size: 18),
+      label: Text(_variableLabel(variable)),
+      tooltip: _variableToken(variable),
+      onPressed: enabled ? onPressed : null,
+    );
+  }
+}
 
 String _text(Object? value, {String fallback = ''}) {
   if (value == null) return fallback;
