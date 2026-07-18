@@ -7,6 +7,7 @@ import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'color_palette_picker.dart';
+import 'notification_settings_screen.dart';
 import 'shared.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -143,18 +144,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
               final profile = snapshot.data ?? const <String, dynamic>{};
               _syncProfile(profile);
-              return _ProfileCard(
-                formKey: _formKey,
-                profile: profile,
-                firstNameController: _firstNameController,
-                lastNameController: _lastNameController,
-                emailController: _emailController,
-                currentPasswordController: _currentPasswordController,
-                newPasswordController: _newPasswordController,
-                confirmPasswordController: _confirmPasswordController,
-                saving: _saving,
-                error: _error,
-                onSave: _saveProfile,
+              return Column(
+                children: [
+                  _ProfileCard(
+                    formKey: _formKey,
+                    profile: profile,
+                    firstNameController: _firstNameController,
+                    lastNameController: _lastNameController,
+                    emailController: _emailController,
+                    currentPasswordController: _currentPasswordController,
+                    newPasswordController: _newPasswordController,
+                    confirmPasswordController: _confirmPasswordController,
+                    saving: _saving,
+                    error: _error,
+                    onSave: _saveProfile,
+                  ),
+                  if (_canManageNotifications(profile)) ...[
+                    const SizedBox(height: 16),
+                    _WhatsAppNotificationsCard(api: widget.api),
+                  ],
+                ],
               );
             },
           ),
@@ -174,6 +183,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
+
+class _WhatsAppNotificationsCard extends StatelessWidget {
+  const _WhatsAppNotificationsCard({required this.api});
+
+  final AnnaApi api;
+
+  @override
+  Widget build(BuildContext context) {
+    return PanelCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AnnaColors.line),
+                ),
+                child: const Icon(Icons.mark_chat_unread_outlined),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Notificaciones WhatsApp',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Activa, pausa y edita las plantillas automaticas.',
+                      style: TextStyle(color: AnnaColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => NotificationSettingsScreen(api: api),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.chevron_right),
+              label: const Text('Gestionar notificaciones'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+bool _canManageNotifications(Map<String, dynamic> profile) {
+  final role = _text(profile['role']).toLowerCase();
+  return role == 'owner' || role == 'admin';
 }
 
 class _AppearanceCard extends StatelessWidget {

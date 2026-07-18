@@ -448,6 +448,29 @@ class AnnaApi {
     await _delete('time-blocks/$timeBlockId/');
   }
 
+  Future<ApiCollection> notifications() async {
+    return ApiCollection.fromJson(await _get('notifications/'));
+  }
+
+  Future<ApiDocument> notificationDetail(String kind) async {
+    return ApiDocument.fromJson(await _get('notifications/$kind/'));
+  }
+
+  Future<ApiDocument> updateNotification(
+    String kind,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _patch('notifications/$kind/', payload),
+    );
+  }
+
+  Future<ApiDocument> resetNotification(String kind) async {
+    return ApiDocument.fromJson(
+      await _post('notifications/$kind/reset/', const {}),
+    );
+  }
+
   Future<dynamic> _get(String path, {Map<String, String>? query}) async {
     final response = await _client
         .get(
