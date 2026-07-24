@@ -1661,8 +1661,8 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     super.dispose();
   }
 
-  Future<void> _save() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  Future<bool> _save({bool closeSheet = true}) async {
+    if (!(_formKey.currentState?.validate() ?? false)) return false;
     setState(() {
       _saving = true;
       _error = null;
@@ -1695,9 +1695,11 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
       } else {
         await widget.api.updateEmployee(employee.id, payload);
       }
-      if (mounted) Navigator.pop(context, true);
+      if (mounted && closeSheet) Navigator.pop(context, true);
+      return true;
     } on AnnaApiException catch (error) {
       if (mounted) setState(() => _error = _apiErrorText(error));
+      return false;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -1738,6 +1740,10 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
         ),
       );
       return;
+    }
+    if (widget.employee != null) {
+      final saved = await _save(closeSheet: false);
+      if (!saved || !mounted) return;
     }
     final message = 'Hola! Tu acceso a BRIMOON Studio:\n\n'
         'Usuario: $username\n'
@@ -1942,7 +1948,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: _saving ? null : _save,
+                      onPressed: _saving ? null : () => _save(),
                       child: _saving
                           ? const SizedBox.square(
                               dimension: 18,
