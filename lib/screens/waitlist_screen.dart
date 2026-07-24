@@ -52,90 +52,93 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return ScreenScaffold(
-      title: _tr(t, 'Lista de espera', 'Очередь ожидания'),
-      action: IconButton(
-        tooltip: t.refresh,
-        onPressed: _reload,
-        icon: const Icon(Icons.refresh),
-      ),
-      child: FutureBuilder<_WaitlistData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Padding(
-              padding: EdgeInsets.all(40),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasError) {
-            return ErrorState(error: snapshot.error!, onRetry: _reload);
-          }
-          final data = snapshot.data!;
-          if (data.entries.isEmpty) {
-            return EmptyState(_tr(
-              t,
-              'No hay clientes esperando.',
-              'Сейчас в очереди никто не ожидает.',
-            ));
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 42,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: data.dates.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final date = data.dates[index];
-                    final count = data.entries
-                        .where((entry) =>
-                            entry.data['desired_date'] ==
-                            DateFormat('yyyy-MM-dd').format(date))
-                        .length;
-                    return ChoiceChip(
-                      selected: date == data.selectedDate,
-                      label: Text(
-                          '${DateFormat('EEE d MMM', t.locale.languageCode).format(date)} · $count'),
-                      onSelected: (_) =>
-                          setState(() => _future = _withDate(data, date)),
-                    );
-                  },
+    return Material(
+      color: Colors.transparent,
+      child: ScreenScaffold(
+        title: _tr(t, 'Lista de espera', 'Очередь ожидания'),
+        action: IconButton(
+          tooltip: t.refresh,
+          onPressed: _reload,
+          icon: const Icon(Icons.refresh),
+        ),
+        child: FutureBuilder<_WaitlistData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return ErrorState(error: snapshot.error!, onRetry: _reload);
+            }
+            final data = snapshot.data!;
+            if (data.entries.isEmpty) {
+              return EmptyState(_tr(
+                t,
+                'No hay clientes esperando.',
+                'Сейчас в очереди никто не ожидает.',
+              ));
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 42,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: data.dates.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final date = data.dates[index];
+                      final count = data.entries
+                          .where((entry) =>
+                              entry.data['desired_date'] ==
+                              DateFormat('yyyy-MM-dd').format(date))
+                          .length;
+                      return ChoiceChip(
+                        selected: date == data.selectedDate,
+                        label: Text(
+                            '${DateFormat('EEE d MMM', t.locale.languageCode).format(date)} · $count'),
+                        onSelected: (_) =>
+                            setState(() => _future = _withDate(data, date)),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                _tr(t, 'Personas esperando', 'Кто ожидает'),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 10),
-              ...data.entriesForSelected.map((entry) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _WaitlistCard(
-                      entry: entry,
-                      t: t,
-                      onStatus: (status) => _setStatus(entry, status),
-                    ),
-                  )),
-              const SizedBox(height: 14),
-              Text(
-                _tr(t, 'Agenda del dia', 'Расписание на день'),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 10),
-              if (data.visibleBookings.isEmpty)
-                EmptyState(_tr(t, 'No hay reservas este dia.',
-                    'На этот день записей нет.'))
-              else
-                ...data.visibleBookings.map((booking) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _BookingRow(booking: booking),
+                const SizedBox(height: 18),
+                Text(
+                  _tr(t, 'Personas esperando', 'Кто ожидает'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 10),
+                ...data.entriesForSelected.map((entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _WaitlistCard(
+                        entry: entry,
+                        t: t,
+                        onStatus: (status) => _setStatus(entry, status),
+                      ),
                     )),
-            ],
-          );
-        },
+                const SizedBox(height: 14),
+                Text(
+                  _tr(t, 'Agenda del dia', 'Расписание на день'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 10),
+                if (data.visibleBookings.isEmpty)
+                  EmptyState(_tr(t, 'No hay reservas este dia.',
+                      'На этот день записей нет.'))
+                else
+                  ...data.visibleBookings.map((booking) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _BookingRow(booking: booking),
+                      )),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
