@@ -121,7 +121,7 @@ class _NotificationHelpCard extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Gestiona las 9 plantillas automáticas de WhatsApp. '
+              'Gestiona las 10 plantillas automaticas de WhatsApp. '
               'Puedes activar, pausar, editar el texto y restaurar cada '
               'plantilla al valor por defecto.',
               style: TextStyle(color: AnnaColors.muted, height: 1.35),
@@ -152,6 +152,7 @@ class _NotificationTemplateCard extends StatelessWidget {
     final kind = _text(data['kind']);
     final body = _text(data['body']);
     final variables = _variables(data['variables']);
+    final delayMinutes = int.tryParse('${data['delay_minutes'] ?? ''}') ?? 0;
 
     return PanelCard(
       padding: const EdgeInsets.all(16),
@@ -207,6 +208,10 @@ class _NotificationTemplateCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: AnnaColors.muted, height: 1.35),
             ),
+          ],
+          if (kind == 'review_request') ...[
+            const SizedBox(height: 10),
+            AnnaBadge('ENVIO ${_delayLabel(delayMinutes)}'),
           ],
           if (variables.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -266,6 +271,7 @@ class NotificationTemplateSheet extends StatefulWidget {
 
 class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
   final _bodyController = TextEditingController();
+  final _delayController = TextEditingController();
   late bool _enabled = widget.record.data['enabled'] == true;
   bool _saving = false;
   bool _resetting = false;
@@ -275,11 +281,13 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
   void initState() {
     super.initState();
     _bodyController.text = _text(widget.record.data['body']);
+    _delayController.text = '${widget.record.data['delay_minutes'] ?? 120}';
   }
 
   @override
   void dispose() {
     _bodyController.dispose();
+    _delayController.dispose();
     super.dispose();
   }
 
@@ -291,10 +299,22 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
       _error = null;
     });
     try {
-      await widget.api.updateNotification(kind, {
+      final payload = <String, dynamic>{
         'enabled': _enabled,
         'body': _bodyController.text.trim(),
-      });
+      };
+      if (kind == 'review_request') {
+        final delay = int.tryParse(_delayController.text.trim());
+        if (delay == null || delay < 0 || delay > 10080) {
+          setState(() {
+            _saving = false;
+            _error = 'La espera debe estar entre 0 y 10080 minutos.';
+          });
+          return;
+        }
+        payload['delay_minutes'] = delay;
+      }
+      await widget.api.updateNotification(kind, payload);
       if (mounted) Navigator.pop(context, true);
     } on Object catch (error) {
       if (mounted) setState(() => _error = formatApiError(error));
@@ -359,6 +379,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
   Widget build(BuildContext context) {
     final data = widget.record.data;
     final variables = _variables(data['variables']);
+    final kind = _text(data['kind']);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -408,6 +429,18 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                 prefixIcon: Icon(Icons.message_outlined),
               ),
             ),
+            if (kind == 'review_request') ...[
+              const SizedBox(height: 14),
+              TextField(
+                controller: _delayController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Minutos despues de finalizar la cita',
+                  helperText: '120 minutos equivalen a 2 horas.',
+                  prefixIcon: Icon(Icons.timer_outlined),
+                ),
+              ),
+            ],
             if (variables.isNotEmpty) ...[
               const SizedBox(height: 14),
               Text(
@@ -521,6 +554,14 @@ String _variableLabel(String variable) {
       return 'CONTRASENA';
     case 'offer':
       return 'OFERTA';
+    case 'attend_url':
+      return 'LINK VOY';
+    case 'decline_url':
+      return 'LINK NO VOY';
+    case 'review_url':
+      return 'LINK OPINION PRIVADA';
+    case 'google_review_url':
+      return 'LINK GOOGLE';
     default:
       return _variableName(variable).replaceAll('_', ' ').toUpperCase();
   }
@@ -571,7 +612,21 @@ String _kindLabel(Object? kind) {
       return 'Credenciales de bienvenida';
     case 'birthday_greeting':
       return 'Felicitacion de cumpleanos';
+    case 'review_request':
+      return 'Solicitud de resena';
     default:
       return 'Plantilla WhatsApp';
   }
+}
+
+String _delayLabel(int minutes) {
+  if (minutes > 0 && minutes % 1440 == 0) {
+    final days = minutes ~/ 1440;
+    return 'TRAS $days ${days == 1 ? 'DIA' : 'DIAS'}';
+  }
+  if (minutes > 0 && minutes % 60 == 0) {
+    final hours = minutes ~/ 60;
+    return 'TRAS $hours ${hours == 1 ? 'HORA' : 'HORAS'}';
+  }
+  return 'TRAS $minutes MIN';
 }
