@@ -121,7 +121,7 @@ class _NotificationHelpCard extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Gestiona las 7 plantillas automáticas de WhatsApp. '
+              'Gestiona las 9 plantillas automáticas de WhatsApp. '
               'Puedes activar, pausar, editar el texto y restaurar cada '
               'plantilla al valor por defecto.',
               style: TextStyle(color: AnnaColors.muted, height: 1.35),

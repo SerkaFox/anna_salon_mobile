@@ -7,6 +7,7 @@ import 'cashbox_screen.dart';
 import 'employees_screen.dart';
 import 'services_screen.dart';
 import 'shared.dart';
+import 'waitlist_screen.dart';
 
 class SalonScreen extends StatelessWidget {
   const SalonScreen({
@@ -82,6 +83,22 @@ class SalonScreen extends StatelessWidget {
                     child: SafeArea(
                       child: CashboxScreen(api: api),
                     ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SalonActionCard(
+              icon: Icons.hourglass_top_outlined,
+              title: t.isRussian ? 'Очередь ожидания' : 'Lista de espera',
+              subtitle: t.isRussian
+                  ? 'Ожидающие клиенты и расписание на нужный день.'
+                  : 'Clientes esperando y agenda del dia solicitado.',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => DecoratedBox(
+                    decoration: annaBackgroundDecoration(context),
+                    child: SafeArea(child: WaitlistScreen(api: api)),
                   ),
                 ),
               ),

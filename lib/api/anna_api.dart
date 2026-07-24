@@ -287,6 +287,19 @@ class AnnaApi {
     return ApiCollection.fromJson(await _get('bookings/', query: query));
   }
 
+  Future<ApiCollection> waitlist() async {
+    return ApiCollection.fromJson(await _get('waitlist/'));
+  }
+
+  Future<ApiDocument> updateWaitlistStatus(
+    Object entryId,
+    String status,
+  ) async {
+    return ApiDocument.fromJson(
+      await _patch('waitlist/$entryId/', {'status': status}),
+    );
+  }
+
   Future<ApiDocument> updateBooking(
     Object bookingId,
     Map<String, dynamic> payload,
