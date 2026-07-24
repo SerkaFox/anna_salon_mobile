@@ -409,6 +409,12 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> updateDepositPercent(String value) async {
+    return ApiDocument.fromJson(
+      await _patch('cashbox/', {'deposit_percent': value}),
+    );
+  }
+
   Future<ApiDocument> cashDocumentDetail(Object documentId) async {
     return ApiDocument.fromJson(await _get('cashbox/documents/$documentId/'));
   }

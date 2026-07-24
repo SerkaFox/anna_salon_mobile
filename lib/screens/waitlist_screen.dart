@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
@@ -45,6 +46,43 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
   Future<void> _setStatus(ApiRecord entry, String status) async {
     await widget.api.updateWaitlistStatus(entry.data['id']!, status);
     if (mounted) _reload();
+  }
+
+  Future<void> _offerViaWhatsApp(
+    ApiRecord entry, {
+    bool chooseAnotherDate = false,
+  }) async {
+    final rawPhone = entry.data['phone']?.toString() ?? '';
+    var digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 9) digits = '34$digits';
+    if (digits.isEmpty) return;
+    var date = DateTime.tryParse(
+      entry.data['desired_date']?.toString() ?? '',
+    );
+    if (chooseAnotherDate) {
+      date = await showDatePicker(
+        context: context,
+        initialDate: date ?? DateTime.now(),
+        firstDate: DateTime.now(),
+        lastDate: DateTime.now().add(const Duration(days: 120)),
+      );
+      if (date == null) return;
+    }
+    final dateText = DateFormat('dd/MM/yyyy').format(date ?? DateTime.now());
+    final name = entry.data['name']?.toString() ?? '';
+    final service = entry.data['service_name']?.toString() ?? '';
+    final employee = entry.data['employee_name']?.toString() ?? '';
+    final message = chooseAnotherDate
+        ? 'Hola $name. Tenemos una posible alternativa para $service con '
+            '$employee el $dateText. Te viene bien?'
+        : 'Hola $name. Contactamos por tu solicitud en la lista de espera '
+            'para $service con $employee el $dateText. '
+            'Quieres que revisemos un hueco disponible?';
+    final opened = await launchUrl(
+      Uri.parse('https://wa.me/$digits?text=${Uri.encodeComponent(message)}'),
+      mode: LaunchMode.externalApplication,
+    );
+    if (opened) await _setStatus(entry, 'notified');
   }
 
   String _tr(AppLocalizations t, String es, String ru) => t.isRussian ? ru : es;
@@ -119,6 +157,10 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
                         entry: entry,
                         t: t,
                         onStatus: (status) => _setStatus(entry, status),
+                        onOffer: (anotherDate) => _offerViaWhatsApp(
+                          entry,
+                          chooseAnotherDate: anotherDate,
+                        ),
                       ),
                     )),
                 const SizedBox(height: 14),
@@ -146,11 +188,15 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
 
 class _WaitlistCard extends StatelessWidget {
   const _WaitlistCard(
-      {required this.entry, required this.t, required this.onStatus});
+      {required this.entry,
+      required this.t,
+      required this.onStatus,
+      required this.onOffer});
 
   final ApiRecord entry;
   final AppLocalizations t;
   final ValueChanged<String> onStatus;
+  final ValueChanged<bool> onOffer;
 
   @override
   Widget build(BuildContext context) {
@@ -178,8 +224,28 @@ class _WaitlistCard extends StatelessWidget {
         ),
         trailing: PopupMenuButton<String>(
           tooltip: t.isRussian ? 'Изменить статус' : 'Cambiar estado',
-          onSelected: onStatus,
+          onSelected: (value) {
+            if (value == 'whatsapp') {
+              onOffer(false);
+            } else if (value == 'other_date') {
+              onOffer(true);
+            } else {
+              onStatus(value);
+            }
+          },
           itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'whatsapp',
+              child: Text(
+                t.isRussian ? 'Написать в WhatsApp' : 'Escribir por WhatsApp',
+              ),
+            ),
+            PopupMenuItem(
+              value: 'other_date',
+              child: Text(
+                t.isRussian ? 'Предложить другой день' : 'Proponer otro dia',
+              ),
+            ),
             PopupMenuItem(
                 value: 'booked',
                 child: Text(t.isRussian ? 'Записан' : 'Reserva creada')),

@@ -160,6 +160,42 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 ),
               ),
               const SizedBox(height: 14),
+              PanelCard(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    const Icon(Icons.percent_outlined),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.isRussian
+                                ? 'Процент предоплаты'
+                                : 'Porcentaje de prepago',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${cash['deposit_percent'] ?? '10'}%',
+                            style: const TextStyle(color: AnnaColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: t.tr('Editar'),
+                      onPressed: () => _editDepositPercent(
+                        context,
+                        cash['deposit_percent']?.toString() ?? '10',
+                      ),
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
               _CashSection(
                 title: t.tr('Pagos del dia'),
                 child: payments.isEmpty
@@ -225,6 +261,63 @@ class _CashboxScreenState extends State<CashboxScreen> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t.tr('Cierre guardado.'))),
+      );
+      _reload();
+    } on AnnaApiException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    }
+  }
+
+  Future<void> _editDepositPercent(
+    BuildContext context,
+    String currentValue,
+  ) async {
+    final t = AppLocalizations.of(context);
+    final controller = TextEditingController(text: currentValue);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          t.isRussian ? 'Процент предоплаты' : 'Porcentaje de prepago',
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            suffixText: '%',
+            hintText: '10',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.tr('Cancelar')),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: Text(t.tr('Guardar')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || value.isEmpty || !context.mounted) return;
+    try {
+      await widget.api.updateDepositPercent(value);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t.isRussian
+                ? 'Процент предоплаты сохранен.'
+                : 'Porcentaje de prepago guardado.',
+          ),
+        ),
       );
       _reload();
     } on AnnaApiException catch (error) {
