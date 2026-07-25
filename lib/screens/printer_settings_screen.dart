@@ -165,39 +165,60 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
             for (final device in _devices) ...[
               PanelCard(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.bluetooth),
-                  title: Text(
-                    device.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  children: [
+                    const SizedBox.square(
+                      dimension: 32,
+                      child: Icon(Icons.bluetooth, size: 21),
                     ),
-                  ),
-                  subtitle: Text(
-                    device.address,
-                    style: const TextStyle(
-                      color: AnnaColors.muted,
-                      fontSize: 12,
-                      height: 1.2,
-                    ),
-                  ),
-                  trailing: _workingAddress == device.address
-                      ? const SizedBox.square(
-                          dimension: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : _saved?.address == device.address && _connected
-                          ? const Icon(Icons.check_circle_outline)
-                          : FilledButton(
-                              onPressed: _busy ? null : () => _connect(device),
-                              child: Text(russian ? 'Подключить' : 'Conectar'),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            device.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AnnaColors.text,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                              decoration: TextDecoration.none,
                             ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            device.address,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AnnaColors.muted,
+                              fontSize: 12,
+                              height: 1.2,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (_workingAddress == device.address)
+                      const SizedBox.square(
+                        dimension: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else if (_saved?.address == device.address && _connected)
+                      const Icon(Icons.check_circle_outline)
+                    else
+                      IconButton(
+                        tooltip: russian ? 'Подключить' : 'Conectar',
+                        onPressed: _busy ? null : () => _connect(device),
+                        icon: const Icon(Icons.link),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),

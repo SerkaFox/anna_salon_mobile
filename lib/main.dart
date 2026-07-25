@@ -15,6 +15,21 @@ Future<void> main() async {
   debugPaintSizeEnabled = false;
   debugPaintBaselinesEnabled = false;
   debugPaintTextLayoutBoxes = false;
+  ErrorWidget.builder = (details) => ColoredBox(
+        color: AnnaColors.bgSoft,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            'Ошибка интерфейса:\n${details.exceptionAsString()}',
+            style: const TextStyle(
+              color: AnnaColors.danger,
+              fontSize: 12,
+              height: 1.3,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      );
   await initializeDateFormatting('es');
   await initializeDateFormatting('ru');
   runApp(const AnnaSalonApp());

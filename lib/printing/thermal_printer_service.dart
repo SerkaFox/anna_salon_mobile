@@ -84,14 +84,19 @@ class ThermalPrinterService {
       ),
     );
     onStatus?.call('Получено устройств: ${devices.length}.');
-    final mapped = devices
-        .map((device) => ThermalPrinterDevice(
-              name: device.name.trim().isEmpty
-                  ? 'Dispositivo Bluetooth'
-                  : device.name,
-              address: device.macAdress,
-            ))
-        .toList();
+    final mapped = devices.map((device) {
+      final name = _safeDeviceValue(
+        device.name,
+        fallback: 'Dispositivo Bluetooth',
+        maxLength: 80,
+      );
+      final address = _safeDeviceValue(
+        device.macAdress,
+        fallback: 'Sin direccion',
+        maxLength: 40,
+      );
+      return ThermalPrinterDevice(name: name, address: address);
+    }).toList();
     mapped.sort((left, right) {
       final priority =
           _printerPriority(left.name).compareTo(_printerPriority(right.name));
@@ -287,5 +292,20 @@ class ThermalPrinterService {
       return 1;
     }
     return 2;
+  }
+
+  String _safeDeviceValue(
+    String value, {
+    required String fallback,
+    required int maxLength,
+  }) {
+    final cleaned = value
+        .replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (cleaned.isEmpty) return fallback;
+    return cleaned.length <= maxLength
+        ? cleaned
+        : cleaned.substring(0, maxLength);
   }
 }

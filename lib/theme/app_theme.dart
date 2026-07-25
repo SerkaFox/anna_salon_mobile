@@ -55,14 +55,12 @@ ThemeData buildAnnaTheme({Color primary = AnnaColors.accent2}) {
       Typography.material2021(platform: TargetPlatform.android).white.apply(
             bodyColor: AnnaColors.text,
             displayColor: AnnaColors.text,
-            fontFamily: 'Segoe UI',
           );
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: AnnaColors.bg,
-    fontFamily: 'Segoe UI',
     textTheme: baseTextTheme.copyWith(
       headlineMedium: const TextStyle(
         color: AnnaColors.text,
