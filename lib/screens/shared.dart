@@ -28,12 +28,14 @@ class ScreenScaffold extends StatelessWidget {
     required this.title,
     required this.child,
     this.action,
+    this.titleTextStyle,
     super.key,
   });
 
   final String title;
   final Widget child;
   final Widget? action;
+  final TextStyle? titleTextStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +43,7 @@ class ScreenScaffold extends StatelessWidget {
       slivers: [
         SliverAppBar(
           pinned: true,
-          title: Text(title),
+          title: Text(title, style: titleTextStyle),
           actions: action == null ? null : [action!],
         ),
         SliverPadding(

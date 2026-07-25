@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -40,18 +41,49 @@ class ThermalPrinterService {
     );
   }
 
-  Future<bool> get isConnected async =>
-      Platform.isAndroid && await PrintBluetoothThermal.connectionStatus;
+  Future<bool> get isConnected async {
+    if (!Platform.isAndroid) return false;
+    try {
+      return await PrintBluetoothThermal.connectionStatus.timeout(
+        const Duration(seconds: 5),
+      );
+    } on TimeoutException {
+      return false;
+    }
+  }
 
-  Future<List<ThermalPrinterDevice>> pairedDevices() async {
+  Future<List<ThermalPrinterDevice>> pairedDevices({
+    void Function(String message)? onStatus,
+  }) async {
     _ensureAndroid();
-    await _requestPermissions();
-    if (!await PrintBluetoothThermal.bluetoothEnabled) {
+    onStatus?.call('Проверяю разрешение Bluetooth...');
+    await _requestPermissions().timeout(
+      const Duration(seconds: 12),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Android не ответил на запрос разрешения Bluetooth.',
+      ),
+    );
+    onStatus?.call('Проверяю, включён ли Bluetooth...');
+    final bluetoothEnabled =
+        await PrintBluetoothThermal.bluetoothEnabled.timeout(
+      const Duration(seconds: 6),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Не удалось получить состояние Bluetooth за 6 секунд.',
+      ),
+    );
+    if (!bluetoothEnabled) {
       throw const ThermalPrinterException(
-        'Activa Bluetooth y vuelve a intentarlo.',
+        'Bluetooth выключен. Включите его в настройках Android.',
       );
     }
-    final devices = await PrintBluetoothThermal.pairedBluetooths;
+    onStatus?.call('Запрашиваю список спаренных устройств...');
+    final devices = await PrintBluetoothThermal.pairedBluetooths.timeout(
+      const Duration(seconds: 12),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Android не вернул список устройств за 12 секунд.',
+      ),
+    );
+    onStatus?.call('Получено устройств: ${devices.length}.');
     return devices
         .map((device) => ThermalPrinterDevice(
               name: device.name.trim().isEmpty
@@ -62,27 +94,52 @@ class ThermalPrinterService {
         .toList();
   }
 
-  Future<void> connect(ThermalPrinterDevice device) async {
+  Future<void> connect(
+    ThermalPrinterDevice device, {
+    void Function(String message)? onStatus,
+  }) async {
     _ensureAndroid();
-    await _requestPermissions();
-    if (await PrintBluetoothThermal.connectionStatus) {
-      await PrintBluetoothThermal.disconnect;
+    onStatus?.call('Проверяю разрешение Bluetooth...');
+    await _requestPermissions().timeout(
+      const Duration(seconds: 12),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Android не ответил на запрос разрешения Bluetooth.',
+      ),
+    );
+    onStatus?.call('Проверяю текущее соединение...');
+    if (await isConnected) {
+      onStatus?.call('Отключаю предыдущее соединение...');
+      await PrintBluetoothThermal.disconnect.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => false,
+      );
     }
+    onStatus?.call('Подключаюсь к ${device.name} (${device.address})...');
     final connected = await PrintBluetoothThermal.connect(
       macPrinterAddress: device.address,
+    ).timeout(
+      const Duration(seconds: 18),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Принтер не ответил за 18 секунд. Выключите и включите его.',
+      ),
     );
     if (!connected) {
       throw const ThermalPrinterException(
-        'No se pudo conectar con la impresora.',
+        'Android не смог подключиться к принтеру.',
       );
     }
+    onStatus?.call('Соединение установлено, сохраняю принтер...');
     await _storage.write(key: _addressKey, value: device.address);
     await _storage.write(key: _nameKey, value: device.name);
+    onStatus?.call('Принтер подключён и сохранён.');
   }
 
   Future<void> disconnect() async {
-    if (Platform.isAndroid && await PrintBluetoothThermal.connectionStatus) {
-      await PrintBluetoothThermal.disconnect;
+    if (Platform.isAndroid && await isConnected) {
+      await PrintBluetoothThermal.disconnect.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => false,
+      );
     }
   }
 
@@ -92,10 +149,20 @@ class ThermalPrinterService {
     await _storage.delete(key: _nameKey);
   }
 
-  Future<void> printDocument(Map<String, dynamic> document) async {
-    await _ensureConnected();
+  Future<void> printDocument(
+    Map<String, dynamic> document, {
+    void Function(String message)? onStatus,
+  }) async {
+    await _ensureConnected(onStatus: onStatus);
+    onStatus?.call('Формирую чек 58 мм...');
     final bytes = await const ReceiptBuilder().build(document);
-    final printed = await PrintBluetoothThermal.writeBytes(bytes);
+    onStatus?.call('Отправляю ${bytes.length} байт на принтер...');
+    final printed = await PrintBluetoothThermal.writeBytes(bytes).timeout(
+      const Duration(seconds: 35),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Принтер не принял данные за 35 секунд.',
+      ),
+    );
     if (!printed) {
       throw const ThermalPrinterException(
         'La impresora no ha aceptado el recibo.',
@@ -103,7 +170,9 @@ class ThermalPrinterService {
     }
   }
 
-  Future<void> printTest() async {
+  Future<void> printTest({
+    void Function(String message)? onStatus,
+  }) async {
     final now = DateTime.now();
     await printDocument({
       'document_type_label': 'Prueba de impresion',
@@ -135,21 +204,39 @@ class ThermalPrinterService {
           'signed_amount': '10.00',
         },
       ],
-    });
+    }, onStatus: onStatus);
   }
 
-  Future<void> _ensureConnected() async {
+  Future<void> _ensureConnected({
+    void Function(String message)? onStatus,
+  }) async {
     _ensureAndroid();
-    await _requestPermissions();
-    if (await PrintBluetoothThermal.connectionStatus) return;
+    onStatus?.call('Проверяю разрешение Bluetooth...');
+    await _requestPermissions().timeout(
+      const Duration(seconds: 12),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Android не ответил на запрос разрешения Bluetooth.',
+      ),
+    );
+    onStatus?.call('Проверяю соединение с принтером...');
+    if (await isConnected) {
+      onStatus?.call('Принтер уже подключён.');
+      return;
+    }
     final device = await savedDevice();
     if (device == null) {
       throw const ThermalPrinterException(
         'Configura primero la impresora en Caja.',
       );
     }
+    onStatus?.call('Переподключаюсь к ${device.name}...');
     final connected = await PrintBluetoothThermal.connect(
       macPrinterAddress: device.address,
+    ).timeout(
+      const Duration(seconds: 18),
+      onTimeout: () => throw const ThermalPrinterException(
+        'Сохранённый принтер не ответил за 18 секунд.',
+      ),
     );
     if (!connected) {
       throw const ThermalPrinterException(
