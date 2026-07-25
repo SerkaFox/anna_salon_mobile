@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
+import '../printing/thermal_printer_service.dart';
 import '../theme/app_theme.dart';
+import 'printer_settings_screen.dart';
 import 'shared.dart';
 
 Future<void> showCashDocumentSheet(
@@ -193,6 +195,49 @@ class _CashboxScreenState extends State<CashboxScreen> {
                       icon: const Icon(Icons.edit_outlined),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              PanelCard(
+                padding: const EdgeInsets.all(14),
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => DecoratedBox(
+                        decoration: annaBackgroundDecoration(context),
+                        child: const SafeArea(
+                          child: PrinterSettingsScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.print_outlined),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.isRussian
+                                  ? 'Термопринтер чеков'
+                                  : 'Impresora de recibos',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              t.isRussian
+                                  ? 'Подключение PT210 и пробная печать'
+                                  : 'Conexion PT210 e impresion de prueba',
+                              style: const TextStyle(color: AnnaColors.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -714,6 +759,8 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                 ],
                 if (_isPaid(document)) ...[
                   const SizedBox(height: 12),
+                  _DocumentPrintButton(document: data),
+                  const SizedBox(height: 10),
                   _DocumentShareActions(
                     api: widget.api,
                     document: document,
@@ -1466,6 +1513,55 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
   }
 }
 
+class _DocumentPrintButton extends StatefulWidget {
+  const _DocumentPrintButton({required this.document});
+
+  final Map<String, dynamic> document;
+
+  @override
+  State<_DocumentPrintButton> createState() => _DocumentPrintButtonState();
+}
+
+class _DocumentPrintButtonState extends State<_DocumentPrintButton> {
+  bool _printing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return FilledButton.icon(
+      onPressed: _printing ? null : _print,
+      icon: _printing
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.print_outlined),
+      label: Text(t.isRussian ? 'Напечатать чек' : 'Imprimir recibo'),
+    );
+  }
+
+  Future<void> _print() async {
+    setState(() => _printing = true);
+    try {
+      await ThermalPrinterService.instance.printDocument(widget.document);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).isRussian
+              ? 'Чек отправлен на принтер.'
+              : 'Recibo enviado a la impresora.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _printing = false);
+    }
+  }
+}
+
 Future<void> _showShareSheet(
   BuildContext context, {
   required AnnaApi api,
@@ -1492,6 +1588,8 @@ Future<void> _showShareSheet(
             style: const TextStyle(color: AnnaColors.muted),
           ),
           const SizedBox(height: 16),
+          _DocumentPrintButton(document: document.data),
+          const SizedBox(height: 10),
           _DocumentShareActions(api: api, document: document),
         ],
       ),
