@@ -109,6 +109,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
               .toList();
           final pendingDocs =
               ApiCollection.fromJson(cash['pending_documents']).items;
+          final paidDocs = ApiCollection.fromJson(cash['paid_documents']).items;
           final payments = ApiCollection.fromJson(cash['payments']).items;
           final closure = cash['closure'] is Map<String, dynamic>
               ? Map<String, dynamic>.from(cash['closure'])
@@ -209,8 +210,8 @@ class _CashboxScreenState extends State<CashboxScreen> {
                     MaterialPageRoute(
                       builder: (context) => DecoratedBox(
                         decoration: annaBackgroundDecoration(context),
-                        child: const SafeArea(
-                          child: PrinterSettingsScreen(),
+                        child: SafeArea(
+                          child: PrinterSettingsScreen(api: widget.api),
                         ),
                       ),
                     ),
@@ -250,13 +251,39 @@ class _CashboxScreenState extends State<CashboxScreen> {
               ),
               const SizedBox(height: 14),
               _CashSection(
+                title: t.isRussian
+                    ? 'Оплаченные документы'
+                    : 'Documentos cobrados',
+                child: paidDocs.isEmpty
+                    ? EmptyState(t.isRussian
+                        ? 'В этот день оплаченных документов нет.'
+                        : 'No hay documentos cobrados este dia.')
+                    : Column(
+                        children: [
+                          for (final document in paidDocs) ...[
+                            _PaidDocumentCard(
+                              api: widget.api,
+                              document: document,
+                              onChanged: _reload,
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        ],
+                      ),
+              ),
+              const SizedBox(height: 14),
+              _CashSection(
                 title: t.tr('Pagos del dia'),
                 child: payments.isEmpty
                     ? EmptyState(t.tr('Sin pagos todavia.'))
                     : Column(
                         children: [
                           for (final payment in payments) ...[
-                            _PaymentCard(payment: payment),
+                            _PaymentCard(
+                              api: widget.api,
+                              payment: payment,
+                              onChanged: _reload,
+                            ),
                             const SizedBox(height: 10),
                           ],
                         ],
@@ -408,10 +435,89 @@ class _CashSection extends StatelessWidget {
   }
 }
 
-class _PaymentCard extends StatelessWidget {
-  const _PaymentCard({required this.payment});
+class _PaidDocumentCard extends StatelessWidget {
+  const _PaidDocumentCard({
+    required this.api,
+    required this.document,
+    required this.onChanged,
+  });
 
+  final AnnaApi api;
+  final ApiRecord document;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return PanelCard(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          const Icon(Icons.receipt_long_outlined),
+          const SizedBox(width: 10),
+          Expanded(
+            child: InkWell(
+              onTap: () => _open(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${document.valueAsText('number') ?? t.tr('Recibo')} · '
+                    '${document.valueAsText('client_name') ?? t.tr('Cliente')}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      document.valueAsText('service_name'),
+                      '${document.valueAsText('total_amount') ?? '0.00'} EUR',
+                    ].whereType<String>().join(' · '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: t.isRussian ? 'Напечатать' : 'Imprimir',
+            onPressed: () =>
+                _DocumentPrintJobSheet.show(context, document.data),
+            icon: const Icon(Icons.print_outlined),
+          ),
+          IconButton(
+            tooltip: t.isRussian ? 'Открыть' : 'Abrir',
+            onPressed: () => _open(context),
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _open(BuildContext context) {
+    return _CashDocumentSheet.show(
+      context,
+      api: api,
+      documentId: document.valueAsText('id')!,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _PaymentCard extends StatelessWidget {
+  const _PaymentCard({
+    required this.api,
+    required this.payment,
+    required this.onChanged,
+  });
+
+  final AnnaApi api;
   final ApiRecord payment;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -420,31 +526,74 @@ class _PaymentCard extends StatelessWidget {
         );
     return PanelCard(
       padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            '${payment.valueAsText('entry_type_label') ?? ''} · ${payment.valueAsText('method_label') ?? ''}',
-            style: titleStyle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          Expanded(
+            child: InkWell(
+              onTap: () => _openDocument(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${payment.valueAsText('entry_type_label') ?? ''} · ${payment.valueAsText('method_label') ?? ''}',
+                    style: titleStyle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    [
+                      payment.valueAsText('paid_at'),
+                      payment.valueAsText('amount'),
+                      payment.valueAsText('reference'),
+                    ]
+                        .whereType<String>()
+                        .where((v) => v.isNotEmpty)
+                        .join(' · '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AnnaColors.muted,
+                        ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            [
-              payment.valueAsText('paid_at'),
-              payment.valueAsText('amount'),
-              payment.valueAsText('reference'),
-            ].whereType<String>().where((v) => v.isNotEmpty).join(' · '),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AnnaColors.muted,
-                ),
+          IconButton(
+            tooltip: AppLocalizations.of(context).isRussian
+                ? 'Изменить способ оплаты'
+                : 'Cambiar metodo',
+            onPressed: () => _edit(context),
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            tooltip:
+                AppLocalizations.of(context).isRussian ? 'Открыть' : 'Abrir',
+            onPressed: () => _openDocument(context),
+            icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openDocument(BuildContext context) {
+    return _CashDocumentSheet.show(
+      context,
+      api: api,
+      documentId: payment.valueAsText('fiscal_document')!,
+      onChanged: onChanged,
+    );
+  }
+
+  Future<void> _edit(BuildContext context) async {
+    final updated = await _PaymentMethodEditSheet.show(
+      context,
+      api: api,
+      payment: payment,
+    );
+    if (updated != null) onChanged();
   }
 }
 
@@ -837,8 +986,21 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                         '${payment.valueAsText('entry_type_label') ?? ''} · ${payment.valueAsText('method_label') ?? ''}',
                       ),
                       subtitle: Text(payment.valueAsText('paid_at') ?? ''),
-                      trailing: Text(
-                          '${payment.valueAsText('signed_amount') ?? '0.00'} EUR'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${payment.valueAsText('signed_amount') ?? '0.00'} EUR',
+                          ),
+                          IconButton(
+                            tooltip: t.isRussian
+                                ? 'Изменить способ оплаты'
+                                : 'Cambiar metodo',
+                            onPressed: () => _editPayment(context, payment),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                        ],
+                      ),
                     ),
               ],
             ),
@@ -888,6 +1050,20 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
     if (_isPaid(document) && !refund) {
       await _showShareSheet(context, api: widget.api, document: document);
     }
+  }
+
+  Future<void> _editPayment(
+    BuildContext context,
+    ApiRecord payment,
+  ) async {
+    final response = await _PaymentMethodEditSheet.show(
+      context,
+      api: widget.api,
+      payment: payment,
+    );
+    if (response == null || !context.mounted) return;
+    setState(() => _future = Future.value(response));
+    widget.onChanged();
   }
 }
 
@@ -1355,6 +1531,144 @@ class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
   }
 }
 
+class _PaymentMethodEditSheet extends StatefulWidget {
+  const _PaymentMethodEditSheet({
+    required this.api,
+    required this.payment,
+  });
+
+  final AnnaApi api;
+  final ApiRecord payment;
+
+  static Future<ApiDocument?> show(
+    BuildContext context, {
+    required AnnaApi api,
+    required ApiRecord payment,
+  }) {
+    return showModalBottomSheet<ApiDocument>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (context) => _PaymentMethodEditSheet(
+        api: api,
+        payment: payment,
+      ),
+    );
+  }
+
+  @override
+  State<_PaymentMethodEditSheet> createState() =>
+      _PaymentMethodEditSheetState();
+}
+
+class _PaymentMethodEditSheetState extends State<_PaymentMethodEditSheet> {
+  late String _method = widget.payment.valueAsText('method') ?? 'cash';
+  late final TextEditingController _reference = TextEditingController(
+    text: widget.payment.valueAsText('reference') ?? '',
+  );
+  late final TextEditingController _notes = TextEditingController(
+    text: widget.payment.valueAsText('notes') ?? '',
+  );
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _reference.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.isRussian ? 'Способ оплаты' : 'Metodo de pago',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${widget.payment.valueAsText('amount') ?? '0.00'} EUR',
+            style: const TextStyle(color: AnnaColors.muted, fontSize: 14),
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            initialValue: _method,
+            decoration: InputDecoration(
+              labelText: t.isRussian ? 'Способ' : 'Metodo',
+            ),
+            items: [
+              for (final method in const ['cash', 'card', 'bizum', 'transfer'])
+                DropdownMenuItem(
+                  value: method,
+                  child: Text(_methodLabel(context, method)),
+                ),
+            ],
+            onChanged: _saving ? null : (value) => _method = value ?? _method,
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _reference,
+            decoration: InputDecoration(
+              labelText: t.isRussian ? 'Ссылка или номер' : 'Referencia',
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _notes,
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: t.isRussian ? 'Примечание' : 'Notas',
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(t.tr('Guardar')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final response = await widget.api.updateCashPayment(
+        widget.payment.valueAsText('id')!,
+        {
+          'method': _method,
+          'reference': _reference.text.trim(),
+          'notes': _notes.text.trim(),
+        },
+      );
+      if (mounted) Navigator.pop(context, response);
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+      setState(() => _saving = false);
+    }
+  }
+}
+
 class _DocumentShareActions extends StatefulWidget {
   const _DocumentShareActions({
     required this.api,
@@ -1521,52 +1835,192 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
   }
 }
 
-class _DocumentPrintButton extends StatefulWidget {
+class _DocumentPrintButton extends StatelessWidget {
   const _DocumentPrintButton({required this.document});
 
   final Map<String, dynamic> document;
 
   @override
-  State<_DocumentPrintButton> createState() => _DocumentPrintButtonState();
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return FilledButton.icon(
+      onPressed: () => _DocumentPrintJobSheet.show(context, document),
+      icon: const Icon(Icons.print_outlined),
+      label: Text(t.isRussian ? 'Напечатать чек' : 'Imprimir recibo'),
+    );
+  }
 }
 
-class _DocumentPrintButtonState extends State<_DocumentPrintButton> {
-  bool _printing = false;
+class _DocumentPrintJobSheet extends StatefulWidget {
+  const _DocumentPrintJobSheet({required this.document});
+
+  final Map<String, dynamic> document;
+
+  static Future<void> show(
+    BuildContext context,
+    Map<String, dynamic> document,
+  ) {
+    return showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (context) => _DocumentPrintJobSheet(document: document),
+    );
+  }
+
+  @override
+  State<_DocumentPrintJobSheet> createState() => _DocumentPrintJobSheetState();
+}
+
+class _DocumentPrintJobSheetState extends State<_DocumentPrintJobSheet> {
+  final List<String> _logs = [];
+  bool _printing = true;
+  bool _success = false;
+  String _stage = 'Подготовка печати...';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _print());
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return FilledButton.icon(
-      onPressed: _printing ? null : _print,
-      icon: _printing
-          ? const SizedBox.square(
-              dimension: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.print_outlined),
-      label: Text(t.isRussian ? 'Напечатать чек' : 'Imprimir recibo'),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  t.isRussian ? 'Печать чека' : 'Imprimir recibo',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                onPressed: _printing ? null : () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (_printing)
+                const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(
+                  _success ? Icons.check_circle_outline : Icons.error_outline,
+                  color: _success ? AnnaColors.accent2 : AnnaColors.danger,
+                ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _stage,
+                  style: const TextStyle(fontSize: 14, height: 1.3),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxHeight: 180),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0x99000000),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AnnaColors.line),
+            ),
+            child: SingleChildScrollView(
+              reverse: true,
+              child: SelectableText(
+                _logs.join('\n'),
+                style: const TextStyle(
+                  color: AnnaColors.muted,
+                  fontSize: 12,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ),
+          if (!_printing) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: _success
+                  ? FilledButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(t.isRussian ? 'Готово' : 'Listo'),
+                    )
+                  : FilledButton.icon(
+                      onPressed: _retry,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(t.isRussian ? 'Повторить' : 'Reintentar'),
+                    ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
   Future<void> _print() async {
-    setState(() => _printing = true);
+    _status('Проверяю сохранённый принтер...');
     try {
-      await ThermalPrinterService.instance.printDocument(widget.document);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).isRussian
-              ? 'Чек отправлен на принтер.'
-              : 'Recibo enviado a la impresora.'),
-        ),
+      await ThermalPrinterService.instance.printDocument(
+        widget.document,
+        onStatus: _status,
       );
+      if (!mounted) return;
+      setState(() {
+        _printing = false;
+        _success = true;
+        _stage = AppLocalizations.of(context).isRussian
+            ? 'Чек отправлен на принтер.'
+            : 'Recibo enviado a la impresora.';
+      });
+      _log(_stage);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.toString())));
-    } finally {
-      if (mounted) setState(() => _printing = false);
+      setState(() {
+        _printing = false;
+        _success = false;
+        _stage = error.toString();
+      });
+      _log('ОШИБКА: $error');
     }
+  }
+
+  void _retry() {
+    setState(() {
+      _printing = true;
+      _success = false;
+      _stage = 'Повторная попытка...';
+    });
+    _print();
+  }
+
+  void _status(String message) {
+    if (!mounted) return;
+    setState(() => _stage = message);
+    _log(message);
+  }
+
+  void _log(String message) {
+    final now = DateTime.now();
+    final time = '${now.hour.toString().padLeft(2, '0')}:'
+        '${now.minute.toString().padLeft(2, '0')}:'
+        '${now.second.toString().padLeft(2, '0')}';
+    if (mounted) setState(() => _logs.add('[$time] $message'));
   }
 }
 

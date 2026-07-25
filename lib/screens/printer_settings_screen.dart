@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
+import '../models/api_record.dart';
 import '../printing/thermal_printer_service.dart';
 import '../theme/app_theme.dart';
 import 'shared.dart';
 
 class PrinterSettingsScreen extends StatefulWidget {
-  const PrinterSettingsScreen({super.key});
+  const PrinterSettingsScreen({required this.api, super.key});
+
+  final AnnaApi api;
 
   @override
   State<PrinterSettingsScreen> createState() => _PrinterSettingsScreenState();
@@ -140,6 +144,18 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                 onPressed: _saved == null || _busy ? null : _testPrint,
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: Text(russian ? 'Пробная печать' : 'Impresion de prueba'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () => _ReceiptTemplateSheet.show(
+                          context,
+                          api: widget.api,
+                        ),
+                icon: const Icon(Icons.edit_note_outlined),
+                label: Text(
+                  russian ? 'Шаблон чека' : 'Plantilla del recibo',
+                ),
               ),
               IconButton(
                 tooltip:
@@ -462,6 +478,228 @@ class _NextAction extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _ReceiptTemplateSheet extends StatefulWidget {
+  const _ReceiptTemplateSheet({required this.api});
+
+  final AnnaApi api;
+
+  static Future<void> show(
+    BuildContext context, {
+    required AnnaApi api,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (context) => _ReceiptTemplateSheet(api: api),
+    );
+  }
+
+  @override
+  State<_ReceiptTemplateSheet> createState() => _ReceiptTemplateSheetState();
+}
+
+class _ReceiptTemplateSheetState extends State<_ReceiptTemplateSheet> {
+  late Future<ApiDocument> _future = widget.api.receiptTemplate();
+  final _businessName = TextEditingController();
+  final _address = TextEditingController();
+  final _phone = TextEditingController();
+  final _email = TextEditingController();
+  final _website = TextEditingController();
+  final _footer = TextEditingController();
+  bool _showLogo = true;
+  bool _showQr = true;
+  bool _initialized = false;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _businessName.dispose();
+    _address.dispose();
+    _phone.dispose();
+    _email.dispose();
+    _website.dispose();
+    _footer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 18),
+      child: FutureBuilder<ApiDocument>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const SizedBox(
+              height: 220,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasError) {
+            return SizedBox(
+              height: 260,
+              child: ErrorState(
+                error: snapshot.error!,
+                onRetry: () => setState(
+                  () => _future = widget.api.receiptTemplate(),
+                ),
+              ),
+            );
+          }
+          _initialize(snapshot.data!.data);
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        t.isRussian ? 'Шаблон чека' : 'Plantilla del recibo',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _saving ? null : () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _field(
+                  _businessName,
+                  t.isRussian ? 'Название фирмы' : 'Nombre del negocio',
+                ),
+                _field(
+                  _address,
+                  t.isRussian ? 'Адрес' : 'Direccion',
+                  maxLines: 2,
+                ),
+                _field(_phone, t.isRussian ? 'Телефон' : 'Telefono'),
+                _field(_email, 'Email'),
+                _field(_website, t.isRussian ? 'Сайт' : 'Web'),
+                _field(
+                  _footer,
+                  t.isRussian
+                      ? 'Поздравление или финальная строка'
+                      : 'Mensaje final',
+                  maxLines: 3,
+                  helper: t.isRussian
+                      ? 'Например: Спасибо за визит 😊. Emoji преобразуются в символы, понятные принтеру.'
+                      : 'Ejemplo: Gracias por tu visita 😊. Los emoji se adaptan a simbolos imprimibles.',
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    t.isRussian ? 'Печатать логотип' : 'Imprimir logotipo',
+                  ),
+                  value: _showLogo,
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _showLogo = value),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    t.isRussian ? 'Печатать QR-код' : 'Imprimir codigo QR',
+                  ),
+                  value: _showQr,
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _showQr = value),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: Text(t.tr('Guardar')),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    int maxLines = 1,
+    String? helper,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helper,
+          helperMaxLines: 3,
+        ),
+      ),
+    );
+  }
+
+  void _initialize(Map<String, dynamic> data) {
+    if (_initialized) return;
+    _initialized = true;
+    _businessName.text = data['receipt_business_name']?.toString() ?? '';
+    _address.text = data['receipt_address']?.toString() ?? '';
+    _phone.text = data['receipt_phone']?.toString() ?? '';
+    _email.text = data['receipt_email']?.toString() ?? '';
+    _website.text = data['receipt_website']?.toString() ?? '';
+    _footer.text = data['receipt_footer']?.toString() ?? '';
+    _showLogo = data['receipt_show_logo'] != false;
+    _showQr = data['receipt_show_qr'] != false;
+  }
+
+  Future<void> _save() async {
+    final t = AppLocalizations.of(context);
+    setState(() => _saving = true);
+    try {
+      await widget.api.updateReceiptTemplate({
+        'receipt_business_name': _businessName.text.trim(),
+        'receipt_address': _address.text.trim(),
+        'receipt_phone': _phone.text.trim(),
+        'receipt_email': _email.text.trim(),
+        'receipt_website': _website.text.trim(),
+        'receipt_footer': _footer.text.trim(),
+        'receipt_show_logo': _showLogo,
+        'receipt_show_qr': _showQr,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              t.isRussian ? 'Шаблон чека сохранён.' : 'Plantilla guardada.'),
+        ),
+      );
+      Navigator.pop(context);
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+      setState(() => _saving = false);
+    }
   }
 }
 

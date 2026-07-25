@@ -16,7 +16,9 @@ class ReceiptBuilder {
 
     bytes.addAll(generator.reset());
     bytes.addAll(generator.setGlobalCodeTable('CP1252'));
-    await _addLogo(bytes, generator);
+    if (_bool(business['show_logo'], fallback: true)) {
+      await _addLogo(bytes, generator);
+    }
 
     _addText(
       bytes,
@@ -157,13 +159,14 @@ class ReceiptBuilder {
 
     final documentUrl =
         _value(document['document_url'], fallback: _value(business['website']));
-    if (documentUrl.isNotEmpty) {
+    if (documentUrl.isNotEmpty && _bool(business['show_qr'], fallback: true)) {
       bytes.addAll(generator.feed(1));
       _addText(bytes, generator, 'Consulta tu documento',
           styles: const PosStyles(align: PosAlign.center, codeTable: 'CP1252'));
       bytes.addAll(generator.qrcode(documentUrl, size: QRSize.size5));
     }
-    _addText(bytes, generator, 'Gracias por tu visita',
+    _addText(bytes, generator,
+        _value(business['footer'], fallback: 'Gracias por tu visita :)'),
         styles: const PosStyles(
             align: PosAlign.center, bold: true, codeTable: 'CP1252'));
     bytes.addAll(generator.feed(4));
@@ -227,14 +230,26 @@ class ReceiptBuilder {
     String value, {
     required PosStyles styles,
   }) {
-    final safe = value
+    final normalized = value
         .replaceAll('\u2018', "'")
         .replaceAll('\u2019', "'")
         .replaceAll('\u201c', '"')
         .replaceAll('\u201d', '"')
         .replaceAll('\u2013', '-')
         .replaceAll('\u2014', '-')
+        .replaceAll('❤️', '<3')
+        .replaceAll('❤', '<3')
+        .replaceAll('😊', ':)')
+        .replaceAll('🙂', ':)')
+        .replaceAll('😀', ':D')
+        .replaceAll('✨', '*')
+        .replaceAll('🌸', '*')
+        .replaceAll('🎉', '!')
         .trim();
+    final transliterated = _transliterateCyrillic(normalized);
+    final safe = String.fromCharCodes(
+      transliterated.runes.map((rune) => rune <= 255 ? rune : 63),
+    );
     if (safe.isNotEmpty) bytes.addAll(generator.text(safe, styles: styles));
   }
 
@@ -284,5 +299,88 @@ class ReceiptBuilder {
     return '${_formatDate(local.toIso8601String())} '
         '${local.hour.toString().padLeft(2, '0')}:'
         '${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  bool _bool(Object? value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value == null) return fallback;
+    return value.toString().toLowerCase() == 'true';
+  }
+
+  String _transliterateCyrillic(String value) {
+    const letters = <String, String>{
+      'А': 'A',
+      'Б': 'B',
+      'В': 'V',
+      'Г': 'G',
+      'Д': 'D',
+      'Е': 'E',
+      'Ё': 'E',
+      'Ж': 'Zh',
+      'З': 'Z',
+      'И': 'I',
+      'Й': 'I',
+      'К': 'K',
+      'Л': 'L',
+      'М': 'M',
+      'Н': 'N',
+      'О': 'O',
+      'П': 'P',
+      'Р': 'R',
+      'С': 'S',
+      'Т': 'T',
+      'У': 'U',
+      'Ф': 'F',
+      'Х': 'Kh',
+      'Ц': 'Ts',
+      'Ч': 'Ch',
+      'Ш': 'Sh',
+      'Щ': 'Sch',
+      'Ъ': '',
+      'Ы': 'Y',
+      'Ь': '',
+      'Э': 'E',
+      'Ю': 'Yu',
+      'Я': 'Ya',
+      'а': 'a',
+      'б': 'b',
+      'в': 'v',
+      'г': 'g',
+      'д': 'd',
+      'е': 'e',
+      'ё': 'e',
+      'ж': 'zh',
+      'з': 'z',
+      'и': 'i',
+      'й': 'i',
+      'к': 'k',
+      'л': 'l',
+      'м': 'm',
+      'н': 'n',
+      'о': 'o',
+      'п': 'p',
+      'р': 'r',
+      'с': 's',
+      'т': 't',
+      'у': 'u',
+      'ф': 'f',
+      'х': 'kh',
+      'ц': 'ts',
+      'ч': 'ch',
+      'ш': 'sh',
+      'щ': 'sch',
+      'ъ': '',
+      'ы': 'y',
+      'ь': '',
+      'э': 'e',
+      'ю': 'yu',
+      'я': 'ya',
+    };
+    final buffer = StringBuffer();
+    for (final rune in value.runes) {
+      final character = String.fromCharCode(rune);
+      buffer.write(letters[character] ?? character);
+    }
+    return buffer.toString();
   }
 }

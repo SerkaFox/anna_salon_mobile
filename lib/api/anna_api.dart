@@ -415,6 +415,20 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> receiptTemplate() async {
+    return ApiDocument.fromJson(
+      await _get('cashbox/receipt-template/'),
+    );
+  }
+
+  Future<ApiDocument> updateReceiptTemplate(
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _patch('cashbox/receipt-template/', payload),
+    );
+  }
+
   Future<ApiDocument> cashDocumentDetail(Object documentId) async {
     return ApiDocument.fromJson(await _get('cashbox/documents/$documentId/'));
   }
@@ -434,6 +448,15 @@ class AnnaApi {
   ) async {
     return ApiDocument.fromJson(
       await _post('cashbox/documents/$documentId/payments/', payload),
+    );
+  }
+
+  Future<ApiDocument> updateCashPayment(
+    Object paymentId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _patch('cashbox/payments/$paymentId/', payload),
     );
   }
 
