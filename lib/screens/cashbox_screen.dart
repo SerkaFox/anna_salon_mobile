@@ -132,11 +132,22 @@ class _CashboxScreenState extends State<CashboxScreen> {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                         ),
-                        FilledButton.icon(
-                          onPressed: () => _closeCashbox(context),
-                          icon: const Icon(Icons.lock_outline),
-                          label: Text(t.tr('Cerrar caja')),
-                        ),
+                        closure == null
+                            ? FilledButton.icon(
+                                onPressed: () => _closeCashbox(context, cash),
+                                icon: const Icon(Icons.lock_outline),
+                                label: Text(t.tr('Cerrar caja')),
+                              )
+                            : FilledButton.tonalIcon(
+                                onPressed: () => _showClosureDetails(
+                                  context,
+                                  closure,
+                                ),
+                                icon: const Icon(Icons.lock_clock_outlined),
+                                label: Text(t.isRussian
+                                    ? 'Касса закрыта'
+                                    : 'Caja cerrada'),
+                              ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -332,23 +343,95 @@ class _CashboxScreenState extends State<CashboxScreen> {
     );
   }
 
-  Future<void> _closeCashbox(BuildContext context) async {
+  Future<void> _closeCashbox(
+    BuildContext context,
+    Map<String, dynamic> cash,
+  ) async {
     final t = AppLocalizations.of(context);
-    try {
-      await widget.api.closeCashbox({
-        'date': DateFormat('yyyy-MM-dd').format(_date),
-      });
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.tr('Cierre guardado.'))),
-      );
-      _reload();
-    } on AnnaApiException catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(formatApiError(error))),
-      );
-    }
+    final response = await _CashCloseSheet.show(
+      context,
+      api: widget.api,
+      date: _date,
+      cash: cash,
+    );
+    if (response == null || !context.mounted) return;
+    _reload();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(t.tr('Cierre guardado.'))),
+    );
+    await _showClosureDetails(context, response.data);
+  }
+
+  Future<void> _showClosureDetails(
+    BuildContext context,
+    Map<String, dynamic> closure,
+  ) {
+    final t = AppLocalizations.of(context);
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.isRussian ? 'Касса закрыта' : 'Caja cerrada'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ClosureValue(
+                label: t.isRussian ? 'Дата' : 'Fecha',
+                value: closure['closure_date']?.toString() ?? '',
+              ),
+              _ClosureValue(
+                label: t.isRussian ? 'Всего' : 'Total',
+                value: '${closure['total_amount'] ?? '0.00'} EUR',
+              ),
+              _ClosureValue(
+                label: t.isRussian ? 'Наличные по системе' : 'Efectivo sistema',
+                value: '${closure['cash_amount'] ?? '0.00'} EUR',
+              ),
+              _ClosureValue(
+                label: t.isRussian ? 'Наличные посчитано' : 'Efectivo contado',
+                value: '${closure['declared_cash_amount'] ?? '0.00'} EUR',
+              ),
+              _ClosureValue(
+                label: t.isRussian ? 'Разница' : 'Diferencia',
+                value: '${closure['cash_difference'] ?? '0.00'} EUR',
+                emphasize: _money(
+                      closure['cash_difference']?.toString(),
+                    ) !=
+                    0,
+              ),
+              _ClosureValue(
+                label: t.isRussian ? 'Карта' : 'Tarjeta',
+                value: '${closure['card_amount'] ?? '0.00'} EUR',
+              ),
+              _ClosureValue(
+                label: 'Bizum',
+                value: '${closure['bizum_amount'] ?? '0.00'} EUR',
+              ),
+              _ClosureValue(
+                label: t.isRussian ? 'Перевод' : 'Transferencia',
+                value: '${closure['transfer_amount'] ?? '0.00'} EUR',
+              ),
+              _ClosureValue(
+                label: t.isRussian ? 'Операций' : 'Movimientos',
+                value: closure['payments_count']?.toString() ?? '0',
+              ),
+              if ((closure['notes']?.toString() ?? '').isNotEmpty)
+                _ClosureValue(
+                  label: t.isRussian ? 'Примечание' : 'Notas',
+                  value: closure['notes'].toString(),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.isRussian ? 'Готово' : 'Listo'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _editDepositPercent(
@@ -406,6 +489,288 @@ class _CashboxScreenState extends State<CashboxScreen> {
         SnackBar(content: Text(formatApiError(error))),
       );
     }
+  }
+}
+
+class _CashCloseSheet extends StatefulWidget {
+  const _CashCloseSheet({
+    required this.api,
+    required this.date,
+    required this.cash,
+  });
+
+  final AnnaApi api;
+  final DateTime date;
+  final Map<String, dynamic> cash;
+
+  static Future<ApiDocument?> show(
+    BuildContext context, {
+    required AnnaApi api,
+    required DateTime date,
+    required Map<String, dynamic> cash,
+  }) {
+    return showModalBottomSheet<ApiDocument>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (context) => _CashCloseSheet(
+        api: api,
+        date: date,
+        cash: cash,
+      ),
+    );
+  }
+
+  @override
+  State<_CashCloseSheet> createState() => _CashCloseSheetState();
+}
+
+class _CashCloseSheetState extends State<_CashCloseSheet> {
+  late final Map<String, dynamic> _totals =
+      widget.cash['totals_by_method'] is Map
+          ? Map<String, dynamic>.from(widget.cash['totals_by_method'])
+          : <String, dynamic>{};
+  late final TextEditingController _declaredCash = TextEditingController(
+    text: _totals['cash']?.toString() ?? '0.00',
+  );
+  final TextEditingController _notes = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _declaredCash.addListener(_refreshDifference);
+  }
+
+  @override
+  void dispose() {
+    _declaredCash.removeListener(_refreshDifference);
+    _declaredCash.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  void _refreshDifference() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final locale = t.locale.languageCode;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final expectedCash = _money(_totals['cash']?.toString());
+    final declaredCash = _money(_declaredCash.text);
+    final difference = declaredCash - expectedCash;
+    final pendingCount =
+        ApiCollection.fromJson(widget.cash['pending_documents']).items.length;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, 16, 18, bottom + 22),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    t.isRussian ? 'Закрытие кассы' : 'Cierre de caja',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  onPressed: _saving ? null : () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            Text(
+              DateFormat('d MMMM yyyy', locale).format(widget.date),
+              style: const TextStyle(color: AnnaColors.muted, fontSize: 14),
+            ),
+            const SizedBox(height: 14),
+            PanelCard(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  _ClosureValue(
+                    label: t.isRussian ? 'Всего за день' : 'Total del dia',
+                    value: '${widget.cash['payments_total'] ?? '0.00'} EUR',
+                  ),
+                  _ClosureValue(
+                    label: t.isRussian ? 'Операций' : 'Movimientos',
+                    value: widget.cash['payments_count']?.toString() ?? '0',
+                  ),
+                  _ClosureValue(
+                    label: t.isRussian ? 'Наличные' : 'Efectivo',
+                    value: '${_totals['cash'] ?? '0.00'} EUR',
+                  ),
+                  _ClosureValue(
+                    label: t.isRussian ? 'Карта' : 'Tarjeta',
+                    value: '${_totals['card'] ?? '0.00'} EUR',
+                  ),
+                  _ClosureValue(
+                    label: 'Bizum',
+                    value: '${_totals['bizum'] ?? '0.00'} EUR',
+                  ),
+                  _ClosureValue(
+                    label: t.isRussian ? 'Перевод' : 'Transferencia',
+                    value: '${_totals['transfer'] ?? '0.00'} EUR',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _declaredCash,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: t.isRussian
+                    ? 'Наличные фактически посчитано'
+                    : 'Efectivo contado',
+                suffixText: 'EUR',
+              ),
+            ),
+            const SizedBox(height: 8),
+            _ClosureValue(
+              label: t.isRussian ? 'Разница наличных' : 'Diferencia',
+              value: '${_formatMoney(difference)} EUR',
+              emphasize: difference != 0,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notes,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText:
+                    t.isRussian ? 'Примечание к закрытию' : 'Notas del cierre',
+              ),
+            ),
+            if (pendingCount > 0) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AnnaColors.warning.withValues(alpha: 0.12),
+                  border: Border.all(color: AnnaColors.warning),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  t.isRussian
+                      ? 'Осталось неоплаченных документов: $pendingCount на сумму ${widget.cash['pending_total'] ?? '0.00'} EUR.'
+                      : 'Quedan $pendingCount documentos pendientes por ${widget.cash['pending_total'] ?? '0.00'} EUR.',
+                  style: const TextStyle(fontSize: 13, height: 1.3),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              t.isRussian
+                  ? 'После закрытия нельзя добавлять или изменять платежи этого дня.'
+                  : 'Despues del cierre no se podran anadir ni modificar pagos de este dia.',
+              style: const TextStyle(
+                color: AnnaColors.muted,
+                fontSize: 13,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.lock_outline),
+                label: Text(t.isRussian ? 'Закрыть кассу' : 'Cerrar caja'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    final t = AppLocalizations.of(context);
+    final declaredValue = double.tryParse(
+      _declaredCash.text.trim().replaceAll(',', '.'),
+    );
+    if (declaredValue == null || declaredValue < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.isRussian
+              ? 'Укажите посчитанную сумму наличных.'
+              : 'Indica el efectivo contado.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final response = await widget.api.closeCashbox({
+        'date': DateFormat('yyyy-MM-dd').format(widget.date),
+        'declared_cash_amount': _declaredCash.text.trim().replaceAll(',', '.'),
+        'notes': _notes.text.trim(),
+      });
+      if (mounted) Navigator.pop(context, response);
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+      setState(() => _saving = false);
+    }
+  }
+}
+
+class _ClosureValue extends StatelessWidget {
+  const _ClosureValue({
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: AnnaColors.muted, fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: emphasize ? AnnaColors.warning : AnnaColors.text,
+                fontSize: 14,
+                fontWeight: emphasize ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

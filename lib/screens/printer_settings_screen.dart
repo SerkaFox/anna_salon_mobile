@@ -157,17 +157,20 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                   russian ? 'Шаблон чека' : 'Plantilla del recibo',
                 ),
               ),
-              IconButton(
-                tooltip:
-                    russian ? 'Настройки разрешений' : 'Ajustes de permisos',
+              TextButton.icon(
                 onPressed: _busy ? null : openAppSettings,
-                icon: const Icon(Icons.settings_outlined),
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                label: Text(
+                  russian ? 'Разрешения Android' : 'Permisos Android',
+                ),
               ),
               if (_saved != null)
-                IconButton(
-                  tooltip: russian ? 'Забыть принтер' : 'Olvidar impresora',
-                  onPressed: _busy ? null : _forgetPrinter,
-                  icon: const Icon(Icons.delete_outline),
+                TextButton.icon(
+                  onPressed: _busy ? null : _confirmForgetPrinter,
+                  icon: const Icon(Icons.link_off),
+                  label: Text(
+                    russian ? 'Сменить принтер' : 'Cambiar impresora',
+                  ),
                 ),
             ],
           ),
@@ -362,6 +365,32 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     } finally {
       _finish();
     }
+  }
+
+  Future<void> _confirmForgetPrinter() async {
+    final russian = AppLocalizations.of(context).isRussian;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(russian ? 'Сменить принтер?' : 'Cambiar impresora?'),
+        content: Text(
+          russian
+              ? 'Текущая привязка будет удалена. После этого выберите другой принтер из списка.'
+              : 'Se eliminara la vinculacion actual. Despues elige otra impresora de la lista.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(russian ? 'Отмена' : 'Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(russian ? 'Сменить' : 'Cambiar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) await _forgetPrinter();
   }
 
   void _begin(String message, {String? address}) {
@@ -619,6 +648,19 @@ class _ReceiptTemplateSheetState extends State<_ReceiptTemplateSheet> {
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _saving ? null : _confirmReset,
+                    icon: const Icon(Icons.restore),
+                    label: Text(
+                      t.isRussian
+                          ? 'Сбросить к стандартному шаблону'
+                          : 'Restablecer plantilla',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _saving ? null : _save,
                     icon: _saving
@@ -661,6 +703,10 @@ class _ReceiptTemplateSheetState extends State<_ReceiptTemplateSheet> {
   void _initialize(Map<String, dynamic> data) {
     if (_initialized) return;
     _initialized = true;
+    _applyData(data);
+  }
+
+  void _applyData(Map<String, dynamic> data) {
     _businessName.text = data['receipt_business_name']?.toString() ?? '';
     _address.text = data['receipt_address']?.toString() ?? '';
     _phone.text = data['receipt_phone']?.toString() ?? '';
@@ -669,6 +715,56 @@ class _ReceiptTemplateSheetState extends State<_ReceiptTemplateSheet> {
     _footer.text = data['receipt_footer']?.toString() ?? '';
     _showLogo = data['receipt_show_logo'] != false;
     _showQr = data['receipt_show_qr'] != false;
+  }
+
+  Future<void> _confirmReset() async {
+    final t = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          t.isRussian ? 'Сбросить шаблон?' : 'Restablecer plantilla?',
+        ),
+        content: Text(
+          t.isRussian
+              ? 'Название, адрес, контакты, поздравление и параметры логотипа/QR вернутся к исходным значениям.'
+              : 'El nombre, direccion, contactos, mensaje y opciones de logotipo/QR volveran a sus valores iniciales.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(t.tr('Cancelar')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(t.isRussian ? 'Сбросить' : 'Restablecer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _saving = true);
+    try {
+      final response = await widget.api.resetReceiptTemplate();
+      if (!mounted) return;
+      setState(() {
+        _applyData(response.data);
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.isRussian
+              ? 'Стандартный шаблон восстановлен.'
+              : 'Plantilla restablecida.'),
+        ),
+      );
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+      setState(() => _saving = false);
+    }
   }
 
   Future<void> _save() async {

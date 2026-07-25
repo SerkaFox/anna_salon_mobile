@@ -429,6 +429,12 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> resetReceiptTemplate() async {
+    return ApiDocument.fromJson(
+      await _post('cashbox/receipt-template/reset/', const {}),
+    );
+  }
+
   Future<ApiDocument> cashDocumentDetail(Object documentId) async {
     return ApiDocument.fromJson(await _get('cashbox/documents/$documentId/'));
   }
