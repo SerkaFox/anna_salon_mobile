@@ -103,7 +103,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                                 (russian
                                     ? 'PT210 должен быть спарен в Bluetooth Android'
                                     : 'La PT210 debe estar vinculada en Bluetooth Android')),
-                        style: const TextStyle(color: AnnaColors.muted),
+                        style: const TextStyle(
+                          color: AnnaColors.muted,
+                          fontSize: 14,
+                          height: 1.3,
+                        ),
                       ),
                     ],
                   ),
@@ -116,6 +120,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
             busy: _busy,
             stage: _stage,
             error: _error,
+          ),
+          const SizedBox(height: 8),
+          _NextAction(
+            text: _nextActionText(russian),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -165,8 +173,20 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                     device.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
                   ),
-                  subtitle: Text(device.address),
+                  subtitle: Text(
+                    device.address,
+                    style: const TextStyle(
+                      color: AnnaColors.muted,
+                      fontSize: 12,
+                      height: 1.2,
+                    ),
+                  ),
                   trailing: _workingAddress == device.address
                       ? const SizedBox.square(
                           dimension: 22,
@@ -369,6 +389,59 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
+
+  String _nextActionText(bool russian) {
+    if (_busy) {
+      return russian
+          ? 'Дождитесь завершения текущего этапа.'
+          : 'Espera a que termine el paso actual.';
+    }
+    if (_saved != null && _connected) {
+      return russian
+          ? 'Принтер готов. Нажмите «Пробная печать».'
+          : 'La impresora esta lista. Pulsa «Impresion de prueba».';
+    }
+    if (_devices.isNotEmpty) {
+      return russian
+          ? 'Найдите PT210 в списке ниже и нажмите «Подключить».'
+          : 'Busca la PT210 abajo y pulsa «Conectar».';
+    }
+    return russian
+        ? 'Включите PT210 и нажмите «Найти устройства».'
+        : 'Enciende la PT210 y pulsa «Buscar dispositivos».';
+  }
+}
+
+class _NextAction extends StatelessWidget {
+  const _NextAction({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.arrow_forward,
+          size: 18,
+          color: AnnaColors.accent2,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: AnnaColors.text,
+              fontSize: 14,
+              height: 1.3,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _OperationStatus extends StatelessWidget {
@@ -415,6 +488,8 @@ class _OperationStatus extends StatelessWidget {
               error ?? stage,
               style: TextStyle(
                 color: error == null ? AnnaColors.text : AnnaColors.danger,
+                fontSize: 14,
+                height: 1.3,
               ),
             ),
           ),

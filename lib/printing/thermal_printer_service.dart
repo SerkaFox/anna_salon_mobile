@@ -84,7 +84,7 @@ class ThermalPrinterService {
       ),
     );
     onStatus?.call('Получено устройств: ${devices.length}.');
-    return devices
+    final mapped = devices
         .map((device) => ThermalPrinterDevice(
               name: device.name.trim().isEmpty
                   ? 'Dispositivo Bluetooth'
@@ -92,6 +92,14 @@ class ThermalPrinterService {
               address: device.macAdress,
             ))
         .toList();
+    mapped.sort((left, right) {
+      final priority =
+          _printerPriority(left.name).compareTo(_printerPriority(right.name));
+      return priority != 0
+          ? priority
+          : left.name.toLowerCase().compareTo(right.name.toLowerCase());
+    });
+    return mapped;
   }
 
   Future<void> connect(
@@ -266,5 +274,18 @@ class ThermalPrinterService {
         'La impresion Bluetooth esta disponible en Android.',
       );
     }
+  }
+
+  int _printerPriority(String name) {
+    final normalized = name.toLowerCase().replaceAll(RegExp(r'[\s_-]'), '');
+    if (normalized.contains('pt210') || normalized.contains('goojprt')) {
+      return 0;
+    }
+    if (normalized.contains('printer') ||
+        normalized.contains('thermal') ||
+        normalized.contains('pos')) {
+      return 1;
+    }
+    return 2;
   }
 }

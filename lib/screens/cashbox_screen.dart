@@ -181,7 +181,11 @@ class _CashboxScreenState extends State<CashboxScreen> {
                           const SizedBox(height: 3),
                           Text(
                             '${cash['deposit_percent'] ?? '10'}%',
-                            style: const TextStyle(color: AnnaColors.muted),
+                            style: const TextStyle(
+                              color: AnnaColors.muted,
+                              fontSize: 15,
+                              height: 1.25,
+                            ),
                           ),
                         ],
                       ),
@@ -230,7 +234,11 @@ class _CashboxScreenState extends State<CashboxScreen> {
                               t.isRussian
                                   ? 'Подключение PT210 и пробная печать'
                                   : 'Conexion PT210 e impresion de prueba',
-                              style: const TextStyle(color: AnnaColors.muted),
+                              style: const TextStyle(
+                                color: AnnaColors.muted,
+                                fontSize: 14,
+                                height: 1.3,
+                              ),
                             ),
                           ],
                         ),

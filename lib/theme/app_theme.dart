@@ -51,41 +51,62 @@ ThemeData buildAnnaTheme({Color primary = AnnaColors.accent2}) {
     onSurface: AnnaColors.text,
     error: AnnaColors.danger,
   );
+  final baseTextTheme =
+      Typography.material2021(platform: TargetPlatform.android).white.apply(
+            bodyColor: AnnaColors.text,
+            displayColor: AnnaColors.text,
+            fontFamily: 'Segoe UI',
+          );
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: AnnaColors.bg,
     fontFamily: 'Segoe UI',
-    textTheme: Typography.material2021(platform: TargetPlatform.android)
-        .white
-        .apply(
-          bodyColor: AnnaColors.text,
-          displayColor: AnnaColors.text,
-          fontFamily: 'Segoe UI',
-        )
-        .copyWith(
-          headlineMedium: const TextStyle(
-            color: AnnaColors.text,
-            fontSize: 30,
-            fontWeight: FontWeight.w800,
-          ),
-          titleLarge: const TextStyle(
-            color: AnnaColors.text,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-          ),
-          titleMedium: const TextStyle(
-            color: AnnaColors.text,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
-          bodyMedium: const TextStyle(color: AnnaColors.text),
-          labelMedium: const TextStyle(
-            color: AnnaColors.muted,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+    textTheme: baseTextTheme.copyWith(
+      headlineMedium: const TextStyle(
+        color: AnnaColors.text,
+        fontSize: 30,
+        fontWeight: FontWeight.w800,
+      ),
+      titleLarge: const TextStyle(
+        color: AnnaColors.text,
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+      ),
+      titleMedium: const TextStyle(
+        color: AnnaColors.text,
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+      ),
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(
+        color: AnnaColors.text,
+        fontSize: 16,
+      ),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+        color: AnnaColors.text,
+        fontSize: 14,
+      ),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(
+        color: AnnaColors.muted,
+        fontSize: 12,
+      ),
+      titleSmall: baseTextTheme.titleSmall?.copyWith(
+        color: AnnaColors.text,
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+      labelLarge: baseTextTheme.labelLarge?.copyWith(
+        color: AnnaColors.text,
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+      labelMedium: const TextStyle(
+        color: AnnaColors.muted,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
     appBarTheme: const AppBarTheme(
       centerTitle: false,
       elevation: 0,
@@ -137,7 +158,10 @@ ThemeData buildAnnaTheme({Color primary = AnnaColors.accent2}) {
         backgroundColor: primary,
         foregroundColor: primaryOnDark,
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
         shape: const StadiumBorder(),
         disabledBackgroundColor: AnnaColors.line,
         disabledForegroundColor: AnnaColors.muted,
@@ -148,7 +172,10 @@ ThemeData buildAnnaTheme({Color primary = AnnaColors.accent2}) {
         foregroundColor: AnnaColors.text,
         side: const BorderSide(color: AnnaColors.line),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
         shape: const StadiumBorder(),
       ),
     ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/rendering.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app_settings_controller.dart';
@@ -11,6 +12,9 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPaintSizeEnabled = false;
+  debugPaintBaselinesEnabled = false;
+  debugPaintTextLayoutBoxes = false;
   await initializeDateFormatting('es');
   await initializeDateFormatting('ru');
   runApp(const AnnaSalonApp());
