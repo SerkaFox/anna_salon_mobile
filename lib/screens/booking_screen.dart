@@ -81,7 +81,6 @@ class _BookingScreenState extends State<BookingScreen> {
   String? _clientId;
   String? _serviceId;
   String? _employeeId;
-  String? _zoneId;
   String? _rewardRuleId;
   Future<ApiCollection>? _clientRewardsFuture;
   String? _clientRewardsClientId;
@@ -232,7 +231,6 @@ class _BookingScreenState extends State<BookingScreen> {
     final valid = _formKey.currentState?.validate() ?? false;
     if (!valid) return false;
     final service = _selectedService(refs);
-    final needsZone = service?.requiresZone ?? false;
     if (service == null) {
       setState(() => _error = t.tr('Selecciona primero un servicio.'));
       return false;
@@ -244,15 +242,6 @@ class _BookingScreenState extends State<BookingScreen> {
     if (!refs.employeeSupportsService(_employeeId, service)) {
       setState(() =>
           _error = t.tr('Este empleado no realiza el servicio seleccionado.'));
-      return false;
-    }
-    if (needsZone && _zoneId == null) {
-      setState(() => _error = t.tr('Selecciona una zona para este servicio.'));
-      return false;
-    }
-    if (needsZone && !refs.zoneAllowedForService(_zoneId, service)) {
-      setState(() => _error =
-          t.tr('La zona seleccionada no esta permitida para este servicio.'));
       return false;
     }
     if (_selectedSlotValue == null) {
@@ -272,7 +261,6 @@ class _BookingScreenState extends State<BookingScreen> {
       'service': _coerceId(_serviceId),
       'employee': _coerceId(_employeeId),
       'start_at': _startAtText(),
-      'zone': _coerceId(_zoneId),
       'source': _source,
     };
     if (_rewardRuleId != null) {
@@ -339,15 +327,10 @@ class _BookingScreenState extends State<BookingScreen> {
     final service = _selectedService(refs);
     if (service == null || _employeeId == null) return null;
     if (!refs.employeeSupportsService(_employeeId, service)) return null;
-    if (service.requiresZone && _zoneId == null) return null;
-    if (service.requiresZone && !refs.zoneAllowedForService(_zoneId, service)) {
-      return null;
-    }
     return [
       DateFormat('yyyy-MM-dd').format(_selectedDate),
       _employeeId,
       _serviceId,
-      _zoneId ?? '',
     ].join('|');
   }
 
@@ -359,7 +342,6 @@ class _BookingScreenState extends State<BookingScreen> {
       'employee': _employeeId!,
       'service': _serviceId!,
     };
-    if (_zoneId != null) query['zone'] = _zoneId!;
     final response = await widget.api.availabilitySlots(query);
     return _AvailabilitySlotsData.fromResponse(response.data);
   }
@@ -482,7 +464,6 @@ class _BookingScreenState extends State<BookingScreen> {
                 clientId: _clientId,
                 serviceId: _serviceId,
                 employeeId: _employeeId,
-                zoneId: _zoneId,
                 source: _source,
                 rewardRuleId: _rewardRuleId,
                 clientRewardsFuture: _clientRewardsFuture,
@@ -510,10 +491,6 @@ class _BookingScreenState extends State<BookingScreen> {
                     )) {
                       _employeeId = null;
                     }
-                    if (service?.requiresZone != true ||
-                        !refs.zoneAllowedForService(_zoneId, service)) {
-                      _zoneId = null;
-                    }
                     _error = null;
                     _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
                   });
@@ -523,12 +500,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   final service = _selectedService(refs);
                   if (!refs.employeeSupportsService(value, service)) {
                     _serviceId = null;
-                    _zoneId = null;
                   }
-                  _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
-                }),
-                onZoneChanged: (value) => setState(() {
-                  _zoneId = value;
                   _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
                 }),
                 onSourceChanged: (value) => setState(() {
@@ -564,7 +536,6 @@ class _BookingFormCard extends StatelessWidget {
     required this.clientId,
     required this.serviceId,
     required this.employeeId,
-    required this.zoneId,
     required this.source,
     required this.rewardRuleId,
     required this.clientRewardsFuture,
@@ -575,7 +546,6 @@ class _BookingFormCard extends StatelessWidget {
     required this.onClientChanged,
     required this.onServiceChanged,
     required this.onEmployeeChanged,
-    required this.onZoneChanged,
     required this.onSourceChanged,
     required this.onRewardChanged,
     required this.onCreateClient,
@@ -597,7 +567,6 @@ class _BookingFormCard extends StatelessWidget {
   final String? clientId;
   final String? serviceId;
   final String? employeeId;
-  final String? zoneId;
   final String source;
   final String? rewardRuleId;
   final Future<ApiCollection>? clientRewardsFuture;
@@ -609,7 +578,6 @@ class _BookingFormCard extends StatelessWidget {
   final ValueChanged<String?> onClientChanged;
   final ValueChanged<String?> onServiceChanged;
   final ValueChanged<String?> onEmployeeChanged;
-  final ValueChanged<String?> onZoneChanged;
   final ValueChanged<String?> onSourceChanged;
   final ValueChanged<String?> onRewardChanged;
   final VoidCallback onCreateClient;
@@ -634,17 +602,10 @@ class _BookingFormCard extends StatelessWidget {
     final employeeOptions = service == null
         ? refs.employeeOptions
         : refs.employeesForService(service);
-    final zoneOptions =
-        zoneNeeded ? refs.zonesForService(service) : const <_BookingOption>[];
     final hasValidEmployee =
         refs.optionById(employeeOptions, employeeId) != null;
-    final hasValidZone =
-        !zoneNeeded || refs.optionById(zoneOptions, zoneId) != null;
-    final canCreate = service != null &&
-        hasValidEmployee &&
-        hasValidZone &&
-        clientId != null &&
-        !creating;
+    final canCreate =
+        service != null && hasValidEmployee && clientId != null && !creating;
     final dateText = DateFormat('d MMM yyyy', 'es').format(selectedDate);
     final t = AppLocalizations.of(context);
 
@@ -713,7 +674,12 @@ class _BookingFormCard extends StatelessWidget {
                     AnnaBadge('${service.durationMinutes} min'),
                   if (service.price != null) AnnaBadge('${service.price} EUR'),
                   AnnaBadge(
-                      zoneNeeded ? t.tr('Zona requerida') : t.tr('Sin zona')),
+                    zoneNeeded
+                        ? (t.isRussian
+                            ? 'Зона назначается автоматически'
+                            : 'Zona automática')
+                        : t.tr('Sin zona'),
+                  ),
                 ],
               ),
             ],
@@ -729,18 +695,6 @@ class _BookingFormCard extends StatelessWidget {
               icon: Icons.badge_outlined,
               onChanged: employeeOptions.isEmpty ? null : onEmployeeChanged,
             ),
-            if (zoneNeeded) ...[
-              const SizedBox(height: 14),
-              _HelperText(t.tr('Este servicio requiere zona')),
-              const SizedBox(height: 10),
-              _DropdownField(
-                label: t.tr('Zona'),
-                value: zoneId,
-                options: zoneOptions,
-                icon: Icons.place_outlined,
-                onChanged: zoneOptions.isEmpty ? null : onZoneChanged,
-              ),
-            ],
             const SizedBox(height: 14),
             _PickerField(
               label: t.tr('Fecha'),
@@ -752,7 +706,7 @@ class _BookingFormCard extends StatelessWidget {
             _AvailableSlotField(
               slotsFuture: slotsFuture,
               selectedValue: selectedSlotValue,
-              enabled: service != null && hasValidEmployee && hasValidZone,
+              enabled: service != null && hasValidEmployee,
               onChanged: onSlotChanged,
             ),
             const SizedBox(height: 14),

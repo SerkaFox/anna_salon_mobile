@@ -325,6 +325,11 @@ class _ClientCard extends StatelessWidget {
                         AnnaBadge(
                             client.isActive ? t.tr('Activo') : t.tr('Inactivo'),
                             warning: !client.isActive),
+                        if (client.isBlacklisted)
+                          AnnaBadge(
+                            t.isRussian ? 'Чёрный список' : 'Lista negra',
+                            warning: true,
+                          ),
                         if (client.createdText != null)
                           AnnaBadge('${t.tr('Creado')} ${client.createdText}'),
                       ],
@@ -1420,6 +1425,7 @@ class _ClientView {
     required this.id,
     required this.name,
     required this.isActive,
+    this.isBlacklisted = false,
     this.phone,
     this.email,
     this.birthDate,
@@ -1443,6 +1449,7 @@ class _ClientView {
   final String? avatarUrl;
   final String referralRewardsUsed;
   final bool isActive;
+  final bool isBlacklisted;
 
   Map<String, dynamic> get rawData => {
         'id': id,
@@ -1456,6 +1463,7 @@ class _ClientView {
         'birth_date': birthDate,
         'notes': notes,
         'is_active': isActive,
+        'is_blacklisted': isBlacklisted,
         'referred_by_name': referredByName,
         'avatar_url': avatarUrl,
         'referral_rewards_used': referralRewardsUsed,
@@ -1515,6 +1523,7 @@ class _ClientView {
       avatarUrl: _nonEmpty(record.valueAsText('avatar_url')),
       referralRewardsUsed: record.valueAsText('referral_rewards_used') ?? '0',
       isActive: _boolValue(record.data['is_active'], fallback: true),
+      isBlacklisted: _boolValue(record.data['is_blacklisted'], fallback: false),
     );
   }
 }

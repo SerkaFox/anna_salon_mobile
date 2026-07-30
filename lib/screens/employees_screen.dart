@@ -438,6 +438,8 @@ Future<void> showEmployeeDetailSheet(
       isActive: true,
       serviceNames: const [],
       serviceIds: const [],
+      zoneNames: const [],
+      zoneIds: const [],
     ),
     onChanged: onChanged ?? () {},
     canManageStaff: canManageStaff,
@@ -665,6 +667,26 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                _EmployeeDetailSection(
+                  title: t.isRussian ? 'Рабочие зоны' : 'Zonas de trabajo',
+                  children: detail.employee.zoneNames.isEmpty
+                      ? [
+                          Text(
+                            t.tr('No definidos.'),
+                            style: const TextStyle(color: AnnaColors.muted),
+                          ),
+                        ]
+                      : [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final zone in detail.employee.zoneNames)
+                                AnnaBadge(zone),
+                            ],
+                          ),
+                        ],
+                ),
                 _EmployeeDetailSection(
                   title: t.tr('Servicios'),
                   children: detail.employee.serviceNames.isEmpty
@@ -1642,6 +1664,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   late final _notesController =
       TextEditingController(text: widget.employee?.notes ?? '');
   late final Set<String> _serviceIds = {...?widget.employee?.serviceIds};
+  late final Set<String> _zoneIds = {...?widget.employee?.zoneIds};
   late bool _isActive = widget.employee?.isActive ?? true;
   bool _saving = false;
   String? _error;
@@ -1674,6 +1697,8 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
       'email': _emailController.text.trim(),
       'calendar_color': _color,
       'services': _serviceIds.map((id) => int.tryParse(id) ?? id).toList(),
+      if (widget.canManageStaff)
+        'zones': _zoneIds.map((id) => int.tryParse(id) ?? id).toList(),
     };
     if (widget.canManageStaff) {
       payload.addAll({
@@ -1765,10 +1790,14 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(18, 16, 18, bottomInset + 18),
-      child: FutureBuilder<ApiCollection>(
-        future: widget.api.services(),
+      child: FutureBuilder<List<ApiCollection>>(
+        future: Future.wait([
+          widget.api.services(),
+          widget.api.zones(),
+        ]),
         builder: (context, snapshot) {
-          final services = snapshot.data?.items ?? const <ApiRecord>[];
+          final services = snapshot.data?[0].items ?? const <ApiRecord>[];
+          final zones = snapshot.data?[1].items ?? const <ApiRecord>[];
           return SingleChildScrollView(
             child: Form(
               key: _formKey,
@@ -1933,6 +1962,40 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                           });
                         },
                       ),
+                  if (widget.canManageStaff) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      t.isRussian ? 'Рабочие зоны' : 'Zonas de trabajo',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      t.isRussian
+                          ? 'Зона для записи будет выбрана автоматически.'
+                          : 'La zona de la reserva se asignará automáticamente.',
+                      style: const TextStyle(color: AnnaColors.muted),
+                    ),
+                    for (final zone in zones)
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          zone.valueAsText('name') ??
+                              '${t.tr('Zona')} ${zone.valueAsText('id')}',
+                        ),
+                        value: _zoneIds.contains(zone.valueAsText('id')),
+                        onChanged: (value) {
+                          final id = zone.valueAsText('id');
+                          if (id == null) return;
+                          setState(() {
+                            if (value == true) {
+                              _zoneIds.add(id);
+                            } else {
+                              _zoneIds.remove(id);
+                            }
+                          });
+                        },
+                      ),
+                  ],
                   if (widget.canManageStaff)
                     TextFormField(
                       controller: _notesController,
@@ -2000,6 +2063,8 @@ class _EmployeeDetail {
             isActive: true,
             serviceNames: [],
             serviceIds: [],
+            zoneNames: [],
+            zoneIds: [],
           ),
       stats: {
         for (final entry in statsMap.entries)
@@ -2027,6 +2092,8 @@ class _EmployeeView {
     required this.isActive,
     required this.serviceNames,
     required this.serviceIds,
+    required this.zoneNames,
+    required this.zoneIds,
     this.phone,
     this.email,
     this.username,
@@ -2042,6 +2109,8 @@ class _EmployeeView {
   final bool isActive;
   final List<String> serviceNames;
   final List<String> serviceIds;
+  final List<String> zoneNames;
+  final List<String> zoneIds;
   final String? phone;
   final String? email;
   final String? username;
@@ -2083,6 +2152,7 @@ class _EmployeeView {
       email,
       username,
       ...serviceNames,
+      ...zoneNames,
     ].whereType<String>().join(' ').toLowerCase();
   }
 
@@ -2106,6 +2176,8 @@ class _EmployeeView {
       isActive: _boolValue(record.data['is_active'], fallback: true),
       serviceNames: _stringList(record.data['service_names']),
       serviceIds: _stringList(record.data['service_ids']),
+      zoneNames: _stringList(record.data['zone_names']),
+      zoneIds: _stringList(record.data['zone_ids']),
       phone: _nonEmpty(record.valueAsText('phone')),
       email: _nonEmpty(record.valueAsText('email')),
       username: _nonEmpty(record.valueAsText('username')),

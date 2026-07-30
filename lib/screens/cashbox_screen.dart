@@ -35,11 +35,31 @@ class CashboxScreen extends StatefulWidget {
 
 class _CashboxScreenState extends State<CashboxScreen> {
   late DateTime _date = DateTime.now();
+  int _rangeDays = 1;
+  DateTimeRange? _customRange;
+  String _methodFilter = 'all';
   late Future<_CashboxData> _future = _load();
+
+  DateTime get _dateFrom =>
+      _customRange?.start ?? _date.subtract(Duration(days: _rangeDays - 1));
+
+  DateTime get _dateTo => _customRange?.end ?? _date;
+
+  String? get _apiMethod => switch (_methodFilter) {
+        'cash' => 'cash',
+        'card' => 'card',
+        'cash_card' => 'cash,card',
+        _ => null,
+      };
 
   Future<_CashboxData> _load() async {
     final result = await Future.wait([
-      widget.api.cashbox(date: _date),
+      widget.api.cashbox(
+        date: _dateTo,
+        dateFrom: _dateFrom,
+        dateTo: _dateTo,
+        method: _apiMethod,
+      ),
       widget.api.bookings(date: _date),
     ]);
     return _CashboxData(
@@ -62,6 +82,37 @@ class _CashboxScreenState extends State<CashboxScreen> {
     if (picked == null) return;
     setState(() {
       _date = picked;
+      _customRange = null;
+      _future = _load();
+    });
+  }
+
+  Future<void> _pickCustomRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2035),
+      initialDateRange: DateTimeRange(start: _dateFrom, end: _dateTo),
+    );
+    if (picked == null) return;
+    setState(() {
+      _customRange = picked;
+      _date = picked.end;
+      _future = _load();
+    });
+  }
+
+  void _setRangeDays(int days) {
+    setState(() {
+      _rangeDays = days;
+      _customRange = null;
+      _future = _load();
+    });
+  }
+
+  void _setMethodFilter(String value) {
+    setState(() {
+      _methodFilter = value;
       _future = _load();
     });
   }
@@ -114,7 +165,15 @@ class _CashboxScreenState extends State<CashboxScreen> {
           final closure = cash['closure'] is Map<String, dynamic>
               ? Map<String, dynamic>.from(cash['closure'])
               : null;
-          final dateLabel = DateFormat('d MMM yyyy', localeCode).format(_date);
+          final dateLabel = _dateFrom == _dateTo
+              ? DateFormat('d MMM yyyy', localeCode).format(_dateTo)
+              : '${DateFormat('d MMM', localeCode).format(_dateFrom)} — '
+                  '${DateFormat('d MMM yyyy', localeCode).format(_dateTo)}';
+          final totalsByMethod = cash['totals_by_method'] is Map
+              ? Map<String, dynamic>.from(cash['totals_by_method'])
+              : <String, dynamic>{};
+          final canCloseCashbox =
+              _dateFrom == _dateTo && _methodFilter == 'all';
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,22 +191,24 @@ class _CashboxScreenState extends State<CashboxScreen> {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                         ),
-                        closure == null
+                        closure == null && canCloseCashbox
                             ? FilledButton.icon(
                                 onPressed: () => _closeCashbox(context, cash),
                                 icon: const Icon(Icons.lock_outline),
                                 label: Text(t.tr('Cerrar caja')),
                               )
-                            : FilledButton.tonalIcon(
-                                onPressed: () => _showClosureDetails(
-                                  context,
-                                  closure,
-                                ),
-                                icon: const Icon(Icons.lock_clock_outlined),
-                                label: Text(t.isRussian
-                                    ? 'Касса закрыта'
-                                    : 'Caja cerrada'),
-                              ),
+                            : closure != null
+                                ? FilledButton.tonalIcon(
+                                    onPressed: () => _showClosureDetails(
+                                      context,
+                                      closure,
+                                    ),
+                                    icon: const Icon(Icons.lock_clock_outlined),
+                                    label: Text(t.isRussian
+                                        ? 'Касса закрыта'
+                                        : 'Caja cerrada'),
+                                  )
+                                : const SizedBox.shrink(),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -156,7 +217,13 @@ class _CashboxScreenState extends State<CashboxScreen> {
                       runSpacing: 8,
                       children: [
                         AnnaBadge(
-                          '${t.tr('Total del dia')}: ${cash['payments_total'] ?? '0.00'} EUR',
+                          '${_dateFrom == _dateTo ? t.tr('Total del dia') : (t.isRussian ? 'Итого за период' : 'Total del periodo')}: ${cash['payments_total'] ?? '0.00'} EUR',
+                        ),
+                        AnnaBadge(
+                          '${t.tr('Efectivo')}: ${totalsByMethod['cash'] ?? '0.00'} EUR',
+                        ),
+                        AnnaBadge(
+                          '${t.tr('Tarjeta')}: ${totalsByMethod['card'] ?? '0.00'} EUR',
                         ),
                         AnnaBadge(
                           '${t.tr('Pagos del dia')}: ${cash['payments_count'] ?? '0'}',
@@ -168,6 +235,89 @@ class _CashboxScreenState extends State<CashboxScreen> {
                           AnnaBadge(
                             '${t.tr('Cerrar caja')}: ${closure['closure_date']}',
                           ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              PanelCard(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.isRussian ? 'Период' : 'Periodo',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text(t.isRussian ? '1 день' : '1 día'),
+                          selected: _customRange == null && _rangeDays == 1,
+                          onSelected: (_) => _setRangeDays(1),
+                        ),
+                        ChoiceChip(
+                          label: Text(t.isRussian ? '3 дня' : '3 días'),
+                          selected: _customRange == null && _rangeDays == 3,
+                          onSelected: (_) => _setRangeDays(3),
+                        ),
+                        ChoiceChip(
+                          label: Text(t.isRussian ? 'Неделя' : 'Semana'),
+                          selected: _customRange == null && _rangeDays == 7,
+                          onSelected: (_) => _setRangeDays(7),
+                        ),
+                        ActionChip(
+                          avatar: const Icon(
+                            Icons.date_range_outlined,
+                            size: 18,
+                          ),
+                          label: Text(
+                            _customRange == null
+                                ? (t.isRussian ? 'Диапазон' : 'Rango')
+                                : dateLabel,
+                          ),
+                          onPressed: _pickCustomRange,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      t.isRussian ? 'Метод оплаты' : 'Método de pago',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text(t.isRussian ? 'Все' : 'Todos'),
+                          selected: _methodFilter == 'all',
+                          onSelected: (_) => _setMethodFilter('all'),
+                        ),
+                        ChoiceChip(
+                          label: Text(t.tr('Efectivo')),
+                          selected: _methodFilter == 'cash',
+                          onSelected: (_) => _setMethodFilter('cash'),
+                        ),
+                        ChoiceChip(
+                          label: Text(t.tr('Tarjeta')),
+                          selected: _methodFilter == 'card',
+                          onSelected: (_) => _setMethodFilter('card'),
+                        ),
+                        ChoiceChip(
+                          label: Text(
+                            t.isRussian
+                                ? 'Наличные + карта'
+                                : 'Efectivo + tarjeta',
+                          ),
+                          selected: _methodFilter == 'cash_card',
+                          onSelected: (_) => _setMethodFilter('cash_card'),
+                        ),
                       ],
                     ),
                   ],

@@ -391,12 +391,20 @@ class AnnaApi {
 
   Future<ApiDocument> cashbox({
     DateTime? date,
+    DateTime? dateFrom,
+    DateTime? dateTo,
     String? method,
     String? entryType,
   }) async {
     final query = <String, String>{};
     if (date != null) {
       query['date'] = DateFormat('yyyy-MM-dd').format(date);
+    }
+    if (dateFrom != null) {
+      query['date_from'] = DateFormat('yyyy-MM-dd').format(dateFrom);
+    }
+    if (dateTo != null) {
+      query['date_to'] = DateFormat('yyyy-MM-dd').format(dateTo);
     }
     if (method != null && method.isNotEmpty) {
       query['method'] = method;
