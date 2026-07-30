@@ -57,6 +57,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
   late final _usernameController =
       TextEditingController(text: widget.client?.valueAsText('username') ?? '');
   final _passwordController = TextEditingController();
+  late bool _isBlacklisted = _boolValue(widget.client?.data['is_blacklisted']);
   bool _saving = false;
   String? _error;
 
@@ -90,6 +91,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
         'email': _emailController.text.trim(),
         'birth_date': _emptyToNull(_birthDateController),
         'notes': _notesController.text.trim(),
+        'is_blacklisted': _isBlacklisted,
       };
       var username = _usernameController.text.trim();
       var password = _passwordController.text;
@@ -354,6 +356,24 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 ),
               ),
               const SizedBox(height: 14),
+              CheckboxListTile(
+                value: _isBlacklisted,
+                onChanged: _saving
+                    ? null
+                    : (value) =>
+                        setState(() => _isBlacklisted = value ?? false),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(
+                  t.isRussian ? 'Заблокировать клиента' : 'Bloquear cliente',
+                ),
+                subtitle: Text(
+                  t.isRussian
+                      ? 'Клиент появится в фильтре «Чёрный список».'
+                      : 'El cliente aparecera en el filtro «Lista negra».',
+                ),
+              ),
+              const SizedBox(height: 14),
               Text(t.tr('Acceso cliente'),
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
@@ -431,6 +451,13 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
 String? _emptyToNull(TextEditingController controller) {
   final text = controller.text.trim();
   return text.isEmpty ? null : text;
+}
+
+bool _boolValue(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase();
+  return normalized == 'true' || normalized == '1' || normalized == 'yes';
 }
 
 String _digitsOnly(String value) {

@@ -12,6 +12,10 @@ import 'employees_screen.dart';
 import 'photo_viewer.dart';
 import 'shared.dart';
 
+enum _ClientFilter { all, blacklisted, online }
+
+enum _ClientSort { name, orders, spent }
+
 class ClientsScreen extends StatefulWidget {
   const ClientsScreen({
     required this.api,
@@ -31,6 +35,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
   late Future<ApiCollection> _future = widget.api.clients();
   final List<ApiRecord> _createdClientRecords = [];
   String _query = '';
+  _ClientFilter _filter = _ClientFilter.all;
+  _ClientSort _sort = _ClientSort.name;
 
   @override
   void dispose() {
@@ -114,9 +120,22 @@ class _ClientsScreenState extends State<ClientsScreen> {
               .whereType<_ClientView>()
               .toList();
           final filtered = clients.where((client) {
-            if (_query.isEmpty) return true;
-            return client.searchText.contains(_query);
-          }).toList();
+            if (_query.isNotEmpty && !client.searchText.contains(_query)) {
+              return false;
+            }
+            return switch (_filter) {
+              _ClientFilter.all => true,
+              _ClientFilter.blacklisted => client.isBlacklisted,
+              _ClientFilter.online => client.isOnlineClient,
+            };
+          }).toList()
+            ..sort((left, right) => switch (_sort) {
+                  _ClientSort.name => left.name.compareTo(right.name),
+                  _ClientSort.orders =>
+                    right.totalOrders.compareTo(left.totalOrders),
+                  _ClientSort.spent =>
+                    right.totalSpent.compareTo(left.totalSpent),
+                });
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,10 +144,14 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 controller: _queryController,
                 total: clients.length,
                 visible: filtered.length,
+                filter: _filter,
+                sort: _sort,
                 onChanged: (value) {
                   setState(() => _query = value.trim().toLowerCase());
                 },
                 onClear: _clearSearch,
+                onFilterChanged: (value) => setState(() => _filter = value),
+                onSortChanged: (value) => setState(() => _sort = value),
               ),
               const SizedBox(height: 14),
               if (filtered.isEmpty)
@@ -160,15 +183,23 @@ class _ClientSearchCard extends StatelessWidget {
     required this.controller,
     required this.total,
     required this.visible,
+    required this.filter,
+    required this.sort,
     required this.onChanged,
     required this.onClear,
+    required this.onFilterChanged,
+    required this.onSortChanged,
   });
 
   final TextEditingController controller;
   final int total;
   final int visible;
+  final _ClientFilter filter;
+  final _ClientSort sort;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+  final ValueChanged<_ClientFilter> onFilterChanged;
+  final ValueChanged<_ClientSort> onSortChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -192,6 +223,54 @@ class _ClientSearchCard extends StatelessWidget {
                     ),
             ),
             onChanged: onChanged,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilterChip(
+                label: Text(t.isRussian ? 'Все' : 'Todos'),
+                selected: filter == _ClientFilter.all,
+                onSelected: (_) => onFilterChanged(_ClientFilter.all),
+              ),
+              FilterChip(
+                label: Text(t.isRussian ? 'Чёрный список' : 'Lista negra'),
+                selected: filter == _ClientFilter.blacklisted,
+                onSelected: (_) => onFilterChanged(_ClientFilter.blacklisted),
+              ),
+              FilterChip(
+                label: Text(t.isRussian ? 'Онлайн' : 'Online'),
+                selected: filter == _ClientFilter.online,
+                onSelected: (_) => onFilterChanged(_ClientFilter.online),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<_ClientSort>(
+            initialValue: sort,
+            decoration: InputDecoration(
+              labelText: t.isRussian ? 'Сортировка' : 'Ordenar',
+              prefixIcon: const Icon(Icons.sort),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: _ClientSort.name,
+                child: Text(t.isRussian ? 'По имени' : 'Por nombre'),
+              ),
+              DropdownMenuItem(
+                value: _ClientSort.orders,
+                child: Text(t.isRussian ? 'По заказам' : 'Por reservas'),
+              ),
+              DropdownMenuItem(
+                value: _ClientSort.spent,
+                child:
+                    Text(t.isRussian ? 'По принесённым деньгам' : 'Por gasto'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) onSortChanged(value);
+            },
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -330,6 +409,16 @@ class _ClientCard extends StatelessWidget {
                             t.isRussian ? 'Чёрный список' : 'Lista negra',
                             warning: true,
                           ),
+                        AnnaBadge(
+                          t.isRussian
+                              ? 'Заказов: ${client.totalOrders}'
+                              : 'Reservas: ${client.totalOrders}',
+                        ),
+                        AnnaBadge(
+                          '${client.totalSpent.toStringAsFixed(2)} €',
+                        ),
+                        if (client.isOnlineClient)
+                          AnnaBadge(t.isRussian ? 'Онлайн' : 'Online'),
                         if (client.createdText != null)
                           AnnaBadge('${t.tr('Creado')} ${client.createdText}'),
                       ],
@@ -1426,6 +1515,9 @@ class _ClientView {
     required this.name,
     required this.isActive,
     this.isBlacklisted = false,
+    this.isOnlineClient = false,
+    this.totalOrders = 0,
+    this.totalSpent = 0,
     this.phone,
     this.email,
     this.birthDate,
@@ -1450,6 +1542,9 @@ class _ClientView {
   final String referralRewardsUsed;
   final bool isActive;
   final bool isBlacklisted;
+  final bool isOnlineClient;
+  final int totalOrders;
+  final double totalSpent;
 
   Map<String, dynamic> get rawData => {
         'id': id,
@@ -1464,6 +1559,9 @@ class _ClientView {
         'notes': notes,
         'is_active': isActive,
         'is_blacklisted': isBlacklisted,
+        'is_online_client': isOnlineClient,
+        'total_orders': totalOrders,
+        'total_spent': totalSpent,
         'referred_by_name': referredByName,
         'avatar_url': avatarUrl,
         'referral_rewards_used': referralRewardsUsed,
@@ -1524,6 +1622,10 @@ class _ClientView {
       referralRewardsUsed: record.valueAsText('referral_rewards_used') ?? '0',
       isActive: _boolValue(record.data['is_active'], fallback: true),
       isBlacklisted: _boolValue(record.data['is_blacklisted'], fallback: false),
+      isOnlineClient:
+          _boolValue(record.data['is_online_client'], fallback: false),
+      totalOrders: int.tryParse(record.valueAsText('total_orders') ?? '') ?? 0,
+      totalSpent: double.tryParse(record.valueAsText('total_spent') ?? '') ?? 0,
     );
   }
 }
