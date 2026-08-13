@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
@@ -239,6 +240,20 @@ class _CashboxScreenState extends State<CashboxScreen> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 14),
+              _StripeBalanceCard(
+                stripe: cash['stripe'] is Map
+                    ? Map<String, dynamic>.from(cash['stripe'])
+                    : const <String, dynamic>{},
+                payouts: cash['stripe_payouts'] is List
+                    ? List<Map<String, dynamic>>.from(
+                        (cash['stripe_payouts'] as List)
+                            .whereType<Map>()
+                            .map(Map<String, dynamic>.from),
+                      )
+                    : const <Map<String, dynamic>>[],
+                onPayout: (stripe) => _requestStripePayout(context, stripe),
               ),
               const SizedBox(height: 14),
               PanelCard(
@@ -639,6 +654,227 @@ class _CashboxScreenState extends State<CashboxScreen> {
         SnackBar(content: Text(formatApiError(error))),
       );
     }
+  }
+
+  Future<void> _requestStripePayout(
+    BuildContext context,
+    Map<String, dynamic> stripe,
+  ) async {
+    final result = await _StripePayoutDialog.show(context, stripe: stripe);
+    if (result == null || !context.mounted) return;
+    try {
+      await widget.api.requestStripePayout({
+        ...result,
+        'request_id': const Uuid().v4(),
+      });
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).isRussian
+              ? 'Выплата Stripe запрошена.'
+              : 'Retirada Stripe solicitada.'),
+        ),
+      );
+      _reload();
+    } on AnnaApiException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    }
+  }
+}
+
+class _StripeBalanceCard extends StatelessWidget {
+  const _StripeBalanceCard({
+    required this.stripe,
+    required this.payouts,
+    required this.onPayout,
+  });
+
+  final Map<String, dynamic> stripe;
+  final List<Map<String, dynamic>> payouts;
+  final ValueChanged<Map<String, dynamic>> onPayout;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final error = stripe['error']?.toString() ?? '';
+    return PanelCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.account_balance_wallet_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Stripe',
+                    style: Theme.of(context).textTheme.titleLarge),
+              ),
+              if (stripe['livemode'] == true)
+                AnnaBadge(t.isRussian ? 'Реальный счет' : 'Cuenta real'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (error.isNotEmpty)
+            Text(error, style: const TextStyle(color: AnnaColors.danger))
+          else ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                AnnaBadge(
+                  '${t.isRussian ? 'Доступно' : 'Disponible'}: ${stripe['available_amount'] ?? '0.00'} EUR',
+                ),
+                AnnaBadge(
+                  '${t.isRussian ? 'Ожидается' : 'Pendiente'}: ${stripe['pending_amount'] ?? '0.00'} EUR',
+                ),
+                AnnaBadge(
+                  '${t.isRussian ? 'Мгновенно' : 'Instantáneo'}: ${stripe['instant_available_amount'] ?? '0.00'} EUR',
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              t.isRussian
+                  ? 'Стандартная выплата поступит на IBAN, настроенный в Stripe.'
+                  : 'La retirada estándar llegará al IBAN configurado en Stripe.',
+              style: const TextStyle(color: AnnaColors.muted),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed:
+                  stripe['can_payout'] == true ? () => onPayout(stripe) : null,
+              icon: const Icon(Icons.payments_outlined),
+              label: Text(t.isRussian ? 'Вывести средства' : 'Retirar fondos'),
+            ),
+            if (payouts.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text(
+                t.isRussian ? 'Последние выплаты' : 'Últimas retiradas',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              for (final payout in payouts.take(5))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Text(
+                    '${payout['amount']} EUR · ${payout['method_label']} · ${payout['status_label']}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StripePayoutDialog extends StatefulWidget {
+  const _StripePayoutDialog({required this.stripe});
+
+  final Map<String, dynamic> stripe;
+
+  static Future<Map<String, dynamic>?> show(
+    BuildContext context, {
+    required Map<String, dynamic> stripe,
+  }) =>
+      showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (_) => _StripePayoutDialog(stripe: stripe),
+      );
+
+  @override
+  State<_StripePayoutDialog> createState() => _StripePayoutDialogState();
+}
+
+class _StripePayoutDialogState extends State<_StripePayoutDialog> {
+  late final TextEditingController _amount = TextEditingController(
+    text: widget.stripe['available_amount']?.toString() ?? '0.00',
+  );
+  final TextEditingController _password = TextEditingController();
+  String _method = 'standard';
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(
+          t.isRussian ? 'Вывести средства Stripe' : 'Retirar fondos de Stripe'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _amount,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration:
+                const InputDecoration(labelText: 'Importe', suffixText: 'EUR'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _method,
+            decoration:
+                InputDecoration(labelText: t.isRussian ? 'Способ' : 'Método'),
+            items: [
+              DropdownMenuItem(
+                value: 'standard',
+                child: Text(
+                    t.isRussian ? 'На IBAN из Stripe' : 'Al IBAN de Stripe'),
+              ),
+              if (widget.stripe['can_instant_payout'] == true)
+                DropdownMenuItem(
+                  value: 'instant',
+                  child: Text(t.isRussian ? 'Мгновенно' : 'Instantánea'),
+                ),
+            ],
+            onChanged: (value) => setState(() => _method = value ?? 'standard'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _password,
+            obscureText: true,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: t.isRussian ? 'Пароль Анны' : 'Contraseña de Anna',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            t.isRussian
+                ? 'Это реальная финансовая операция. Повторное нажатие защищено уникальным номером запроса.'
+                : 'Esta es una operación financiera real. La solicitud está protegida contra duplicados.',
+            style: const TextStyle(color: AnnaColors.muted),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(t.tr('Cancelar')),
+        ),
+        FilledButton(
+          onPressed: _password.text.isEmpty
+              ? null
+              : () => Navigator.pop(context, {
+                    'amount': _amount.text.trim().replaceAll(',', '.'),
+                    'method': _method,
+                    'current_password': _password.text,
+                  }),
+          child:
+              Text(t.isRussian ? 'Подтвердить выплату' : 'Confirmar retirada'),
+        ),
+      ],
+    );
   }
 }
 

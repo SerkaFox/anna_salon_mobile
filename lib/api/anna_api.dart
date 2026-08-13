@@ -423,6 +423,12 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> requestStripePayout(Map<String, dynamic> payload) async {
+    return ApiDocument.fromJson(
+      await _post('cashbox/stripe/payout/', payload),
+    );
+  }
+
   Future<ApiDocument> receiptTemplate() async {
     return ApiDocument.fromJson(
       await _get('cashbox/receipt-template/'),
