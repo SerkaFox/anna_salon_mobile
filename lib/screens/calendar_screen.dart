@@ -2303,6 +2303,7 @@ class _CompactBookingCardContent extends StatelessWidget {
                   [
                     booking.zoneName,
                     booking.statusLabel,
+                    booking.paymentStateLabel,
                   ]
                       .whereType<String>()
                       .where((value) => value.isNotEmpty)
@@ -3400,6 +3401,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                 _DetailRow(t.tr('Inicio'), _formatDateTime(booking.startAt)),
                 _DetailRow(t.tr('Fin'), _formatDateTime(booking.endAt)),
                 _DetailRow(t.tr('Estado'), booking.statusLabel),
+                _DetailRow(t.tr('Pago'), booking.paymentStateLabel),
                 _DetailRow(t.tr('Origen'), booking.sourceLabel),
                 _DetailRow(t.tr('Precio'), booking.priceSnapshot),
                 _DetailRow(t.tr('Duracion'), booking.durationSnapshot),
@@ -3830,6 +3832,8 @@ class _BookingView {
     this.zoneName,
     this.status,
     this.statusLabel,
+    this.paymentState,
+    this.paymentStateLabel,
     this.source,
     this.sourceLabel,
     this.notes,
@@ -3853,6 +3857,8 @@ class _BookingView {
   final String? zoneName;
   final String? status;
   final String? statusLabel;
+  final String? paymentState;
+  final String? paymentStateLabel;
   final String? source;
   final String? sourceLabel;
   final String? notes;
@@ -3977,6 +3983,8 @@ class _BookingView {
       status: record.valueAsText('status'),
       source: record.valueAsText('source'),
       statusLabel: record.valueAsText('status_label'),
+      paymentState: record.valueAsText('payment_state'),
+      paymentStateLabel: record.valueAsText('payment_state_label'),
       sourceLabel: record.valueAsText('source_label'),
       notes: record.valueAsText('notes'),
       priceSnapshot: record.valueAsText('price_snapshot'),

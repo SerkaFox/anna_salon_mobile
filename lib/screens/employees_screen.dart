@@ -1599,6 +1599,7 @@ class _EmployeeBookingHistorySection extends StatelessWidget {
                     booking['client_name'],
                     booking['service_name'],
                     booking['status_label'],
+                    booking['payment_state_label'],
                   ]
                       .whereType<Object>()
                       .map((value) => value.toString())
