@@ -39,6 +39,12 @@ class ScreenScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium ??
+        const TextStyle(
+          color: AnnaColors.text,
+          fontSize: 14,
+          height: 1.3,
+        );
     return CustomScrollView(
       slivers: [
         SliverAppBar(
@@ -48,7 +54,12 @@ class ScreenScaffold extends StatelessWidget {
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          sliver: SliverToBoxAdapter(child: child),
+          sliver: SliverToBoxAdapter(
+            child: DefaultTextStyle(
+              style: bodyStyle.copyWith(fontSize: 14, height: 1.3),
+              child: child,
+            ),
+          ),
         ),
       ],
     );

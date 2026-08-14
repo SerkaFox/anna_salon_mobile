@@ -644,7 +644,11 @@ class _StripeBalanceCard extends StatelessWidget {
               t.isRussian
                   ? 'Стандартная выплата поступит на IBAN, настроенный в Stripe.'
                   : 'La retirada estándar llegará al IBAN configurado en Stripe.',
-              style: const TextStyle(color: AnnaColors.muted),
+              style: const TextStyle(
+                color: AnnaColors.muted,
+                fontSize: 14,
+                height: 1.3,
+              ),
             ),
             const SizedBox(height: 12),
             FilledButton.icon(

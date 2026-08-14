@@ -95,6 +95,11 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
     final t = AppLocalizations.of(context);
     return ScreenScaffold(
       title: t.isRussian ? 'Настройки предоплаты' : 'Ajustes de prepago',
+      titleTextStyle: const TextStyle(
+        color: AnnaColors.text,
+        fontSize: 19,
+        fontWeight: FontWeight.w800,
+      ),
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -126,7 +131,11 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
                         t.isRussian
                             ? 'Предоплата считается от итоговой стоимости заказа после скидок.'
                             : 'El prepago se calcula sobre el precio final de la reserva.',
-                        style: const TextStyle(color: AnnaColors.muted),
+                        style: const TextStyle(
+                          color: AnnaColors.muted,
+                          fontSize: 14,
+                          height: 1.3,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
@@ -213,7 +222,12 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
                           padding: const EdgeInsets.only(bottom: 6),
                           child: Text(
                             '${price.toStringAsFixed(0)} EUR → ${_exampleDeposit(price).toStringAsFixed(2)} EUR',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              color: AnnaColors.text,
+                              fontSize: 14,
+                              height: 1.3,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                     ],
