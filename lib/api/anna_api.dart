@@ -423,6 +423,16 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> depositSettings() async {
+    return ApiDocument.fromJson(await _get('deposit-settings/'));
+  }
+
+  Future<ApiDocument> updateDepositSettings(
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(await _patch('deposit-settings/', payload));
+  }
+
   Future<ApiDocument> requestStripePayout(Map<String, dynamic> payload) async {
     return ApiDocument.fromJson(
       await _post('cashbox/stripe/payout/', payload),

@@ -4,6 +4,7 @@ import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'cashbox_screen.dart';
+import 'deposit_settings_screen.dart';
 import 'employees_screen.dart';
 import 'services_screen.dart';
 import 'shared.dart';
@@ -51,6 +52,25 @@ class SalonScreen extends StatelessWidget {
             ),
           ),
           if (canManageStaff) ...[
+            const SizedBox(height: 12),
+            _SalonActionCard(
+              icon: Icons.price_change_outlined,
+              title:
+                  t.isRussian ? 'Настройки предоплаты' : 'Ajustes de prepago',
+              subtitle: t.isRussian
+                  ? 'Процент, минимальная сумма и округление.'
+                  : 'Porcentaje, importe mínimo y redondeo.',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => DecoratedBox(
+                    decoration: annaBackgroundDecoration(context),
+                    child: SafeArea(
+                      child: DepositSettingsScreen(api: api),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             _SalonActionCard(
               icon: Icons.spa_outlined,
