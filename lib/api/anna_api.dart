@@ -23,12 +23,14 @@ class AnnaApi {
     http.Client? client,
     FlutterSecureStorage? storage,
     this.baseUrl = 'https://brimoon.es/api/v1/',
+    this.languageCode = 'es',
   })  : _client = client ?? http.Client(),
         _storage = storage ?? const FlutterSecureStorage();
 
   final http.Client _client;
   final FlutterSecureStorage _storage;
   final String baseUrl;
+  String languageCode;
 
   static const _usernameKey = 'anna_dev_basic_username';
   static const _passwordKey = 'anna_dev_basic_password';
@@ -594,6 +596,7 @@ class AnnaApi {
   Map<String, String> _headers({bool jsonBody = false}) {
     final headers = <String, String>{
       'Accept': 'application/json',
+      'Accept-Language': languageCode == 'ru' ? 'ru' : 'es',
     };
     if (jsonBody) headers['Content-Type'] = 'application/json';
     if (_username != null && _password != null) {

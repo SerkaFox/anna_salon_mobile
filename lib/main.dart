@@ -51,17 +51,29 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
   @override
   void initState() {
     super.initState();
+    _settings.addListener(_syncApiLanguage);
     _restoreSession();
+  }
+
+  void _syncApiLanguage() {
+    _api.languageCode = _settings.languageCode;
   }
 
   Future<void> _restoreSession() async {
     await _settings.load();
+    _syncApiLanguage();
     final restored = await _api.restoreDevCredentials();
     if (!mounted) return;
     setState(() {
       _signedIn = restored;
       _checkingSession = false;
     });
+  }
+
+  @override
+  void dispose() {
+    _settings.removeListener(_syncApiLanguage);
+    super.dispose();
   }
 
   Future<void> _handleSignedIn() async {

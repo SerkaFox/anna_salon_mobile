@@ -374,6 +374,12 @@ bool _isGenericErrorKey(String key) {
     'non_field_errors',
     'error',
     'message',
+    'weekly_shifts',
+    'overrides',
+    'break_start',
+    'break_end',
+    'start_time',
+    'end_time',
   }.contains(key);
 }
 
