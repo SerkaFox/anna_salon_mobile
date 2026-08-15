@@ -282,6 +282,15 @@ class AnnaApi {
     return ApiDocument.fromJson(await _post('bookings/', payload));
   }
 
+  Future<ApiDocument> updateBookingPrepayment(
+    Object bookingId,
+    bool required,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('bookings/$bookingId/prepayment/', {'required': required}),
+    );
+  }
+
   Future<ApiCollection> bookings({DateTime? date}) async {
     final query = date == null
         ? null

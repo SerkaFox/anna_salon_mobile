@@ -87,6 +87,7 @@ class _BookingScreenState extends State<BookingScreen> {
   String _source = 'manual';
   String? _error;
   bool _creating = false;
+  bool _requiresPrepayment = true;
   XFile? _beforePhoto;
   XFile? _afterPhoto;
 
@@ -163,6 +164,10 @@ class _BookingScreenState extends State<BookingScreen> {
       });
       _createdClientRecords.insert(0, created);
       _clientId = id;
+      _requiresPrepayment = !_BookingReferences._boolValue(
+        created,
+        const ['prepayment_exempt'],
+      );
       _references = _loadReferences();
       _error = null;
     });
@@ -262,6 +267,7 @@ class _BookingScreenState extends State<BookingScreen> {
       'employee': _coerceId(_employeeId),
       'start_at': _startAtText(),
       'source': _source,
+      'prepayment_required': _requiresPrepayment,
     };
     if (_rewardRuleId != null) {
       payload['reward_rule'] = _coerceId(_rewardRuleId);
@@ -465,6 +471,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 serviceId: _serviceId,
                 employeeId: _employeeId,
                 source: _source,
+                requiresPrepayment: _requiresPrepayment,
                 rewardRuleId: _rewardRuleId,
                 clientRewardsFuture: _clientRewardsFuture,
                 slotsFuture: _slotsFuture,
@@ -474,6 +481,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 creating: _creating,
                 onClientChanged: (value) => setState(() {
                   _clientId = value;
+                  final client = refs.optionById(refs.clientOptions, value);
+                  _requiresPrepayment = !(client?.prepaymentExempt ?? false);
                   _rewardRuleId = null;
                   _clientRewardsClientId = null;
                 }),
@@ -506,6 +515,9 @@ class _BookingScreenState extends State<BookingScreen> {
                 onSourceChanged: (value) => setState(() {
                   _source = value ?? 'manual';
                 }),
+                onRequiresPrepaymentChanged: (value) => setState(() {
+                  _requiresPrepayment = value;
+                }),
                 onRewardChanged: (value) => setState(() {
                   _rewardRuleId = value;
                 }),
@@ -537,6 +549,7 @@ class _BookingFormCard extends StatelessWidget {
     required this.serviceId,
     required this.employeeId,
     required this.source,
+    required this.requiresPrepayment,
     required this.rewardRuleId,
     required this.clientRewardsFuture,
     required this.slotsFuture,
@@ -547,6 +560,7 @@ class _BookingFormCard extends StatelessWidget {
     required this.onServiceChanged,
     required this.onEmployeeChanged,
     required this.onSourceChanged,
+    required this.onRequiresPrepaymentChanged,
     required this.onRewardChanged,
     required this.onCreateClient,
     required this.onPickDate,
@@ -568,6 +582,7 @@ class _BookingFormCard extends StatelessWidget {
   final String? serviceId;
   final String? employeeId;
   final String source;
+  final bool requiresPrepayment;
   final String? rewardRuleId;
   final Future<ApiCollection>? clientRewardsFuture;
   final Future<_AvailabilitySlotsData>? slotsFuture;
@@ -579,6 +594,7 @@ class _BookingFormCard extends StatelessWidget {
   final ValueChanged<String?> onServiceChanged;
   final ValueChanged<String?> onEmployeeChanged;
   final ValueChanged<String?> onSourceChanged;
+  final ValueChanged<bool> onRequiresPrepaymentChanged;
   final ValueChanged<String?> onRewardChanged;
   final VoidCallback onCreateClient;
   final VoidCallback onPickDate;
@@ -644,6 +660,19 @@ class _BookingFormCard extends StatelessWidget {
             _SourceDropdownField(
               value: source,
               onChanged: onSourceChanged,
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile.adaptive(
+              value: requiresPrepayment,
+              onChanged: creating ? null : onRequiresPrepaymentChanged,
+              contentPadding: EdgeInsets.zero,
+              title: Text(t.tr('Requerir prepago')),
+              subtitle: Text(
+                requiresPrepayment
+                    ? t.tr('Se enviara un enlace de Stripe. Plazo: 30 minutos.')
+                    : t.tr(
+                        'Sin enlace · la cita queda confirmada y se paga en el salon.'),
+              ),
             ),
             const SizedBox(height: 14),
             _RewardSelector(
@@ -1554,6 +1583,7 @@ class _BookingReferences {
             allowedZoneIds: _allowedZoneIds(record),
             serviceIds: _serviceIds(record),
             employeeIds: _employeeIds(record),
+            prepaymentExempt: _boolValue(record, const ['prepayment_exempt']),
           );
         })
         .whereType<_BookingOption>()
@@ -1723,6 +1753,7 @@ class _BookingOption {
     required this.allowedZoneIds,
     required this.serviceIds,
     required this.employeeIds,
+    required this.prepaymentExempt,
   });
 
   final String id;
@@ -1735,6 +1766,7 @@ class _BookingOption {
   final Set<String> allowedZoneIds;
   final Set<String> serviceIds;
   final Set<String> employeeIds;
+  final bool prepaymentExempt;
 }
 
 String _apiErrorText(AnnaApiException error) {

@@ -3284,6 +3284,17 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
     });
   }
 
+  Future<void> _updatePrepayment(bool required) async {
+    final id = booking.id;
+    if (id == null) {
+      setState(() => _error = 'No se encontro el identificador de la reserva.');
+      return;
+    }
+    await _runAction(() async {
+      await widget.api.updateBookingPrepayment(id, required);
+    });
+  }
+
   Future<void> _openCheckoutDocument() async {
     final id = booking.id;
     if (id == null) {
@@ -3476,6 +3487,9 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                 _DetailRow(t.tr('Fin'), _formatDateTime(booking.endAt)),
                 _DetailRow(t.tr('Estado'), booking.statusLabel),
                 _DetailRow(t.tr('Pago'), booking.paymentStateLabel),
+                _DetailRow(t.tr('Prepago'), booking.prepaymentStateLabel),
+                _DetailRow(t.tr('Limite de prepago'),
+                    _formatDateTime(booking.prepaymentDeadlineAt)),
                 _DetailRow(t.tr('Origen'), booking.sourceLabel),
                 _DetailRow(t.tr('Precio'), booking.priceSnapshot),
                 _DetailRow(t.tr('Duracion'), booking.durationSnapshot),
@@ -3517,6 +3531,24 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                       : () => _updateStatus('cancelled'),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: booking.prepaymentState == 'awaiting'
+                  ? OutlinedButton.icon(
+                      onPressed:
+                          _working ? null : () => _updatePrepayment(false),
+                      icon: const Icon(Icons.money_off_outlined),
+                      label:
+                          Text(t.tr('No requerir prepago · pago en el salon')),
+                    )
+                  : FilledButton.tonalIcon(
+                      onPressed:
+                          _working ? null : () => _updatePrepayment(true),
+                      icon: const Icon(Icons.send_outlined),
+                      label: Text(t.tr('Enviar enlace de prepago')),
+                    ),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -3974,6 +4006,9 @@ class _BookingView {
     this.statusLabel,
     this.paymentState,
     this.paymentStateLabel,
+    this.prepaymentState,
+    this.prepaymentStateLabel,
+    this.prepaymentDeadlineAt,
     this.source,
     this.sourceLabel,
     this.notes,
@@ -3999,6 +4034,9 @@ class _BookingView {
   final String? statusLabel;
   final String? paymentState;
   final String? paymentStateLabel;
+  final String? prepaymentState;
+  final String? prepaymentStateLabel;
+  final String? prepaymentDeadlineAt;
   final String? source;
   final String? sourceLabel;
   final String? notes;
@@ -4125,6 +4163,9 @@ class _BookingView {
       statusLabel: record.valueAsText('status_label'),
       paymentState: record.valueAsText('payment_state'),
       paymentStateLabel: record.valueAsText('payment_state_label'),
+      prepaymentState: record.valueAsText('prepayment_state'),
+      prepaymentStateLabel: record.valueAsText('prepayment_state_label'),
+      prepaymentDeadlineAt: record.valueAsText('prepayment_deadline_at'),
       sourceLabel: record.valueAsText('source_label'),
       notes: record.valueAsText('notes'),
       priceSnapshot: record.valueAsText('price_snapshot'),

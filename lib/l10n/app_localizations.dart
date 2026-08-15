@@ -215,6 +215,20 @@ class AppLocalizations {
         'Выберите клиента, сотрудника, услугу и время.',
     'Cliente': 'Клиент',
     'Crear cliente': 'Создать клиента',
+    'Sin prepago · pago en el salon':
+        'Предоплата не требуется · оплата на месте',
+    'Usar para clientes que no pueden pagar mediante el enlace.':
+        'Для клиентов, которые не могут оплатить по ссылке.',
+    'Requerir prepago': 'Требовать предоплату',
+    'Se enviara un enlace de Stripe. Plazo: 30 minutos.':
+        'Ссылка Stripe отправится автоматически. Срок оплаты — 30 минут.',
+    'Sin enlace · la cita queda confirmada y se paga en el salon.':
+        'Без ссылки · запись сразу подтверждена, оплата в салоне.',
+    'Prepago': 'Предоплата',
+    'Limite de prepago': 'Оплатить до',
+    'No requerir prepago · pago en el salon':
+        'Не требовать предоплату · оплата на месте',
+    'Enviar enlace de prepago': 'Отправить ссылку на предоплату',
     'Nombre, apellido, telefono, email o login':
         'Имя, фамилия, телефон, email или логин',
     'Este empleado no tiene servicios disponibles':

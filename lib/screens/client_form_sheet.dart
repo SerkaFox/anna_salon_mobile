@@ -58,6 +58,8 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
       TextEditingController(text: widget.client?.valueAsText('username') ?? '');
   final _passwordController = TextEditingController();
   late bool _isBlacklisted = _boolValue(widget.client?.data['is_blacklisted']);
+  late bool _prepaymentExempt =
+      _boolValue(widget.client?.data['prepayment_exempt']);
   bool _saving = false;
   String? _error;
 
@@ -92,6 +94,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
         'birth_date': _emptyToNull(_birthDateController),
         'notes': _notesController.text.trim(),
         'is_blacklisted': _isBlacklisted,
+        'prepayment_exempt': _prepaymentExempt,
       };
       var username = _usernameController.text.trim();
       var password = _passwordController.text;
@@ -372,6 +375,19 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                       ? 'Клиент появится в фильтре «Чёрный список».'
                       : 'El cliente aparecera en el filtro «Lista negra».',
                 ),
+              ),
+              CheckboxListTile(
+                value: _prepaymentExempt,
+                onChanged: _saving
+                    ? null
+                    : (value) =>
+                        setState(() => _prepaymentExempt = value ?? false),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(t.tr('Sin prepago · pago en el salon')),
+                subtitle: Text(t.tr(
+                  'Usar para clientes que no pueden pagar mediante el enlace.',
+                )),
               ),
               const SizedBox(height: 14),
               Text(t.tr('Acceso cliente'),
