@@ -11,11 +11,13 @@ class ServicesScreen extends StatefulWidget {
   const ServicesScreen({
     required this.api,
     required this.canManageStaff,
+    this.initialServiceId,
     super.key,
   });
 
   final AnnaApi api;
   final bool canManageStaff;
+  final String? initialServiceId;
 
   @override
   State<ServicesScreen> createState() => _ServicesScreenState();
@@ -23,6 +25,32 @@ class ServicesScreen extends StatefulWidget {
 
 class _ServicesScreenState extends State<ServicesScreen> {
   late Future<_ServiceReferences> _future = _load();
+  bool _initialServiceOpened = false;
+
+  void _openInitialService(_ServiceReferences refs) {
+    final id = widget.initialServiceId;
+    if (_initialServiceOpened || id == null || !widget.canManageStaff) return;
+    _initialServiceOpened = true;
+    ApiRecord? selected;
+    for (final service in refs.services.items) {
+      if (service.valueAsText('id') == id || service.valueAsText('pk') == id) {
+        selected = service;
+        break;
+      }
+    }
+    if (selected == null) return;
+    final service = selected;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final changed = await _ServiceFormSheet.show(
+        context,
+        api: widget.api,
+        refs: refs,
+        service: service,
+      );
+      if (changed == true && mounted) _reload();
+    });
+  }
 
   Future<_ServiceReferences> _load() async {
     final result = await Future.wait([
@@ -57,6 +85,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
             return ErrorState(error: snapshot.error!, onRetry: _reload);
           }
           final refs = snapshot.data!;
+          _openInitialService(refs);
           return DefaultTabController(
             length: 3,
             child: Column(

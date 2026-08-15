@@ -809,6 +809,28 @@ class _ClientDetailSheet extends StatelessWidget {
   }
 }
 
+Future<void> showClientDetailSheet(
+  BuildContext context, {
+  required AnnaApi api,
+  required String clientId,
+  String? clientName,
+  bool canManagePhotos = false,
+  VoidCallback? onChanged,
+}) {
+  return _ClientDetailSheet.show(
+    context,
+    api: api,
+    client: _ClientView(
+      id: clientId,
+      name: clientName ?? 'Cliente',
+      isActive: true,
+      referralRewardsUsed: '0',
+    ),
+    canManagePhotos: canManagePhotos,
+    onChanged: onChanged ?? () {},
+  );
+}
+
 class _StatsGrid extends StatelessWidget {
   const _StatsGrid({required this.stats});
 

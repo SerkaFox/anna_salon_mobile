@@ -161,6 +161,8 @@ class _AppShellBody extends StatelessWidget {
     final screens = [
       CalendarScreen(
         api: api,
+        canManageStaff: canManageStaff,
+        currentEmployeeId: employeeId,
         activeDate: calendarDate,
         highlightBookingId: highlightBookingId,
         highlightToken: highlightToken,

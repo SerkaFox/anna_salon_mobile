@@ -11,6 +11,9 @@ import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'cashbox_screen.dart';
+import 'clients_screen.dart';
+import 'employees_screen.dart';
+import 'services_screen.dart';
 import 'shared.dart';
 
 const _workStartHour = 9;
@@ -28,6 +31,8 @@ enum _CalendarMode { days, team }
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({
     required this.api,
+    this.canManageStaff = false,
+    this.currentEmployeeId,
     this.activeDate,
     this.highlightBookingId,
     this.highlightToken = 0,
@@ -36,6 +41,8 @@ class CalendarScreen extends StatefulWidget {
   });
 
   final AnnaApi api;
+  final bool canManageStaff;
+  final String? currentEmployeeId;
   final DateTime? activeDate;
   final String? highlightBookingId;
   final int highlightToken;
@@ -399,6 +406,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _BookingActionsSheet.show(
       context,
       api: widget.api,
+      canManageStaff: widget.canManageStaff,
+      currentEmployeeId: widget.currentEmployeeId,
       booking: booking,
       onChanged: _refresh,
       onEdit: () => _BookingEditSheet.show(
@@ -3136,12 +3145,16 @@ const _sourceOptions = [
 class _BookingActionsSheet extends StatefulWidget {
   const _BookingActionsSheet({
     required this.api,
+    required this.canManageStaff,
+    required this.currentEmployeeId,
     required this.booking,
     required this.onChanged,
     required this.onEdit,
   });
 
   final AnnaApi api;
+  final bool canManageStaff;
+  final String? currentEmployeeId;
   final _BookingView booking;
   final Future<void> Function() onChanged;
   final VoidCallback onEdit;
@@ -3149,6 +3162,8 @@ class _BookingActionsSheet extends StatefulWidget {
   static void show(
     BuildContext context, {
     required AnnaApi api,
+    required bool canManageStaff,
+    required String? currentEmployeeId,
     required _BookingView booking,
     required Future<void> Function() onChanged,
     required VoidCallback onEdit,
@@ -3163,6 +3178,8 @@ class _BookingActionsSheet extends StatefulWidget {
       builder: (context) {
         return _BookingActionsSheet(
           api: api,
+          canManageStaff: canManageStaff,
+          currentEmployeeId: currentEmployeeId,
           booking: booking,
           onChanged: onChanged,
           onEdit: onEdit,
@@ -3184,6 +3201,59 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
   bool _showReschedule = false;
   bool _working = false;
   String? _error;
+
+  Future<void> _openScreen(Widget screen) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DecoratedBox(
+          decoration: annaBackgroundDecoration(context),
+          child: SafeArea(child: screen),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openClient() async {
+    final id = booking.clientId;
+    if (id == null) return;
+    await showClientDetailSheet(
+      context,
+      api: widget.api,
+      clientId: id,
+      clientName: booking.clientName,
+      canManagePhotos: widget.canManageStaff,
+      onChanged: () => widget.onChanged(),
+    );
+  }
+
+  Future<void> _openService() async {
+    final id = booking.serviceId;
+    if (id == null) return;
+    await _openScreen(
+      ServicesScreen(
+        api: widget.api,
+        canManageStaff: widget.canManageStaff,
+        initialServiceId: id,
+      ),
+    );
+  }
+
+  Future<void> _openEmployee() async {
+    final id = booking.employeeId;
+    if (id == null) return;
+    await showEmployeeDetailSheet(
+      context,
+      api: widget.api,
+      employeeId: id,
+      canManageStaff: widget.canManageStaff,
+      currentEmployeeId: widget.currentEmployeeId,
+      onChanged: () => widget.onChanged(),
+    );
+  }
+
+  Future<void> _openCashbox() {
+    return _openScreen(CashboxScreen(api: widget.api));
+  }
 
   Future<void> _runAction(Future<void> Function() action) async {
     setState(() {
@@ -3361,6 +3431,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final currentStatus = (booking.status ?? '').trim().toLowerCase();
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -3394,9 +3465,12 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
             const SizedBox(height: 14),
             _DetailGrid(
               rows: [
-                _DetailRow(t.tr('Cliente'), booking.clientName),
-                _DetailRow(t.tr('Servicio'), booking.serviceName),
-                _DetailRow(t.tr('Empleado'), booking.employeeName),
+                _DetailRow(t.tr('Cliente'), booking.clientName,
+                    onTap: booking.clientId == null ? null : _openClient),
+                _DetailRow(t.tr('Servicio'), booking.serviceName,
+                    onTap: booking.serviceId == null ? null : _openService),
+                _DetailRow(t.tr('Empleado'), booking.employeeName,
+                    onTap: booking.employeeId == null ? null : _openEmployee),
                 _DetailRow(t.tr('Zona'), booking.zoneName),
                 _DetailRow(t.tr('Inicio'), _formatDateTime(booking.startAt)),
                 _DetailRow(t.tr('Fin'), _formatDateTime(booking.endAt)),
@@ -3420,18 +3494,27 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                 _StatusButton(
                   label: AppLocalizations.of(context).tr('Confirmar'),
                   icon: Icons.check_circle_outline,
-                  onPressed: _working ? null : () => _updateStatus('confirmed'),
+                  selected: currentStatus == 'confirmed',
+                  onPressed: _working || currentStatus == 'confirmed'
+                      ? null
+                      : () => _updateStatus('confirmed'),
                 ),
                 _StatusButton(
                   label: AppLocalizations.of(context).tr('Pendiente'),
                   icon: Icons.hourglass_bottom,
-                  onPressed: _working ? null : () => _updateStatus('pending'),
+                  selected: currentStatus == 'pending',
+                  onPressed: _working || currentStatus == 'pending'
+                      ? null
+                      : () => _updateStatus('pending'),
                 ),
                 _StatusButton(
                   label: AppLocalizations.of(context).tr('Cancelar'),
                   icon: Icons.cancel_outlined,
                   danger: true,
-                  onPressed: _working ? null : () => _updateStatus('cancelled'),
+                  selected: currentStatus == 'cancelled',
+                  onPressed: _working || currentStatus == 'cancelled'
+                      ? null
+                      : () => _updateStatus('cancelled'),
                 ),
               ],
             ),
@@ -3441,8 +3524,13 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
               runSpacing: 10,
               children: [
                 FilledButton.tonalIcon(
-                  onPressed: _working ? null : _openCheckoutDocument,
+                  onPressed: _working ? null : _openCashbox,
                   icon: const Icon(Icons.point_of_sale_outlined),
+                  label: Text(t.tr('Caja')),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: _working ? null : _openCheckoutDocument,
+                  icon: const Icon(Icons.receipt_long_outlined),
                   label: Text(t.tr('Cobrar')),
                 ),
                 FilledButton.icon(
@@ -3530,10 +3618,11 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
 }
 
 class _DetailRow {
-  const _DetailRow(this.label, this.value);
+  const _DetailRow(this.label, this.value, {this.onTap});
 
   final String label;
   final String? value;
+  final VoidCallback? onTap;
 }
 
 class _DetailGrid extends StatelessWidget {
@@ -3571,16 +3660,49 @@ class _DetailGrid extends StatelessWidget {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Text(
-                    row.value!,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
+                Expanded(child: _DetailValue(row: row)),
               ],
             ),
           ),
       ],
+    );
+  }
+}
+
+class _DetailValue extends StatelessWidget {
+  const _DetailValue({required this.row});
+
+  final _DetailRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    if (row.onTap == null) {
+      return Text(row.value!,
+          style: const TextStyle(fontWeight: FontWeight.w700));
+    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: row.onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                row.value!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.open_in_new,
+                size: 16, color: Theme.of(context).colorScheme.primary),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -3591,12 +3713,14 @@ class _StatusButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.danger = false,
+    this.selected = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
   final bool danger;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -3605,9 +3729,25 @@ class _StatusButton extends StatelessWidget {
       children: [
         Icon(icon, size: 18),
         const SizedBox(width: 8),
-        Text(label),
+        Text(
+          selected
+              ? '$label · ${AppLocalizations.of(context).isRussian ? 'Текущий' : 'Actual'}'
+              : label,
+        ),
       ],
     );
+    if (selected) {
+      return OutlinedButton(
+        onPressed: null,
+        style: OutlinedButton.styleFrom(
+          disabledForegroundColor: AnnaColors.text,
+          disabledBackgroundColor:
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+          side: BorderSide(color: Theme.of(context).colorScheme.primary),
+        ),
+        child: child,
+      );
+    }
     if (danger) {
       return OutlinedButton(
         onPressed: onPressed,
