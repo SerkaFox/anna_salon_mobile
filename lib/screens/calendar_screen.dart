@@ -569,7 +569,7 @@ class _CalendarToolbar extends StatelessWidget {
                   mode == _CalendarMode.days
                       ? (t.isRussian ? 'Сотр.' : 'Empl')
                       : (t.isRussian ? 'Дни' : 'Day'),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  style: TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
               Expanded(
@@ -592,7 +592,7 @@ class _CalendarToolbar extends StatelessWidget {
               IconButton(
                 tooltip: t.refresh,
                 onPressed: onRefresh,
-                icon: const Icon(Icons.refresh),
+                icon: Icon(Icons.refresh),
               ),
             ],
           ),
@@ -602,12 +602,12 @@ class _CalendarToolbar extends StatelessWidget {
               IconButton(
                 tooltip: t.tr('Anterior'),
                 onPressed: onPrevious,
-                icon: const Icon(Icons.chevron_left),
+                icon: Icon(Icons.chevron_left),
               ),
               IconButton(
                 tooltip: t.tr('Siguiente'),
                 onPressed: onNext,
-                icon: const Icon(Icons.chevron_right),
+                icon: Icon(Icons.chevron_right),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -651,7 +651,7 @@ class _EmployeeDropdownButton extends StatelessWidget {
       builder: (context, controller, child) {
         return OutlinedButton.icon(
           onPressed: controller.isOpen ? controller.close : controller.open,
-          icon: const Icon(Icons.groups_outlined),
+          icon: Icon(Icons.groups_outlined),
           label: Text(allSelected ? t.tr('Todos') : '$count'),
         );
       },
@@ -887,7 +887,7 @@ class _GridHeader extends StatelessWidget {
             column.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AnnaColors.text,
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -897,7 +897,7 @@ class _GridHeader extends StatelessWidget {
             column.subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AnnaColors.muted, fontSize: 10),
+            style: TextStyle(color: AnnaColors.muted, fontSize: 10),
           ),
         ],
       ),
@@ -926,7 +926,7 @@ class _TodayHeader extends StatelessWidget {
           t.tr('Hoy'),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -953,7 +953,7 @@ class _TimeRail extends StatelessWidget {
               right: 5,
               child: Text(
                 '${hour.toString().padLeft(2, '0')}:00',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AnnaColors.muted,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -1056,8 +1056,7 @@ class _GridColumnState extends State<_GridColumn> {
                 Center(
                   child: Text(
                     AppLocalizations.of(context).tr('Sin reservas'),
-                    style:
-                        const TextStyle(color: AnnaColors.muted, fontSize: 12),
+                    style: TextStyle(color: AnnaColors.muted, fontSize: 12),
                   ),
                 ),
               if (_previewStartAt != null && _previewBooking != null)
@@ -1158,7 +1157,7 @@ class _DropPreview extends StatelessWidget {
           child: Center(
             child: Text(
               DateFormat('HH:mm').format(startAt),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AnnaColors.text,
                 fontWeight: FontWeight.w900,
               ),
@@ -1308,7 +1307,7 @@ class _PositionedTimeBlock extends StatelessWidget {
                 block.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
@@ -1351,7 +1350,7 @@ class _PositionedScheduleBlock extends StatelessWidget {
                 : '${block.startTime} - ${block.endTime}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AnnaColors.muted,
               fontSize: 9,
               fontWeight: FontWeight.w800,
@@ -1411,7 +1410,7 @@ class _SlotActionSheet extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               DateFormat('d MMM yyyy HH:mm', localeCode).format(draft.startAt),
-              style: const TextStyle(color: AnnaColors.muted),
+              style: TextStyle(color: AnnaColors.muted),
             ),
             const SizedBox(height: 16),
             _SheetActionTile(
@@ -1454,7 +1453,7 @@ class _SheetActionTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(AnnaRadii.md),
       child: ListTile(
         leading: Icon(icon),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w900)),
         subtitle: Text(subtitle),
         onTap: onTap,
         shape: RoundedRectangleBorder(
@@ -1546,7 +1545,7 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
                           onChanged: onChanged,
                         );
                       },
-                      icon: const Icon(Icons.edit_outlined),
+                      icon: Icon(Icons.edit_outlined),
                       label: Text(t.tr('Editar')),
                     ),
                   ),
@@ -1565,7 +1564,7 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
                           onChanged: onChanged,
                         );
                       },
-                      icon: const Icon(Icons.delete_outline),
+                      icon: Icon(Icons.delete_outline),
                       label: Text(t.tr('Borrar')),
                     ),
                   ),
@@ -1664,7 +1663,7 @@ class _DeleteTimeBlockSheetState extends State<_DeleteTimeBlockSheet> {
             const SizedBox(height: 8),
             Text(
               widget.block.label,
-              style: const TextStyle(color: AnnaColors.muted),
+              style: TextStyle(color: AnnaColors.muted),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
@@ -1992,7 +1991,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     dropdownColor: AnnaColors.accentDeep,
                     decoration: InputDecoration(
                       labelText: t.tr('Empleado'),
-                      prefixIcon: const Icon(Icons.badge_outlined),
+                      prefixIcon: Icon(Icons.badge_outlined),
                     ),
                     items: [
                       for (final employee in employees)
@@ -2044,7 +2043,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     dropdownColor: AnnaColors.accentDeep,
                     decoration: InputDecoration(
                       labelText: t.tr('Motivo'),
-                      prefixIcon: const Icon(Icons.notes_outlined),
+                      prefixIcon: Icon(Icons.notes_outlined),
                     ),
                     items: [
                       for (final reason in _pauseReasons)
@@ -2068,7 +2067,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                       dropdownColor: AnnaColors.accentDeep,
                       decoration: InputDecoration(
                         labelText: t.tr('Recurrencia'),
-                        prefixIcon: const Icon(Icons.repeat),
+                        prefixIcon: Icon(Icons.repeat),
                       ),
                       items: [
                         for (final value in _BlockRecurrence.values)
@@ -2109,9 +2108,8 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: _saving ? null : _save,
-                      icon: _saving
-                          ? const _ButtonSpinner()
-                          : const Icon(Icons.check),
+                      icon:
+                          _saving ? const _ButtonSpinner() : Icon(Icons.check),
                       label: Text(
                           _isEditing ? t.tr('Guardar') : t.tr('Crear bloqueo')),
                     ),
@@ -2185,7 +2183,7 @@ class _BookingCardContent extends StatelessWidget {
                 Expanded(
                   child: Text(
                     booking.timeRange ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF1E5B3C),
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
@@ -2201,7 +2199,7 @@ class _BookingCardContent extends StatelessWidget {
               booking.clientName ?? AppLocalizations.of(context).booking,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AnnaColors.bookingText,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
@@ -2212,7 +2210,7 @@ class _BookingCardContent extends StatelessWidget {
                 booking.serviceName!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFF2F5C45),
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -2230,7 +2228,7 @@ class _BookingCardContent extends StatelessWidget {
                   .join(' · '),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFF567865),
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -2400,7 +2398,7 @@ class _LegacyCompactBookingCardContent extends StatelessWidget {
             text,
             maxLines: maxLines,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               color: AnnaColors.bookingText,
               fontSize: 10.5,
               height: 1.1,
@@ -2431,7 +2429,7 @@ class _SmallStatusDot extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           color: Color(0xFF17603A),
           fontSize: 9,
           fontWeight: FontWeight.w900,
@@ -2791,7 +2789,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
+                        icon: Icon(Icons.close),
                       ),
                     ],
                   ),
@@ -2879,7 +2877,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                     maxLines: 5,
                     decoration: InputDecoration(
                       labelText: t.tr('Notas'),
-                      prefixIcon: const Icon(Icons.notes_outlined),
+                      prefixIcon: Icon(Icons.notes_outlined),
                       alignLabelWithHint: true,
                     ),
                   ),
@@ -2897,7 +2895,7 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                               dimension: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.save_outlined),
+                          : Icon(Icons.save_outlined),
                       label: Text(t.tr('Guardar cambios')),
                     ),
                   ),
@@ -3471,7 +3469,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                   .whereType<String>()
                   .where((value) => value.isNotEmpty)
                   .join(' · '),
-              style: const TextStyle(color: AnnaColors.muted),
+              style: TextStyle(color: AnnaColors.muted),
             ),
             const SizedBox(height: 14),
             _DetailGrid(
@@ -3539,14 +3537,14 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                   ? OutlinedButton.icon(
                       onPressed:
                           _working ? null : () => _updatePrepayment(false),
-                      icon: const Icon(Icons.money_off_outlined),
+                      icon: Icon(Icons.money_off_outlined),
                       label:
                           Text(t.tr('No requerir prepago · pago en el salon')),
                     )
                   : FilledButton.tonalIcon(
                       onPressed:
                           _working ? null : () => _updatePrepayment(true),
-                      icon: const Icon(Icons.send_outlined),
+                      icon: Icon(Icons.send_outlined),
                       label: Text(t.tr('Enviar enlace de prepago')),
                     ),
             ),
@@ -3557,12 +3555,12 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
               children: [
                 FilledButton.tonalIcon(
                   onPressed: _working ? null : _openCashbox,
-                  icon: const Icon(Icons.point_of_sale_outlined),
+                  icon: Icon(Icons.point_of_sale_outlined),
                   label: Text(t.tr('Caja')),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: _working ? null : _openCheckoutDocument,
-                  icon: const Icon(Icons.receipt_long_outlined),
+                  icon: Icon(Icons.receipt_long_outlined),
                   label: Text(t.tr('Cobrar')),
                 ),
                 FilledButton.icon(
@@ -3571,7 +3569,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                       : () => setState(
                             () => _showReschedule = !_showReschedule,
                           ),
-                  icon: const Icon(Icons.schedule),
+                  icon: Icon(Icons.schedule),
                   label: Text(t.tr('Reprogramar')),
                 ),
                 OutlinedButton.icon(
@@ -3581,7 +3579,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                           Navigator.of(context).pop();
                           widget.onEdit();
                         },
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: Icon(Icons.edit_outlined),
                   label: Text(t.tr('Editar')),
                 ),
               ],
@@ -3630,7 +3628,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Icon(Icons.check),
+                            : Icon(Icons.check),
                         label: Text(t.tr('Comprobar y reprogramar')),
                       ),
                     ),
@@ -3670,7 +3668,7 @@ class _DetailGrid extends StatelessWidget {
     if (visibleRows.isEmpty) {
       return Text(
         AppLocalizations.of(context).tr('Sin datos adicionales.'),
-        style: const TextStyle(color: AnnaColors.muted),
+        style: TextStyle(color: AnnaColors.muted),
       );
     }
 
@@ -3686,7 +3684,7 @@ class _DetailGrid extends StatelessWidget {
                   width: 92,
                   child: Text(
                     row.label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AnnaColors.muted,
                       fontWeight: FontWeight.w800,
                     ),
@@ -3709,8 +3707,7 @@ class _DetailValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (row.onTap == null) {
-      return Text(row.value!,
-          style: const TextStyle(fontWeight: FontWeight.w700));
+      return Text(row.value!, style: TextStyle(fontWeight: FontWeight.w700));
     }
     return InkWell(
       borderRadius: BorderRadius.circular(8),

@@ -82,6 +82,12 @@ class AnnaApi {
     }
   }
 
+  Future<ApiDocument> recoverPassword(String identifier) async {
+    return ApiDocument.fromJson(
+      await _post('password-recovery/', {'identifier': identifier}),
+    );
+  }
+
   Future<void> clearDevCredentials() async {
     _username = null;
     _password = null;

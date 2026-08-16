@@ -200,7 +200,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
               const SizedBox(height: 10),
               SelectableText(
                 _accessMessage(username: username, password: password),
-                style: const TextStyle(color: AnnaColors.text, height: 1.35),
+                style: TextStyle(color: AnnaColors.text, height: 1.35),
               ),
               const SizedBox(height: 16),
               Row(
@@ -208,7 +208,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.check),
+                      icon: Icon(Icons.check),
                       label: Text(t.tr('Listo')),
                     ),
                   ),
@@ -220,7 +220,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                         username: username,
                         password: password,
                       ),
-                      icon: const Icon(Icons.chat_outlined),
+                      icon: Icon(Icons.chat_outlined),
                       label: const Text('WhatsApp'),
                     ),
                   ),
@@ -292,7 +292,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                   ),
                   IconButton(
                     onPressed: _saving ? null : () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close),
                   ),
                 ],
               ),
@@ -302,7 +302,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: t.tr('Nombre'),
-                  prefixIcon: const Icon(Icons.person_outline),
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
                 validator: (value) => value == null || value.trim().isEmpty
                     ? t.tr('Introduce el nombre')
@@ -314,7 +314,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: t.tr('Apellidos'),
-                  prefixIcon: const Icon(Icons.person_outline),
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
               ),
               const SizedBox(height: 12),
@@ -324,7 +324,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: t.tr('Telefono'),
-                  prefixIcon: const Icon(Icons.phone_outlined),
+                  prefixIcon: Icon(Icons.phone_outlined),
                 ),
               ),
               const SizedBox(height: 12),
@@ -344,7 +344,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 decoration: InputDecoration(
                   labelText: t.tr('Fecha de nacimiento'),
                   hintText: 'YYYY-MM-DD',
-                  prefixIcon: const Icon(Icons.cake_outlined),
+                  prefixIcon: Icon(Icons.cake_outlined),
                 ),
               ),
               const SizedBox(height: 12),
@@ -355,7 +355,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 decoration: InputDecoration(
                   labelText: t.tr('Notas'),
                   alignLabelWithHint: true,
-                  prefixIcon: const Icon(Icons.notes_outlined),
+                  prefixIcon: Icon(Icons.notes_outlined),
                 ),
               ),
               const SizedBox(height: 14),
@@ -397,7 +397,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
                   onPressed: _saving ? null : _generateClientAccess,
-                  icon: const Icon(Icons.auto_awesome_outlined),
+                  icon: Icon(Icons.auto_awesome_outlined),
                   label: Text(t.tr('Generar acceso')),
                 ),
               ),
@@ -408,7 +408,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: t.tr('Usuario para cliente'),
-                  prefixIcon: const Icon(Icons.account_circle_outlined),
+                  prefixIcon: Icon(Icons.account_circle_outlined),
                 ),
               ),
               if (_hasExistingClientAccess) ...[
@@ -417,7 +417,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(
                     onPressed: _copyUsername,
-                    icon: const Icon(Icons.copy_outlined),
+                    icon: Icon(Icons.copy_outlined),
                     label: Text(t.tr('Copiar usuario')),
                   ),
                 ),
@@ -430,7 +430,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                   labelText: widget.client == null
                       ? t.tr('Contrasena inicial')
                       : t.newPassword,
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  prefixIcon: Icon(Icons.lock_outline),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return null;

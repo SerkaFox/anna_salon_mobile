@@ -392,12 +392,12 @@ class _BookingScreenState extends State<BookingScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: Icon(Icons.photo_camera_outlined),
               title: Text(t.tr('Camara')),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: Icon(Icons.photo_library_outlined),
               title: Text(t.tr('Galeria')),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
@@ -442,8 +442,8 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     return ScreenScaffold(
       title: AppLocalizations.of(context).tr('Nueva reserva'),
-      action: IconButton(
-          onPressed: _reloadReferences, icon: const Icon(Icons.refresh)),
+      action:
+          IconButton(onPressed: _reloadReferences, icon: Icon(Icons.refresh)),
       child: FutureBuilder<_BookingReferences>(
         future: _references,
         builder: (context, snapshot) {
@@ -636,7 +636,7 @@ class _BookingFormCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               t.tr('Selecciona cliente, empleado, servicio y horario.'),
-              style: const TextStyle(color: AnnaColors.muted),
+              style: TextStyle(color: AnnaColors.muted),
             ),
             const SizedBox(height: 18),
             _SearchableDropdownField(
@@ -652,7 +652,7 @@ class _BookingFormCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: OutlinedButton.icon(
                 onPressed: creating ? null : onCreateClient,
-                icon: const Icon(Icons.person_add_alt_1_outlined),
+                icon: Icon(Icons.person_add_alt_1_outlined),
                 label: Text(t.tr('Crear cliente')),
               ),
             ),
@@ -746,7 +746,7 @@ class _BookingFormCard extends StatelessWidget {
               decoration: InputDecoration(
                 labelText: t.tr('Notas'),
                 alignLabelWithHint: true,
-                prefixIcon: const Icon(Icons.notes_outlined),
+                prefixIcon: Icon(Icons.notes_outlined),
               ),
             ),
             const SizedBox(height: 14),
@@ -783,8 +783,7 @@ class _BookingFormCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AnnaRadii.md),
                   border: Border.all(color: const Color(0x3DE4987F)),
                 ),
-                child: Text(error!,
-                    style: const TextStyle(color: Color(0xFFFFD7CA))),
+                child: Text(error!, style: TextStyle(color: Color(0xFFFFD7CA))),
               ),
             ],
             const SizedBox(height: 18),
@@ -892,7 +891,7 @@ class _SearchableDropdownField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
-          suffixIcon: const Icon(Icons.search),
+          suffixIcon: Icon(Icons.search),
           enabled: enabled,
         ),
         child: Text(
@@ -985,7 +984,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close),
                 ),
               ],
             ),
@@ -996,7 +995,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
               decoration: InputDecoration(
                 labelText: t.tr('Buscar'),
                 hintText: widget.searchHint,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: Icon(Icons.search),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
@@ -1004,7 +1003,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
                           _controller.clear();
                           setState(() => _query = '');
                         },
-                        icon: const Icon(Icons.close),
+                        icon: Icon(Icons.close),
                       ),
               ),
               onChanged: (value) => setState(() => _query = value),
@@ -1030,7 +1029,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
                               option.label,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AnnaColors.text,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -1041,7 +1040,7 @@ class _SearchableOptionsSheetState extends State<_SearchableOptionsSheet> {
                                     color:
                                         Theme.of(context).colorScheme.primary,
                                   )
-                                : const Icon(
+                                : Icon(
                                     Icons.chevron_right,
                                     color: AnnaColors.muted,
                                   ),
@@ -1096,7 +1095,7 @@ class _SourceDropdownField extends StatelessWidget {
       dropdownColor: AnnaColors.accentDeep,
       decoration: InputDecoration(
         labelText: t.tr('Origen de la reserva'),
-        prefixIcon: const Icon(Icons.campaign_outlined),
+        prefixIcon: Icon(Icons.campaign_outlined),
       ),
       items: [
         for (final option in options)
@@ -1146,7 +1145,7 @@ class _RewardSelector extends StatelessWidget {
         if (snapshot.hasError) {
           return Text(
             formatApiError(snapshot.error!),
-            style: const TextStyle(color: AnnaColors.danger),
+            style: TextStyle(color: AnnaColors.danger),
           );
         }
         final rewards = (snapshot.data?.items ?? const <ApiRecord>[])
@@ -1166,7 +1165,7 @@ class _RewardSelector extends StatelessWidget {
           dropdownColor: AnnaColors.accentDeep,
           decoration: InputDecoration(
             labelText: t.tr('Premio del cliente'),
-            prefixIcon: const Icon(Icons.card_giftcard_outlined),
+            prefixIcon: Icon(Icons.card_giftcard_outlined),
           ),
           items: [
             DropdownMenuItem(
@@ -1196,7 +1195,7 @@ class _HelperText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       message,
-      style: const TextStyle(
+      style: TextStyle(
         color: AnnaColors.muted,
         fontSize: 12,
         fontWeight: FontWeight.w700,
@@ -1291,14 +1290,14 @@ class _BookingPhotoField extends StatelessWidget {
                     child: Text(
                       label,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AnnaColors.text,
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.open_in_full,
                     color: AnnaColors.text,
                     size: 16,
@@ -1338,7 +1337,7 @@ class _AvailableSlotField extends StatelessWidget {
       return InputDecorator(
         decoration: InputDecoration(
           labelText: t.tr('Hora'),
-          prefixIcon: const Icon(Icons.schedule),
+          prefixIcon: Icon(Icons.schedule),
         ),
         child: Text(
           selectedLabel ?? t.tr('Selecciona servicio, empleado y zona'),
@@ -1356,11 +1355,11 @@ class _AvailableSlotField extends StatelessWidget {
       return InputDecorator(
         decoration: InputDecoration(
           labelText: t.tr('Hora'),
-          prefixIcon: const Icon(Icons.schedule),
+          prefixIcon: Icon(Icons.schedule),
         ),
         child: Text(
           t.tr('Sin datos de disponibilidad'),
-          style: const TextStyle(color: AnnaColors.muted),
+          style: TextStyle(color: AnnaColors.muted),
         ),
       );
     }
@@ -1372,7 +1371,7 @@ class _AvailableSlotField extends StatelessWidget {
           return InputDecorator(
             decoration: InputDecoration(
               labelText: t.tr('Hora'),
-              prefixIcon: const Icon(Icons.schedule),
+              prefixIcon: Icon(Icons.schedule),
             ),
             child: Row(
               children: [
@@ -1390,7 +1389,7 @@ class _AvailableSlotField extends StatelessWidget {
           return InputDecorator(
             decoration: InputDecoration(
               labelText: t.tr('Hora'),
-              prefixIcon: const Icon(Icons.schedule),
+              prefixIcon: Icon(Icons.schedule),
             ),
             child: Text(
               formatApiError(snapshot.error!),
@@ -1407,11 +1406,11 @@ class _AvailableSlotField extends StatelessWidget {
           return InputDecorator(
             decoration: InputDecoration(
               labelText: t.tr('Hora'),
-              prefixIcon: const Icon(Icons.schedule),
+              prefixIcon: Icon(Icons.schedule),
             ),
             child: Text(
               t.tr('No hay horarios disponibles'),
-              style: const TextStyle(color: AnnaColors.muted),
+              style: TextStyle(color: AnnaColors.muted),
             ),
           );
         }
@@ -1422,7 +1421,7 @@ class _AvailableSlotField extends StatelessWidget {
           dropdownColor: AnnaColors.accentDeep,
           decoration: InputDecoration(
             labelText: t.tr('Hora disponible'),
-            prefixIcon: const Icon(Icons.schedule),
+            prefixIcon: Icon(Icons.schedule),
           ),
           items: [
             for (final slot in slots)

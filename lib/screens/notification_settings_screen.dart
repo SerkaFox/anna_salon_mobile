@@ -63,7 +63,7 @@ class _NotificationSettingsScreenState
             action: IconButton(
               tooltip: 'Actualizar',
               onPressed: _reload,
-              icon: const Icon(Icons.refresh),
+              icon: Icon(Icons.refresh),
             ),
             child: FutureBuilder<ApiCollection>(
               future: _future,
@@ -113,7 +113,7 @@ class _NotificationHelpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PanelCard(
+    return PanelCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -206,7 +206,7 @@ class _NotificationTemplateCard extends StatelessWidget {
               body,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AnnaColors.muted, height: 1.35),
+              style: TextStyle(color: AnnaColors.muted, height: 1.35),
             ),
           ],
           if (kind == 'review_request') ...[
@@ -228,7 +228,7 @@ class _NotificationTemplateCard extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: OutlinedButton.icon(
               onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
+              icon: Icon(Icons.edit_outlined),
               label: const Text('Editar'),
             ),
           ),
@@ -403,7 +403,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context, false),
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close),
                 ),
               ],
             ),
@@ -461,7 +461,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Pulsa una variable para insertarla donde esta el cursor.',
                 style: TextStyle(color: AnnaColors.muted, height: 1.35),
               ),
@@ -481,7 +481,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                             dimension: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.restore),
+                        : Icon(Icons.restore),
                     label: const Text('Restaurar'),
                   ),
                 ),
@@ -494,7 +494,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                             dimension: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.save_outlined),
+                        : Icon(Icons.save_outlined),
                     label: const Text('Guardar'),
                   ),
                 ),
@@ -581,7 +581,7 @@ class _VariableInsertChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ActionChip(
-      avatar: const Icon(Icons.add_circle_outline, size: 18),
+      avatar: Icon(Icons.add_circle_outline, size: 18),
       label: Text(_variableLabel(variable)),
       tooltip: _variableToken(variable),
       onPressed: enabled ? onPressed : null,

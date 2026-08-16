@@ -97,7 +97,7 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
         action: IconButton(
           tooltip: t.refresh,
           onPressed: _reload,
-          icon: const Icon(Icons.refresh),
+          icon: Icon(Icons.refresh),
         ),
         child: FutureBuilder<_WaitlistData>(
           future: _future,
@@ -219,7 +219,7 @@ class _WaitlistCard extends StatelessWidget {
           child: Text(
             '${data['service_name']} · ${data['employee_name']}\n'
             '${data['time_range']?.toString().isNotEmpty == true ? data['time_range'] : (t.isRussian ? 'Любое время' : 'Cualquier hora')}\n$contact',
-            style: const TextStyle(color: AnnaColors.muted),
+            style: TextStyle(color: AnnaColors.muted),
           ),
         ),
         trailing: PopupMenuButton<String>(
@@ -282,8 +282,7 @@ class _BookingRow extends StatelessWidget {
         children: [
           SizedBox(
               width: 92,
-              child: Text(time,
-                  style: const TextStyle(fontWeight: FontWeight.w800))),
+              child: Text(time, style: TextStyle(fontWeight: FontWeight.w800))),
           Expanded(
             child: Text(
                 '${data['client_name']}\n${data['service_name']} · ${data['employee_name']}'),

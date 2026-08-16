@@ -95,9 +95,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
         children: [
           IconButton(
             onPressed: _createClient,
-            icon: const Icon(Icons.person_add_alt_1_outlined),
+            icon: Icon(Icons.person_add_alt_1_outlined),
           ),
-          IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _reload, icon: Icon(Icons.refresh)),
         ],
       ),
       child: FutureBuilder<ApiCollection>(
@@ -214,12 +214,12 @@ class _ClientSearchCard extends StatelessWidget {
             decoration: InputDecoration(
               labelText: t.tr('Buscar cliente'),
               hintText: t.tr('Nombre, telefono o email'),
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: Icon(Icons.search),
               suffixIcon: controller.text.isEmpty
                   ? null
                   : IconButton(
                       onPressed: onClear,
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
             ),
             onChanged: onChanged,
@@ -251,7 +251,7 @@ class _ClientSearchCard extends StatelessWidget {
             initialValue: sort,
             decoration: InputDecoration(
               labelText: t.isRussian ? 'Сортировка' : 'Ordenar',
-              prefixIcon: const Icon(Icons.sort),
+              prefixIcon: Icon(Icons.sort),
             ),
             items: [
               DropdownMenuItem(
@@ -318,7 +318,7 @@ class _ClientCard extends StatelessWidget {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.delete_outline),
+            icon: Icon(Icons.delete_outline),
             label: Text(t.tr('Eliminar')),
           ),
         ],
@@ -433,10 +433,10 @@ class _ClientCard extends StatelessWidget {
                     IconButton(
                       tooltip: t.tr('Eliminar'),
                       onPressed: () => _deleteClient(context),
-                      icon: const Icon(Icons.delete_outline),
+                      icon: Icon(Icons.delete_outline),
                       color: AnnaColors.danger,
                     ),
-                  const Icon(Icons.chevron_right, color: AnnaColors.muted),
+                  Icon(Icons.chevron_right, color: AnnaColors.muted),
                 ],
               ),
             ],
@@ -595,7 +595,7 @@ class _ClientDetailSheet extends StatelessWidget {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.delete_outline),
+            icon: Icon(Icons.delete_outline),
             label: Text(t.tr('Eliminar')),
           ),
         ],
@@ -678,17 +678,17 @@ class _ClientDetailSheet extends StatelessWidget {
                           );
                         }
                       },
-                      icon: const Icon(Icons.edit_outlined),
+                      icon: Icon(Icons.edit_outlined),
                     ),
                     if (canManagePhotos)
                       IconButton(
                         onPressed: () => _deleteClient(context, detail.client),
-                        icon: const Icon(Icons.delete_outline),
+                        icon: Icon(Icons.delete_outline),
                         color: AnnaColors.danger,
                       ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
@@ -862,8 +862,7 @@ class _StatsGrid extends StatelessWidget {
                 Text(entry.$1,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(color: AnnaColors.muted, fontSize: 12)),
+                    style: TextStyle(color: AnnaColors.muted, fontSize: 12)),
                 const SizedBox(height: 6),
                 Text(entry.$2,
                     maxLines: 1,
@@ -924,16 +923,15 @@ class _CountListSection extends StatelessWidget {
       children: items.isEmpty
           ? [
               Text(t.tr('Sin datos.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text('${item.name} (${item.count})',
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
-                  trailing:
-                      onTap == null ? null : const Icon(Icons.chevron_right),
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                  trailing: onTap == null ? null : Icon(Icons.chevron_right),
                   onTap: onTap == null ? null : () => onTap!(item),
                 ),
             ],
@@ -955,7 +953,7 @@ class _BookingHistorySection extends StatelessWidget {
       children: bookings.isEmpty
           ? [
               Text(t.tr('Sin reservas.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final booking in bookings)
@@ -972,7 +970,7 @@ class _BookingHistorySection extends StatelessWidget {
                       .map((value) => value.toString())
                       .where((value) => value.isNotEmpty)
                       .join(' · '),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
             ],
     );
@@ -998,17 +996,17 @@ class _ClickableClientListSection extends StatelessWidget {
       children: items.isEmpty
           ? [
               Text(t.tr('Sin referidos.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(item.name,
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                      style: TextStyle(fontWeight: FontWeight.w800)),
                   subtitle:
                       Text(item.phone ?? item.email ?? t.tr('Sin telefono')),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: Icon(Icons.chevron_right),
                   onTap: () => onClientTap(item),
                 ),
             ],
@@ -1033,7 +1031,7 @@ class _ClickableBookingHistorySection extends StatelessWidget {
       children: bookings.isEmpty
           ? [
               Text(t.tr('Sin reservas.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final booking in bookings)
@@ -1048,7 +1046,7 @@ class _ClickableBookingHistorySection extends StatelessWidget {
                         .map((value) => value.toString())
                         .where((value) => value.isNotEmpty)
                         .join(' · '),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                   subtitle: Text(
                     [
@@ -1064,7 +1062,7 @@ class _ClickableBookingHistorySection extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: Icon(Icons.chevron_right),
                   onTap: () => onBookingTap(booking),
                 ),
             ],
@@ -1090,7 +1088,7 @@ class _ReferralTreeSection extends StatelessWidget {
       children: node == null
           ? [
               Text(t.tr('Sin referidos.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [_ReferralTreeNode(node: node, depth: 0, onClientTap: onClientTap)],
     );
@@ -1142,7 +1140,7 @@ class _ReferralTreeNode extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(node.name,
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                        style: TextStyle(fontWeight: FontWeight.w800)),
                   ),
                   AnnaBadge(
                     '${node.children.length} ${AppLocalizations.of(context).tr('referidos')}',
@@ -1198,7 +1196,7 @@ class _BookingDetailSheet extends StatelessWidget {
               ),
               IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close)),
+                  icon: Icon(Icons.close)),
             ],
           ),
           const SizedBox(height: 12),
@@ -1227,7 +1225,7 @@ class _BookingDetailSheet extends StatelessWidget {
           if ((booking['notes']?.toString() ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(booking['notes'].toString(),
-                style: const TextStyle(color: AnnaColors.muted)),
+                style: TextStyle(color: AnnaColors.muted)),
           ],
         ],
       ),
@@ -1287,7 +1285,7 @@ class _PhotoHistorySectionState extends State<_PhotoHistorySection> {
           ? [
               Text(
                 t.tr('Todavia no hay fotos guardadas para este cliente.'),
-                style: const TextStyle(color: AnnaColors.muted),
+                style: TextStyle(color: AnnaColors.muted),
               )
             ]
           : [
@@ -1317,7 +1315,7 @@ class _PhotoHistorySectionState extends State<_PhotoHistorySection> {
                               url: photo['image_url'].toString(),
                               fit: BoxFit.cover,
                             ),
-                            const Positioned(
+                            Positioned(
                               right: 8,
                               top: 8,
                               child: DecoratedBox(

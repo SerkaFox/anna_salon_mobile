@@ -40,7 +40,7 @@ class ScreenScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bodyStyle = Theme.of(context).textTheme.bodyMedium ??
-        const TextStyle(
+        TextStyle(
           color: AnnaColors.text,
           fontSize: 14,
           height: 1.3,
@@ -160,7 +160,7 @@ class AnnaBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           color: AnnaColors.text,
           fontSize: 12,
           fontWeight: FontWeight.w800,
@@ -207,11 +207,11 @@ class ErrorState extends StatelessWidget {
           Text('No se pudo cargar',
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          Text(message, style: const TextStyle(color: AnnaColors.muted)),
+          Text(message, style: TextStyle(color: AnnaColors.muted)),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh),
             label: const Text('Reintentar'),
           ),
         ],
@@ -296,12 +296,12 @@ class _AnnaErrorBannerState extends State<AnnaErrorBanner>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFFFFD7CA), size: 20),
+          Icon(Icons.error_outline, color: Color(0xFFFFD7CA), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               widget.message,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Color(0xFFFFD7CA),
                 fontWeight: FontWeight.w800,
                 height: 1.25,
@@ -489,7 +489,7 @@ class JsonBlock extends StatelessWidget {
       ),
       child: Text(
         encoder.convert(data),
-        style: const TextStyle(
+        style: TextStyle(
           color: AnnaColors.text,
           fontFamily: 'monospace',
           fontSize: 12,

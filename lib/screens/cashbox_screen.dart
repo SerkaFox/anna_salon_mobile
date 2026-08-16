@@ -129,11 +129,11 @@ class _CashboxScreenState extends State<CashboxScreen> {
         children: [
           IconButton(
             onPressed: _pickDate,
-            icon: const Icon(Icons.event_outlined),
+            icon: Icon(Icons.event_outlined),
           ),
           IconButton(
             onPressed: _reload,
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh),
           ),
         ],
       ),
@@ -195,7 +195,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                         closure == null && canCloseCashbox
                             ? FilledButton.icon(
                                 onPressed: () => _closeCashbox(context, cash),
-                                icon: const Icon(Icons.lock_outline),
+                                icon: Icon(Icons.lock_outline),
                                 label: Text(t.tr('Cerrar caja')),
                               )
                             : closure != null
@@ -204,7 +204,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                                       context,
                                       closure,
                                     ),
-                                    icon: const Icon(Icons.lock_clock_outlined),
+                                    icon: Icon(Icons.lock_clock_outlined),
                                     label: Text(t.isRussian
                                         ? 'Касса закрыта'
                                         : 'Caja cerrada'),
@@ -286,7 +286,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                           onSelected: (_) => _setRangeDays(7),
                         ),
                         ActionChip(
-                          avatar: const Icon(
+                          avatar: Icon(
                             Icons.date_range_outlined,
                             size: 18,
                           ),
@@ -354,7 +354,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.print_outlined),
+                      Icon(Icons.print_outlined),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -371,7 +371,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                               t.isRussian
                                   ? 'Подключение PT210 и пробная печать'
                                   : 'Conexion PT210 e impresion de prueba',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AnnaColors.muted,
                                 fontSize: 14,
                                 height: 1.3,
@@ -380,7 +380,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right),
                     ],
                   ),
                 ),
@@ -610,7 +610,7 @@ class _StripeBalanceCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet_outlined),
+              Icon(Icons.account_balance_wallet_outlined),
               const SizedBox(width: 10),
               Expanded(
                 child: Text('Stripe',
@@ -622,7 +622,7 @@ class _StripeBalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (error.isNotEmpty)
-            Text(error, style: const TextStyle(color: AnnaColors.danger))
+            Text(error, style: TextStyle(color: AnnaColors.danger))
           else ...[
             Wrap(
               spacing: 8,
@@ -644,7 +644,7 @@ class _StripeBalanceCard extends StatelessWidget {
               t.isRussian
                   ? 'Стандартная выплата поступит на IBAN, настроенный в Stripe.'
                   : 'La retirada estándar llegará al IBAN configurado en Stripe.',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AnnaColors.muted,
                 fontSize: 14,
                 height: 1.3,
@@ -654,7 +654,7 @@ class _StripeBalanceCard extends StatelessWidget {
             FilledButton.icon(
               onPressed:
                   stripe['can_payout'] == true ? () => onPayout(stripe) : null,
-              icon: const Icon(Icons.payments_outlined),
+              icon: Icon(Icons.payments_outlined),
               label: Text(t.isRussian ? 'Вывести средства' : 'Retirar fondos'),
             ),
             if (payouts.isNotEmpty) ...[
@@ -669,7 +669,7 @@ class _StripeBalanceCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 5),
                   child: Text(
                     '${payout['amount']} EUR · ${payout['method_label']} · ${payout['status_label']}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
             ],
@@ -760,7 +760,7 @@ class _StripePayoutDialogState extends State<_StripePayoutDialog> {
             t.isRussian
                 ? 'Это реальная финансовая операция. Повторное нажатие защищено уникальным номером запроса.'
                 : 'Esta es una operación financiera real. La solicitud está protegida contra duplicados.',
-            style: const TextStyle(color: AnnaColors.muted),
+            style: TextStyle(color: AnnaColors.muted),
           ),
         ],
       ),
@@ -876,13 +876,13 @@ class _CashCloseSheetState extends State<_CashCloseSheet> {
                 ),
                 IconButton(
                   onPressed: _saving ? null : () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close),
                 ),
               ],
             ),
             Text(
               DateFormat('d MMMM yyyy', locale).format(widget.date),
-              style: const TextStyle(color: AnnaColors.muted, fontSize: 14),
+              style: TextStyle(color: AnnaColors.muted, fontSize: 14),
             ),
             const SizedBox(height: 14),
             PanelCard(
@@ -957,7 +957,7 @@ class _CashCloseSheetState extends State<_CashCloseSheet> {
                   t.isRussian
                       ? 'Осталось неоплаченных документов: $pendingCount на сумму ${widget.cash['pending_total'] ?? '0.00'} EUR.'
                       : 'Quedan $pendingCount documentos pendientes por ${widget.cash['pending_total'] ?? '0.00'} EUR.',
-                  style: const TextStyle(fontSize: 13, height: 1.3),
+                  style: TextStyle(fontSize: 13, height: 1.3),
                 ),
               ),
             ],
@@ -966,7 +966,7 @@ class _CashCloseSheetState extends State<_CashCloseSheet> {
               t.isRussian
                   ? 'После закрытия нельзя добавлять или изменять платежи этого дня.'
                   : 'Despues del cierre no se podran anadir ni modificar pagos de este dia.',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AnnaColors.muted,
                 fontSize: 13,
                 height: 1.3,
@@ -982,7 +982,7 @@ class _CashCloseSheetState extends State<_CashCloseSheet> {
                         dimension: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.lock_outline),
+                    : Icon(Icons.lock_outline),
                 label: Text(t.isRussian ? 'Закрыть кассу' : 'Cerrar caja'),
               ),
             ),
@@ -1046,7 +1046,7 @@ class _ClosureValue extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: AnnaColors.muted, fontSize: 13),
+              style: TextStyle(color: AnnaColors.muted, fontSize: 13),
             ),
           ),
           const SizedBox(width: 12),
@@ -1111,7 +1111,7 @@ class _PaidDocumentCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          const Icon(Icons.receipt_long_outlined),
+          Icon(Icons.receipt_long_outlined),
           const SizedBox(width: 10),
           Expanded(
             child: InkWell(
@@ -1144,12 +1144,12 @@ class _PaidDocumentCard extends StatelessWidget {
             tooltip: t.isRussian ? 'Напечатать' : 'Imprimir',
             onPressed: () =>
                 _DocumentPrintJobSheet.show(context, document.data),
-            icon: const Icon(Icons.print_outlined),
+            icon: Icon(Icons.print_outlined),
           ),
           IconButton(
             tooltip: t.isRussian ? 'Открыть' : 'Abrir',
             onPressed: () => _open(context),
-            icon: const Icon(Icons.chevron_right),
+            icon: Icon(Icons.chevron_right),
           ),
         ],
       ),
@@ -1223,13 +1223,13 @@ class _PaymentCard extends StatelessWidget {
                 ? 'Изменить способ оплаты'
                 : 'Cambiar metodo',
             onPressed: () => _edit(context),
-            icon: const Icon(Icons.edit_outlined),
+            icon: Icon(Icons.edit_outlined),
           ),
           IconButton(
             tooltip:
                 AppLocalizations.of(context).isRussian ? 'Открыть' : 'Abrir',
             onPressed: () => _openDocument(context),
-            icon: const Icon(Icons.chevron_right),
+            icon: Icon(Icons.chevron_right),
           ),
         ],
       ),
@@ -1553,7 +1553,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
@@ -1565,7 +1565,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                     t.tr(
                       'Puedes registrar varios pagos hasta completar el saldo pendiente.',
                     ),
-                    style: const TextStyle(color: AnnaColors.muted),
+                    style: TextStyle(color: AnnaColors.muted),
                   ),
                 ],
                 if (_isPaid(document)) ...[
@@ -1602,7 +1602,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                   children: [
                     OutlinedButton.icon(
                       onPressed: () => _showAddLine(context),
-                      icon: const Icon(Icons.add),
+                      icon: Icon(Icons.add),
                       label: Text(t.tr('Anadir linea')),
                     ),
                     OutlinedButton.icon(
@@ -1614,7 +1614,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                         paidAmount: document.valueAsText('payments_total'),
                         totalAmount: document.valueAsText('total_amount'),
                       ),
-                      icon: const Icon(Icons.payments_outlined),
+                      icon: Icon(Icons.payments_outlined),
                       label: Text(t.tr('Registrar pago')),
                     ),
                     OutlinedButton.icon(
@@ -1624,7 +1624,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                         paidAmount: document.valueAsText('payments_total'),
                         totalAmount: document.valueAsText('total_amount'),
                       ),
-                      icon: const Icon(Icons.reply_outlined),
+                      icon: Icon(Icons.reply_outlined),
                       label: Text(t.tr('Devolucion')),
                     ),
                   ],
@@ -1635,7 +1635,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                 const SizedBox(height: 8),
                 if (payments.isEmpty)
                   Text(t.tr('Sin pagos todavia.'),
-                      style: const TextStyle(color: AnnaColors.muted))
+                      style: TextStyle(color: AnnaColors.muted))
                 else
                   for (final payment in payments)
                     ListTile(
@@ -1655,7 +1655,7 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                                 ? 'Изменить способ оплаты'
                                 : 'Cambiar metodo',
                             onPressed: () => _editPayment(context, payment),
-                            icon: const Icon(Icons.edit_outlined),
+                            icon: Icon(Icons.edit_outlined),
                           ),
                         ],
                       ),
@@ -1846,12 +1846,12 @@ class _CashLineFormSheetState extends State<_CashLineFormSheet> {
                   ButtonSegment<String>(
                     value: 'custom',
                     label: Text(t.tr('Concepto manual')),
-                    icon: const Icon(Icons.edit_note_outlined),
+                    icon: Icon(Icons.edit_note_outlined),
                   ),
                   ButtonSegment<String>(
                     value: 'service',
                     label: Text(t.tr('Servicio extra')),
-                    icon: const Icon(Icons.spa_outlined),
+                    icon: Icon(Icons.spa_outlined),
                   ),
                 ],
                 selected: {_mode},
@@ -2074,7 +2074,7 @@ class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
                   const SizedBox(height: 8),
                   Text(
                     '${t.tr('Total')}: ${_formatMoney(total)} EUR - ${t.tr('Pagado')}: ${_formatMoney(paid)} EUR',
-                    style: const TextStyle(color: AnnaColors.muted),
+                    style: TextStyle(color: AnnaColors.muted),
                   ),
                 ],
               ),
@@ -2084,7 +2084,7 @@ class _CashPaymentFormSheetState extends State<_CashPaymentFormSheet> {
               t.tr(
                 'Puedes cobrar una parte ahora y el resto despues con otro metodo.',
               ),
-              style: const TextStyle(color: AnnaColors.muted),
+              style: TextStyle(color: AnnaColors.muted),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -2254,7 +2254,7 @@ class _PaymentMethodEditSheetState extends State<_PaymentMethodEditSheet> {
           const SizedBox(height: 6),
           Text(
             '${widget.payment.valueAsText('amount') ?? '0.00'} EUR',
-            style: const TextStyle(color: AnnaColors.muted, fontSize: 14),
+            style: TextStyle(color: AnnaColors.muted, fontSize: 14),
           ),
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
@@ -2296,7 +2296,7 @@ class _PaymentMethodEditSheetState extends State<_PaymentMethodEditSheet> {
                       dimension: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.save_outlined),
+                  : Icon(Icons.save_outlined),
               label: Text(t.tr('Guardar')),
             ),
           ),
@@ -2389,7 +2389,7 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
                   'Falta email o telefono de WhatsApp para enviar el documento.',
                 )
               : t.tr('Elige como enviar el documento al cliente.'),
-          style: const TextStyle(color: AnnaColors.muted),
+          style: TextStyle(color: AnnaColors.muted),
         ),
         const SizedBox(height: 10),
         if (_showEmailField) ...[
@@ -2419,7 +2419,7 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
                       dimension: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.mail_outline),
+                  : Icon(Icons.mail_outline),
               label: Text(t.tr('Enviar por email')),
             ),
             OutlinedButton.icon(
@@ -2429,7 +2429,7 @@ class _DocumentShareActionsState extends State<_DocumentShareActions> {
                       dimension: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.chat_outlined),
+                  : Icon(Icons.chat_outlined),
               label: const Text('WhatsApp'),
             ),
           ],
@@ -2503,7 +2503,7 @@ class _DocumentPrintButton extends StatelessWidget {
     final t = AppLocalizations.of(context);
     return FilledButton.icon(
       onPressed: () => _DocumentPrintJobSheet.show(context, document),
-      icon: const Icon(Icons.print_outlined),
+      icon: Icon(Icons.print_outlined),
       label: Text(t.isRussian ? 'Напечатать чек' : 'Imprimir recibo'),
     );
   }
@@ -2562,7 +2562,7 @@ class _DocumentPrintJobSheetState extends State<_DocumentPrintJobSheet> {
               ),
               IconButton(
                 onPressed: _printing ? null : () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close),
               ),
             ],
           ),
@@ -2583,7 +2583,7 @@ class _DocumentPrintJobSheetState extends State<_DocumentPrintJobSheet> {
               Expanded(
                 child: Text(
                   _stage,
-                  style: const TextStyle(fontSize: 14, height: 1.3),
+                  style: TextStyle(fontSize: 14, height: 1.3),
                 ),
               ),
             ],
@@ -2602,7 +2602,7 @@ class _DocumentPrintJobSheetState extends State<_DocumentPrintJobSheet> {
               reverse: true,
               child: SelectableText(
                 _logs.join('\n'),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AnnaColors.muted,
                   fontSize: 12,
                   height: 1.3,
@@ -2621,7 +2621,7 @@ class _DocumentPrintJobSheetState extends State<_DocumentPrintJobSheet> {
                     )
                   : FilledButton.icon(
                       onPressed: _retry,
-                      icon: const Icon(Icons.refresh),
+                      icon: Icon(Icons.refresh),
                       label: Text(t.isRussian ? 'Повторить' : 'Reintentar'),
                     ),
             ),
@@ -2705,7 +2705,7 @@ Future<void> _showShareSheet(
           const SizedBox(height: 8),
           Text(
             document.valueAsText('number') ?? '',
-            style: const TextStyle(color: AnnaColors.muted),
+            style: TextStyle(color: AnnaColors.muted),
           ),
           const SizedBox(height: 16),
           _DocumentPrintButton(document: document.data),

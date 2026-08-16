@@ -22,13 +22,13 @@ Future<void> showPhoneActions(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.chat_outlined),
+              leading: Icon(Icons.chat_outlined),
               title: const Text('Escribir por WhatsApp'),
               subtitle: Text(phone),
               onTap: () => Navigator.pop(context, _PhoneAction.whatsapp),
             ),
             ListTile(
-              leading: const Icon(Icons.call_outlined),
+              leading: Icon(Icons.call_outlined),
               title: const Text('Llamar'),
               subtitle: Text(phone),
               onTap: () => Navigator.pop(context, _PhoneAction.call),

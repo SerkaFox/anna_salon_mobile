@@ -42,8 +42,13 @@ class AppLocalizations {
   String get recoverPassword =>
       isRussian ? 'Восстановить пароль' : 'Recuperar contrasena';
   String get recoverPasswordHelp => isRussian
-      ? 'Отправьте заявку в WhatsApp, чтобы администратор выдал новый доступ.'
-      : 'Enviaremos una solicitud por WhatsApp para que administracion te entregue un nuevo acceso.';
+      ? 'Введите логин, телефон или email. Временный доступ придёт в WhatsApp и на email, если они указаны.'
+      : 'Introduce usuario, teléfono o email. Enviaremos el acceso temporal por WhatsApp y email si están disponibles.';
+  String get sendTemporaryAccess =>
+      isRussian ? 'Отправить временный доступ' : 'Enviar acceso temporal';
+  String get recoverySent => isRussian
+      ? 'Если данные совпали, временный логин и пароль уже отправлены на доступные контакты.'
+      : 'Si los datos coinciden, ya hemos enviado el usuario y la contraseña temporal a los contactos disponibles.';
   String get usernameEmailPhone => isRussian
       ? 'Пользователь, email или телефон'
       : 'Usuario, email o telefono';
@@ -68,6 +73,10 @@ class AppLocalizations {
   }
 
   String get appearance => isRussian ? 'Внешний вид' : 'Apariencia';
+  String get lightTheme => isRussian ? 'Белая тема' : 'Tema blanco';
+  String get lightThemeHelp => isRussian
+      ? 'Чисто белый фон и тёмный текст.'
+      : 'Fondo blanco puro y texto oscuro.';
   String get appColor =>
       isRussian ? 'Цвет приложения' : 'Color de la aplicacion';
   String get textSize => isRussian ? 'Размер текста' : 'Tamano de texto';

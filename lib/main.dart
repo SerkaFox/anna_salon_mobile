@@ -21,7 +21,7 @@ Future<void> main() async {
           padding: const EdgeInsets.all(12),
           child: Text(
             'Ошибка интерфейса:\n${details.exceptionAsString()}',
-            style: const TextStyle(
+            style: TextStyle(
               color: AnnaColors.danger,
               fontSize: 12,
               height: 1.3,
@@ -94,7 +94,10 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
         return MaterialApp(
           title: 'BRIMOON Studio',
           debugShowCheckedModeBanner: false,
-          theme: buildAnnaTheme(primary: _settings.primaryColor),
+          theme: buildAnnaTheme(
+            primary: _settings.primaryColor,
+            lightMode: _settings.lightTheme,
+          ),
           builder: (context, child) {
             final media = MediaQuery.maybeOf(context);
             if (media == null || child == null) {

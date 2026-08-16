@@ -86,7 +86,7 @@ class AnnaPhotoViewer extends StatelessWidget {
             IconButton(
               tooltip: 'Enviar',
               onPressed: _shareLocal,
-              icon: const Icon(Icons.ios_share_outlined),
+              icon: Icon(Icons.ios_share_outlined),
             ),
           if (onDelete != null)
             IconButton(
@@ -95,7 +95,7 @@ class AnnaPhotoViewer extends StatelessWidget {
                 onDelete?.call();
                 Navigator.of(context).pop();
               },
-              icon: const Icon(Icons.delete_outline),
+              icon: Icon(Icons.delete_outline),
             ),
         ],
       ),

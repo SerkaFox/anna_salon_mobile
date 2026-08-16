@@ -69,9 +69,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 );
                 if (changed == true && context.mounted) _reload();
               },
-              icon: const Icon(Icons.person_add_alt_1_outlined),
+              icon: Icon(Icons.person_add_alt_1_outlined),
             ),
-          IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _reload, icon: Icon(Icons.refresh)),
         ],
       ),
       child: FutureBuilder<ApiCollection>(
@@ -164,12 +164,12 @@ class _EmployeeSearchCard extends StatelessWidget {
             decoration: InputDecoration(
               labelText: t.tr('Buscar empleado'),
               hintText: t.tr('Nombre, telefono, email o servicio'),
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: Icon(Icons.search),
               suffixIcon: controller.text.isEmpty
                   ? null
                   : IconButton(
                       onPressed: onClear,
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
             ),
             onChanged: onChanged,
@@ -222,7 +222,7 @@ class _EmployeeCard extends StatelessWidget {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.delete_outline),
+            icon: Icon(Icons.delete_outline),
             label: Text(t.tr('Eliminar')),
           ),
         ],
@@ -281,7 +281,7 @@ class _EmployeeCard extends StatelessWidget {
                   children: [
                     Text(
                       employee.initials,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AnnaColors.text,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -312,7 +312,7 @@ class _EmployeeCard extends StatelessWidget {
                       employee.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AnnaColors.text,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
@@ -361,10 +361,10 @@ class _EmployeeCard extends StatelessWidget {
                     IconButton(
                       tooltip: t.tr('Eliminar'),
                       onPressed: () => _deleteEmployee(context),
-                      icon: const Icon(Icons.delete_outline),
+                      icon: Icon(Icons.delete_outline),
                       color: AnnaColors.danger,
                     ),
-                  const Icon(Icons.chevron_right, color: AnnaColors.muted),
+                  Icon(Icons.chevron_right, color: AnnaColors.muted),
                 ],
               ),
             ],
@@ -519,7 +519,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.delete_outline),
+            icon: Icon(Icons.delete_outline),
             label: Text(t.tr('Eliminar')),
           ),
         ],
@@ -595,19 +595,19 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                             onChanged();
                           }
                         },
-                        icon: const Icon(Icons.edit_outlined),
+                        icon: Icon(Icons.edit_outlined),
                       ),
                     if (canManageStaff &&
                         currentEmployeeId != detail.employee.id)
                       IconButton(
                         onPressed: () =>
                             _deleteEmployee(context, detail.employee),
-                        icon: const Icon(Icons.delete_outline),
+                        icon: Icon(Icons.delete_outline),
                         color: AnnaColors.danger,
                       ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
@@ -673,7 +673,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                       ? [
                           Text(
                             t.tr('No definidos.'),
-                            style: const TextStyle(color: AnnaColors.muted),
+                            style: TextStyle(color: AnnaColors.muted),
                           ),
                         ]
                       : [
@@ -692,7 +692,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                   children: detail.employee.serviceNames.isEmpty
                       ? [
                           Text(t.tr('No definidos.'),
-                              style: const TextStyle(color: AnnaColors.muted))
+                              style: TextStyle(color: AnnaColors.muted))
                         ]
                       : [
                           Wrap(
@@ -753,8 +753,7 @@ class _EmployeeStatsGrid extends StatelessWidget {
                 Text(entry.$1,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(color: AnnaColors.muted, fontSize: 12)),
+                    style: TextStyle(color: AnnaColors.muted, fontSize: 12)),
                 const SizedBox(height: 6),
                 Text(entry.$2,
                     maxLines: 1,
@@ -794,7 +793,7 @@ class _EmployeeScheduleSummary extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: onEdit,
-                icon: const Icon(Icons.edit_calendar_outlined),
+                icon: Icon(Icons.edit_calendar_outlined),
                 label: Text(t.tr('Editar horario')),
               ),
             ],
@@ -936,7 +935,7 @@ class _EmployeeScheduleSheetState extends State<_EmployeeScheduleSheet> {
                     ),
                     IconButton(
                       onPressed: _saving ? null : () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
@@ -959,14 +958,14 @@ class _EmployeeScheduleSheetState extends State<_EmployeeScheduleSheet> {
                       onPressed: () => setState(() {
                         schedule.overrides.add(_ScheduleOverride.empty());
                       }),
-                      icon: const Icon(Icons.add),
+                      icon: Icon(Icons.add),
                       label: Text(t.tr('Anadir dia especial')),
                     ),
                   ],
                 ),
                 if (schedule.overrides.isEmpty)
                   Text(t.tr('Sin dias especiales.'),
-                      style: const TextStyle(color: AnnaColors.muted))
+                      style: TextStyle(color: AnnaColors.muted))
                 else
                   for (final override in schedule.overrides) ...[
                     _ScheduleOverrideEditor(
@@ -993,7 +992,7 @@ class _EmployeeScheduleSheetState extends State<_EmployeeScheduleSheet> {
                             dimension: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.save_outlined),
+                        : Icon(Icons.save_outlined),
                     label: Text(t.tr('Guardar horario')),
                   ),
                 ),
@@ -1105,7 +1104,7 @@ class _ScheduleOverrideEditor extends StatelessWidget {
               ),
               IconButton(
                 onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline),
+                icon: Icon(Icons.delete_outline),
                 color: AnnaColors.danger,
               ),
             ],
@@ -1424,7 +1423,7 @@ class _EmployeeStatsRangeSelector extends StatelessWidget {
                 onSelected: (_) => onChanged(_StatsRange.all()),
               ),
               ActionChip(
-                avatar: const Icon(Icons.date_range_outlined, size: 18),
+                avatar: Icon(Icons.date_range_outlined, size: 18),
                 label: Text(
                   range.kind == _StatsRangeKind.custom
                       ? range.label
@@ -1539,12 +1538,12 @@ class _EmployeeCountListSection extends StatelessWidget {
       children: items.isEmpty
           ? [
               Text(t.tr('Sin datos.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
                 Text('${item.name} (${item.count})',
-                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                    style: TextStyle(fontWeight: FontWeight.w800)),
             ],
     );
   }
@@ -1563,13 +1562,13 @@ class _EmployeeClientListSection extends StatelessWidget {
       children: items.isEmpty
           ? [
               Text(t.tr('Sin datos.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final item in items)
                 Text(
                   '${item['name']} (${item['count']}) · ${item['spent']} EUR',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(fontWeight: FontWeight.w800),
                 ),
             ],
     );
@@ -1589,7 +1588,7 @@ class _EmployeeBookingHistorySection extends StatelessWidget {
       children: bookings.isEmpty
           ? [
               Text(t.tr('Sin reservas.'),
-                  style: const TextStyle(color: AnnaColors.muted))
+                  style: TextStyle(color: AnnaColors.muted))
             ]
           : [
               for (final booking in bookings)
@@ -1605,7 +1604,7 @@ class _EmployeeBookingHistorySection extends StatelessWidget {
                       .map((value) => value.toString())
                       .where((value) => value.isNotEmpty)
                       .join(' · '),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(fontWeight: FontWeight.w800),
                 ),
             ],
     );
@@ -1821,7 +1820,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       IconButton(
                           onPressed:
                               _saving ? null : () => Navigator.pop(context),
-                          icon: const Icon(Icons.close)),
+                          icon: Icon(Icons.close)),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -1858,7 +1857,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       enabled: !_hasExistingEmployeeAccess,
                       decoration: InputDecoration(
                         labelText: t.tr('Usuario para entrar'),
-                        prefixIcon: const Icon(Icons.account_circle_outlined),
+                        prefixIcon: Icon(Icons.account_circle_outlined),
                       ),
                     ),
                     if (_hasExistingEmployeeAccess) ...[
@@ -1867,7 +1866,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                         alignment: Alignment.centerLeft,
                         child: OutlinedButton.icon(
                           onPressed: _copyUsername,
-                          icon: const Icon(Icons.copy_outlined),
+                          icon: Icon(Icons.copy_outlined),
                           label: Text(t.tr('Copiar usuario')),
                         ),
                       ),
@@ -1881,14 +1880,14 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                         children: [
                           OutlinedButton.icon(
                             onPressed: _generatePassword,
-                            icon: const Icon(Icons.auto_awesome_outlined),
+                            icon: Icon(Icons.auto_awesome_outlined),
                             label: Text(_hasExistingEmployeeAccess
                                 ? t.tr('Generar nueva contrasena')
                                 : t.tr('Generar contrasena')),
                           ),
                           OutlinedButton.icon(
                             onPressed: _sendAccessByWhatsapp,
-                            icon: const Icon(Icons.chat_outlined),
+                            icon: Icon(Icons.chat_outlined),
                             label: const Text('WhatsApp'),
                           ),
                         ],
@@ -1902,7 +1901,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                         labelText: widget.employee == null
                             ? t.tr('Contrasena inicial')
                             : t.tr('Nueva contrasena'),
-                        prefixIcon: const Icon(Icons.lock_outline),
+                        prefixIcon: Icon(Icons.lock_outline),
                       ),
                       validator: (value) {
                         final password = value ?? '';
@@ -1974,7 +1973,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       t.isRussian
                           ? 'Зона для записи будет выбрана автоматически.'
                           : 'La zona de la reserva se asignará automáticamente.',
-                      style: const TextStyle(color: AnnaColors.muted),
+                      style: TextStyle(color: AnnaColors.muted),
                     ),
                     for (final zone in zones)
                       CheckboxListTile(

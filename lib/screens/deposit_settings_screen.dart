@@ -95,7 +95,7 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
     final t = AppLocalizations.of(context);
     return ScreenScaffold(
       title: t.isRussian ? 'Настройки предоплаты' : 'Ajustes de prepago',
-      titleTextStyle: const TextStyle(
+      titleTextStyle: TextStyle(
         color: AnnaColors.text,
         fontSize: 19,
         fontWeight: FontWeight.w800,
@@ -110,7 +110,7 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
                     padding: const EdgeInsets.all(14),
                     child: Text(
                       _error!,
-                      style: const TextStyle(color: AnnaColors.danger),
+                      style: TextStyle(color: AnnaColors.danger),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -131,7 +131,7 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
                         t.isRussian
                             ? 'Предоплата считается от итоговой стоимости заказа после скидок.'
                             : 'El prepago se calcula sobre el precio final de la reserva.',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AnnaColors.muted,
                           fontSize: 14,
                           height: 1.3,
@@ -200,7 +200,7 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Icon(Icons.save_outlined),
+                            : Icon(Icons.save_outlined),
                         label: Text(t.tr('Guardar')),
                       ),
                     ],
@@ -222,7 +222,7 @@ class _DepositSettingsScreenState extends State<DepositSettingsScreen> {
                           padding: const EdgeInsets.only(bottom: 6),
                           child: Text(
                             '${price.toStringAsFixed(0)} EUR → ${_exampleDeposit(price).toStringAsFixed(2)} EUR',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AnnaColors.text,
                               fontSize: 14,
                               height: 1.3,

@@ -121,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       action: IconButton(
         tooltip: t.refresh,
         onPressed: _reload,
-        icon: const Icon(Icons.refresh),
+        icon: Icon(Icons.refresh),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: widget.onSignOut,
-                icon: const Icon(Icons.logout),
+                icon: Icon(Icons.logout),
                 label: Text(t.signOut),
               ),
             ),
@@ -210,7 +210,7 @@ class _WhatsAppNotificationsCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AnnaColors.line),
                 ),
-                child: const Icon(Icons.mark_chat_unread_outlined),
+                child: Icon(Icons.mark_chat_unread_outlined),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -222,7 +222,7 @@ class _WhatsAppNotificationsCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Activa, pausa y edita las plantillas automaticas.',
                       style: TextStyle(color: AnnaColors.muted),
                     ),
@@ -242,7 +242,7 @@ class _WhatsAppNotificationsCard extends StatelessWidget {
                   ),
                 );
               },
-              icon: const Icon(Icons.chevron_right),
+              icon: Icon(Icons.chevron_right),
               label: const Text('Gestionar notificaciones'),
             ),
           ),
@@ -274,6 +274,15 @@ class _AppearanceCard extends StatelessWidget {
             children: [
               Text(t.appearance, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 14),
+              SwitchListTile.adaptive(
+                value: settings.lightTheme,
+                onChanged: settings.setLightTheme,
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.lightTheme),
+                subtitle: Text(t.lightThemeHelp),
+                secondary: Icon(Icons.light_mode_outlined),
+              ),
+              const SizedBox(height: 10),
               ColorPalettePicker(
                 label: t.appColor,
                 value: settings.primaryColorHex,
@@ -286,12 +295,12 @@ class _AppearanceCard extends StatelessWidget {
                 segments: [
                   ButtonSegment(
                     value: 'es',
-                    icon: const Icon(Icons.language),
+                    icon: Icon(Icons.language),
                     label: Text(t.spanish),
                   ),
                   ButtonSegment(
                     value: 'ru',
-                    icon: const Icon(Icons.translate),
+                    icon: Icon(Icons.translate),
                     label: Text(t.russian),
                   ),
                 ],
@@ -303,7 +312,7 @@ class _AppearanceCard extends StatelessWidget {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Icon(Icons.format_size, color: AnnaColors.muted),
+                  Icon(Icons.format_size, color: AnnaColors.muted),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -386,7 +395,7 @@ class _ProfileCard extends StatelessWidget {
               controller: firstNameController,
               decoration: InputDecoration(
                 labelText: t.firstName,
-                prefixIcon: const Icon(Icons.person_outline),
+                prefixIcon: Icon(Icons.person_outline),
               ),
             ),
             const SizedBox(height: 12),
@@ -394,7 +403,7 @@ class _ProfileCard extends StatelessWidget {
               controller: lastNameController,
               decoration: InputDecoration(
                 labelText: t.lastName,
-                prefixIcon: const Icon(Icons.person_outline),
+                prefixIcon: Icon(Icons.person_outline),
               ),
             ),
             const SizedBox(height: 12),
@@ -421,7 +430,7 @@ class _ProfileCard extends StatelessWidget {
               obscureText: true,
               decoration: InputDecoration(
                 labelText: t.currentPassword,
-                prefixIcon: const Icon(Icons.lock_outline),
+                prefixIcon: Icon(Icons.lock_outline),
               ),
               validator: (value) {
                 final wantsPassword = newPasswordController.text.isNotEmpty ||
@@ -438,7 +447,7 @@ class _ProfileCard extends StatelessWidget {
               obscureText: true,
               decoration: InputDecoration(
                 labelText: t.newPassword,
-                prefixIcon: const Icon(Icons.lock_reset_outlined),
+                prefixIcon: Icon(Icons.lock_reset_outlined),
               ),
               validator: (value) {
                 final text = value ?? '';
@@ -456,7 +465,7 @@ class _ProfileCard extends StatelessWidget {
               obscureText: true,
               decoration: InputDecoration(
                 labelText: t.confirmNewPassword,
-                prefixIcon: const Icon(Icons.lock_reset_outlined),
+                prefixIcon: Icon(Icons.lock_reset_outlined),
               ),
               validator: (value) {
                 if (newPasswordController.text.isEmpty &&
@@ -483,7 +492,7 @@ class _ProfileCard extends StatelessWidget {
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.save_outlined),
+                    : Icon(Icons.save_outlined),
                 label: Text(t.saveChanges),
               ),
             ),

@@ -65,14 +65,14 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     final russian = t.isRussian;
     return ScreenScaffold(
       title: russian ? 'Принтер чеков' : 'Impresora de recibos',
-      titleTextStyle: const TextStyle(
+      titleTextStyle: TextStyle(
         fontSize: 19,
         fontWeight: FontWeight.w700,
       ),
       action: IconButton(
         tooltip: russian ? 'Обновить' : 'Actualizar',
         onPressed: _busy ? null : _scan,
-        icon: const Icon(Icons.refresh),
+        icon: Icon(Icons.refresh),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +107,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                                 (russian
                                     ? 'PT210 должен быть спарен в Bluetooth Android'
                                     : 'La PT210 debe estar vinculada en Bluetooth Android')),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AnnaColors.muted,
                           fontSize: 14,
                           height: 1.3,
@@ -136,13 +136,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
             children: [
               FilledButton.icon(
                 onPressed: _busy ? null : _scan,
-                icon: const Icon(Icons.bluetooth_searching),
+                icon: Icon(Icons.bluetooth_searching),
                 label:
                     Text(russian ? 'Найти устройства' : 'Buscar dispositivos'),
               ),
               OutlinedButton.icon(
                 onPressed: _saved == null || _busy ? null : _testPrint,
-                icon: const Icon(Icons.receipt_long_outlined),
+                icon: Icon(Icons.receipt_long_outlined),
                 label: Text(russian ? 'Пробная печать' : 'Impresion de prueba'),
               ),
               OutlinedButton.icon(
@@ -152,14 +152,14 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                           context,
                           api: widget.api,
                         ),
-                icon: const Icon(Icons.edit_note_outlined),
+                icon: Icon(Icons.edit_note_outlined),
                 label: Text(
                   russian ? 'Шаблон чека' : 'Plantilla del recibo',
                 ),
               ),
               TextButton.icon(
                 onPressed: _busy ? null : openAppSettings,
-                icon: const Icon(Icons.admin_panel_settings_outlined),
+                icon: Icon(Icons.admin_panel_settings_outlined),
                 label: Text(
                   russian ? 'Разрешения Android' : 'Permisos Android',
                 ),
@@ -167,7 +167,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
               if (_saved != null)
                 TextButton.icon(
                   onPressed: _busy ? null : _confirmForgetPrinter,
-                  icon: const Icon(Icons.link_off),
+                  icon: Icon(Icons.link_off),
                   label: Text(
                     russian ? 'Сменить принтер' : 'Cambiar impresora',
                   ),
@@ -200,7 +200,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                             device.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AnnaColors.text,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -213,7 +213,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                             device.address,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AnnaColors.muted,
                               fontSize: 12,
                               height: 1.2,
@@ -230,12 +230,12 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     else if (_saved?.address == device.address && _connected)
-                      const Icon(Icons.check_circle_outline)
+                      Icon(Icons.check_circle_outline)
                     else
                       IconButton(
                         tooltip: russian ? 'Подключить' : 'Conectar',
                         onPressed: _busy ? null : () => _connect(device),
-                        icon: const Icon(Icons.link),
+                        icon: Icon(Icons.link),
                       ),
                   ],
                 ),
@@ -255,7 +255,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
               IconButton(
                 tooltip: russian ? 'Копировать журнал' : 'Copiar registro',
                 onPressed: _logs.isEmpty ? null : _copyLog,
-                icon: const Icon(Icons.copy_outlined),
+                icon: Icon(Icons.copy_outlined),
               ),
             ],
           ),
@@ -273,7 +273,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
               reverse: true,
               child: SelectableText(
                 _logs.isEmpty ? '—' : _logs.join('\n'),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AnnaColors.muted,
                   fontFamily: 'monospace',
                   fontSize: 12,
@@ -488,7 +488,7 @@ class _NextAction extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
+        Icon(
           Icons.arrow_forward,
           size: 18,
           color: AnnaColors.accent2,
@@ -497,7 +497,7 @@ class _NextAction extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               color: AnnaColors.text,
               fontSize: 14,
               height: 1.3,
@@ -598,7 +598,7 @@ class _ReceiptTemplateSheetState extends State<_ReceiptTemplateSheet> {
                     ),
                     IconButton(
                       onPressed: _saving ? null : () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
@@ -650,7 +650,7 @@ class _ReceiptTemplateSheetState extends State<_ReceiptTemplateSheet> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: _saving ? null : _confirmReset,
-                    icon: const Icon(Icons.restore),
+                    icon: Icon(Icons.restore),
                     label: Text(
                       t.isRussian
                           ? 'Сбросить к стандартному шаблону'
@@ -668,7 +668,7 @@ class _ReceiptTemplateSheetState extends State<_ReceiptTemplateSheet> {
                             dimension: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.save_outlined),
+                        : Icon(Icons.save_outlined),
                     label: Text(t.tr('Guardar')),
                   ),
                 ),

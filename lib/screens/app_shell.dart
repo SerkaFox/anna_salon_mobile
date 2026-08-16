@@ -197,28 +197,28 @@ class _AppShellBody extends StatelessWidget {
         onDestinationSelected: onIndexChanged,
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.calendar_today_outlined),
-            selectedIcon: const Icon(Icons.calendar_today),
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
             label: t.calendar,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.add_circle_outline),
-            selectedIcon: const Icon(Icons.add_circle),
+            icon: Icon(Icons.add_circle_outline),
+            selectedIcon: Icon(Icons.add_circle),
             label: t.booking,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.people_outline),
-            selectedIcon: const Icon(Icons.people),
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
             label: t.clients,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.storefront_outlined),
-            selectedIcon: const Icon(Icons.storefront),
+            icon: Icon(Icons.storefront_outlined),
+            selectedIcon: Icon(Icons.storefront),
             label: t.salon,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.tune_outlined),
-            selectedIcon: const Icon(Icons.tune),
+            icon: Icon(Icons.tune_outlined),
+            selectedIcon: Icon(Icons.tune),
             label: t.settings,
           ),
         ],

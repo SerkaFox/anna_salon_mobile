@@ -144,12 +144,12 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: Icon(Icons.photo_camera_outlined),
               title: const Text('Camara'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: Icon(Icons.photo_library_outlined),
               title: const Text('Galeria'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
@@ -186,7 +186,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       title: 'BRIMOON Studio',
       action: IconButton(
         onPressed: () => setState(() => _detail = _loadDetail()),
-        icon: const Icon(Icons.refresh),
+        icon: Icon(Icons.refresh),
       ),
       child: FutureBuilder<Map<String, dynamic>>(
         future: _detail,
@@ -274,7 +274,7 @@ class _ClientSummaryCard extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: AnnaColors.bgSoft),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.photo_camera_outlined,
                           size: 13,
                           color: Colors.white,
@@ -296,7 +296,7 @@ class _ClientSummaryCard extends StatelessWidget {
                         _text(client['phone']),
                         _text(client['email']),
                       ].whereType<String>().join(' · '),
-                      style: const TextStyle(color: AnnaColors.muted),
+                      style: TextStyle(color: AnnaColors.muted),
                     ),
                   ],
                 ),
@@ -398,7 +398,7 @@ class _RewardProgressCard extends StatelessWidget {
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AnnaColors.text,
                               fontWeight: FontWeight.w900,
                             ),
@@ -425,7 +425,7 @@ class _RewardProgressCard extends StatelessWidget {
                       available > 0
                           ? 'Tienes $available premio${available == 1 ? '' : 's'} para activar.'
                           : _remainingRewardText(reward, remaining),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AnnaColors.muted,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -435,7 +435,7 @@ class _RewardProgressCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.info_outline, color: AnnaColors.muted, size: 20),
+              Icon(Icons.info_outline, color: AnnaColors.muted, size: 20),
             ],
           ),
         ),
@@ -489,7 +489,7 @@ void _showRewardInfo(BuildContext context, Map<String, dynamic> reward) {
             const SizedBox(height: 14),
             Text(
               _rewardExplanation(reward),
-              style: const TextStyle(color: AnnaColors.text, height: 1.35),
+              style: TextStyle(color: AnnaColors.text, height: 1.35),
             ),
             const SizedBox(height: 14),
             Wrap(
@@ -604,7 +604,7 @@ class _PortalClientAvatar extends StatelessWidget {
           ? Center(
               child: Text(
                 _initials(name),
-                style: const TextStyle(fontWeight: FontWeight.w900),
+                style: TextStyle(fontWeight: FontWeight.w900),
               ),
             )
           : ApiCachedImage(
@@ -633,7 +633,7 @@ class _ClientBookingsCard extends StatelessWidget {
           Text('Mis reservas', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           if (bookings.isEmpty)
-            const Text('Todavia no tienes reservas.',
+            Text('Todavia no tienes reservas.',
                 style: TextStyle(color: AnnaColors.muted))
           else ...[
             if (upcoming.isNotEmpty) ...[
@@ -671,7 +671,7 @@ class _ClientBookingRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.event_available_outlined, color: AnnaColors.muted),
+          Icon(Icons.event_available_outlined, color: AnnaColors.muted),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -679,12 +679,12 @@ class _ClientBookingRow extends StatelessWidget {
               children: [
                 Text(
                   _text(booking['service_name']) ?? 'Servicio',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  style: TextStyle(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   '${_bookingDateText(booking)} · ${_text(booking['employee_name']) ?? 'Empleado'}',
-                  style: const TextStyle(color: AnnaColors.muted, fontSize: 12),
+                  style: TextStyle(color: AnnaColors.muted, fontSize: 12),
                 ),
               ],
             ),
@@ -712,7 +712,7 @@ class _ClientPhotosCard extends StatelessWidget {
           Text('Mis fotos', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           if (photos.isEmpty)
-            const Text('Todavia no hay fotos guardadas.',
+            Text('Todavia no hay fotos guardadas.',
                 style: TextStyle(color: AnnaColors.muted))
           else
             GridView.count(
@@ -1069,7 +1069,7 @@ class _ClientSlotDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!enabled) {
-      return const InputDecorator(
+      return InputDecorator(
         decoration: InputDecoration(
             labelText: 'Hora', prefixIcon: Icon(Icons.schedule)),
         child: Text('Selecciona servicio, empleado y zona',
@@ -1078,7 +1078,7 @@ class _ClientSlotDropdown extends StatelessWidget {
     }
     final slotsFuture = future;
     if (slotsFuture == null) {
-      return const InputDecorator(
+      return InputDecorator(
         decoration: InputDecoration(
             labelText: 'Hora', prefixIcon: Icon(Icons.schedule)),
         child: Text('Sin datos de disponibilidad',
@@ -1089,7 +1089,7 @@ class _ClientSlotDropdown extends StatelessWidget {
       future: slotsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const InputDecorator(
+          return InputDecorator(
             decoration: InputDecoration(
                 labelText: 'Hora', prefixIcon: Icon(Icons.schedule)),
             child: Text('Buscando horarios...'),
@@ -1100,14 +1100,14 @@ class _ClientSlotDropdown extends StatelessWidget {
             decoration: const InputDecoration(
                 labelText: 'Hora', prefixIcon: Icon(Icons.schedule)),
             child: Text(formatApiError(snapshot.error!),
-                style: const TextStyle(color: AnnaColors.danger)),
+                style: TextStyle(color: AnnaColors.danger)),
           );
         }
         final slots = _slotOptions(snapshot.data?.data['slots']);
         final selected = slots.any((slot) => slot.id == value) ? value : null;
         if (slots.isEmpty) {
-          return const InputDecorator(
-            decoration: InputDecoration(
+          return InputDecorator(
+            decoration: const InputDecoration(
                 labelText: 'Hora', prefixIcon: Icon(Icons.schedule)),
             child: Text('No hay horarios disponibles',
                 style: TextStyle(color: AnnaColors.muted)),
@@ -1180,7 +1180,7 @@ class _ClientEmployeeAvailabilityDropdown extends StatelessWidget {
         if (snapshot.hasError) {
           return Text(
             formatApiError(snapshot.error!),
-            style: const TextStyle(color: AnnaColors.danger),
+            style: TextStyle(color: AnnaColors.danger),
           );
         }
         final data = snapshot.data?.data ?? const <String, dynamic>{};
@@ -1342,7 +1342,7 @@ class _ClientRewardSelector extends StatelessWidget {
         if (snapshot.hasError) {
           return Text(
             formatApiError(snapshot.error!),
-            style: const TextStyle(color: AnnaColors.danger),
+            style: TextStyle(color: AnnaColors.danger),
           );
         }
         final rewards = (snapshot.data?.items ?? const <ApiRecord>[])
@@ -1394,7 +1394,7 @@ class _ClientHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       message,
-      style: const TextStyle(
+      style: TextStyle(
         color: AnnaColors.muted,
         fontSize: 12,
         fontWeight: FontWeight.w700,

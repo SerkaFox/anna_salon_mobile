@@ -50,7 +50,7 @@ class ApiCachedImage extends StatelessWidget {
                 child: placeholder,
               ),
       errorWidget: errorWidget == null
-          ? (context, url, error) => const Icon(
+          ? (context, url, error) => Icon(
                 Icons.broken_image_outlined,
                 color: AnnaColors.muted,
               )

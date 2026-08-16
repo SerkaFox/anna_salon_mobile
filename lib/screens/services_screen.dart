@@ -74,7 +74,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     final t = AppLocalizations.of(context);
     return ScreenScaffold(
       title: t.tr('Servicios'),
-      action: IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+      action: IconButton(onPressed: _reload, icon: Icon(Icons.refresh)),
       child: FutureBuilder<_ServiceReferences>(
         future: _future,
         builder: (context, snapshot) {
@@ -184,7 +184,7 @@ class _ServicesTab extends StatelessWidget {
                   api: api, refs: refs, service: null);
               if (changed == true && context.mounted) onChanged();
             },
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add),
             label: Text(t.tr('Crear servicio')),
           ),
           const SizedBox(height: 12),
@@ -271,7 +271,7 @@ class _ZonesTab extends StatelessWidget {
                   await _ZoneFormSheet.show(context, api: api, zone: null);
               if (changed == true && context.mounted) onChanged();
             },
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add),
             label: Text(t.tr('Crear zona')),
           ),
           const SizedBox(height: 12),
@@ -439,7 +439,7 @@ class _SalonListCard extends StatelessWidget {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AnnaColors.text,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
@@ -453,7 +453,7 @@ class _SalonListCard extends StatelessWidget {
                           description!,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AnnaColors.muted,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -480,10 +480,10 @@ class _SalonListCard extends StatelessWidget {
                     IconButton(
                       tooltip: 'Eliminar',
                       onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline),
+                      icon: Icon(Icons.delete_outline),
                       color: AnnaColors.danger,
                     ),
-                  const Icon(Icons.chevron_right, color: AnnaColors.muted),
+                  Icon(Icons.chevron_right, color: AnnaColors.muted),
                 ],
               ),
             ],
@@ -982,8 +982,7 @@ class _SheetTitle extends StatelessWidget {
         Expanded(
             child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
         IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close)),
+            onPressed: () => Navigator.pop(context), icon: Icon(Icons.close)),
       ],
     );
   }
@@ -1021,7 +1020,7 @@ Future<bool?> _confirmDelete(
         ),
         FilledButton.icon(
           onPressed: () => Navigator.pop(dialogContext, true),
-          icon: const Icon(Icons.delete_outline),
+          icon: Icon(Icons.delete_outline),
           label: const Text('Eliminar'),
         ),
       ],

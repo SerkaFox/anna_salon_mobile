@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
@@ -66,6 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => _ForgotPasswordSheet(
+        api: widget.api,
         initialValue: _usernameController.text.trim(),
       ),
     );
@@ -103,14 +102,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 8),
                         Text(
                           t.loginSubtitle,
-                          style: const TextStyle(color: AnnaColors.muted),
+                          style: TextStyle(color: AnnaColors.muted),
                         ),
                         const SizedBox(height: 24),
                         TextFormField(
                           controller: _usernameController,
                           decoration: InputDecoration(
                             labelText: t.username,
-                            prefixIcon: const Icon(Icons.person_outline),
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
                           textInputAction: TextInputAction.next,
                           validator: (value) =>
@@ -123,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: t.password,
-                            prefixIcon: const Icon(Icons.lock_outline),
+                            prefixIcon: Icon(Icons.lock_outline),
                           ),
                           obscureText: true,
                           onFieldSubmitted: (_) => _submit(),
@@ -170,8 +169,9 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _ForgotPasswordSheet extends StatefulWidget {
-  const _ForgotPasswordSheet({required this.initialValue});
+  const _ForgotPasswordSheet({required this.api, required this.initialValue});
 
+  final AnnaApi api;
   final String initialValue;
 
   @override
@@ -182,6 +182,8 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
   late final _contactController =
       TextEditingController(text: widget.initialValue);
   String? _error;
+  bool _sending = false;
+  bool _sent = false;
 
   @override
   void dispose() {
@@ -189,35 +191,25 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
     super.dispose();
   }
 
-  Future<void> _sendWhatsApp() async {
+  Future<void> _recover() async {
     final t = AppLocalizations.of(context);
     final contact = _contactController.text.trim();
     if (contact.isEmpty) {
       setState(() => _error = t.enterRecoveryContact);
       return;
     }
-    setState(() => _error = null);
-    final uri = Uri.parse(
-      'https://wa.me/?text=${Uri.encodeComponent(t.recoveryMessage(contact))}',
-    );
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (opened || !mounted) return;
-    setState(() => _error = t.cantOpenWhatsApp);
-  }
-
-  Future<void> _copyMessage() async {
-    final t = AppLocalizations.of(context);
-    final contact = _contactController.text.trim();
-    if (contact.isEmpty) {
-      setState(() => _error = t.enterRecoveryContact);
-      return;
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      await widget.api.recoverPassword(contact);
+      if (mounted) setState(() => _sent = true);
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = formatApiError(error));
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
-    await Clipboard.setData(ClipboardData(text: t.recoveryMessage(contact)));
-    if (!mounted) return;
-    setState(() => _error = null);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t.accessRequestCopied)),
-    );
   }
 
   @override
@@ -237,42 +229,49 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
           const SizedBox(height: 8),
           Text(
             t.recoverPasswordHelp,
-            style: const TextStyle(color: AnnaColors.muted),
+            style: TextStyle(color: AnnaColors.muted),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _contactController,
             decoration: InputDecoration(
               labelText: t.usernameEmailPhone,
-              prefixIcon: const Icon(Icons.person_search_outlined),
+              prefixIcon: Icon(Icons.person_search_outlined),
             ),
             textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _sendWhatsApp(),
+            enabled: !_sent,
+            onSubmitted: (_) => _recover(),
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
             AnnaErrorBanner(_error!),
           ],
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _copyMessage,
-                  icon: const Icon(Icons.copy_outlined),
-                  label: Text(t.copy),
-                ),
+          if (_sent)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AnnaColors.accent2.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(AnnaRadii.md),
+                border: Border.all(color: AnnaColors.accent2),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: _sendWhatsApp,
-                  icon: const Icon(Icons.chat_outlined),
-                  label: Text(t.whatsapp),
-                ),
+              child: Text(t.recoverySent),
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _sending ? null : _recover,
+                icon: _sending
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.password_outlined),
+                label: Text(t.sendTemporaryAccess),
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );
