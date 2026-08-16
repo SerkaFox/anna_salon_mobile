@@ -18,7 +18,7 @@ import 'shared.dart';
 
 const _workStartHour = 9;
 const _workEndHour = 20;
-const _calendarPixelsPerMinute = 1.55;
+const _calendarPixelsPerMinute = 2.10;
 const _calendarHeight =
     (_workEndHour - _workStartHour) * 60.0 * _calendarPixelsPerMinute;
 const _desktopTimeRailWidth = 48.0;
@@ -945,17 +945,18 @@ class _TimeRail extends StatelessWidget {
       height: _calendarHeight,
       child: Stack(
         children: [
-          for (var hour = _workStartHour; hour < _workEndHour; hour++)
+          for (var minute = 0;
+              minute < (_workEndHour - _workStartHour) * 60;
+              minute += 30)
             Positioned(
-              top: ((hour - _workStartHour) * 60 * _calendarPixelsPerMinute)
-                  .toDouble(),
+              top: minute * _calendarPixelsPerMinute,
               left: 0,
               right: 5,
               child: Text(
-                '${hour.toString().padLeft(2, '0')}:00',
+                '${(_workStartHour + minute ~/ 60).toString().padLeft(2, '0')}:${(minute % 60).toString().padLeft(2, '0')}',
                 style: TextStyle(
                   color: AnnaColors.muted,
-                  fontSize: 11,
+                  fontSize: minute % 60 == 0 ? 11 : 10,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1047,10 +1048,16 @@ class _GridColumnState extends State<_GridColumn> {
                   right: 0,
                   top: minute * _calendarPixelsPerMinute,
                   child: Container(
-                    height: minute % 60 == 0 ? 1.2 : 0.7,
+                    height: minute % 60 == 0
+                        ? 1.2
+                        : minute % 30 == 0
+                            ? 0.9
+                            : 0.6,
                     color: minute % 60 == 0
                         ? const Color(0x348CE5B0)
-                        : const Color(0x168CE5B0),
+                        : minute % 30 == 0
+                            ? const Color(0x268CE5B0)
+                            : const Color(0x148CE5B0),
                   ),
                 ),
               for (final block in widget.column.scheduleBlocks)
