@@ -382,6 +382,7 @@ class AppLocalizations {
     'Todos': 'Все',
     'Turno': 'Смена',
     'Sin turno': 'Без смены',
+    'Fuera del horario laboral': 'Вне рабочего графика',
     'No se encontro el identificador del bloqueo.':
         'Не найден идентификатор блока.',
     'Borrar bloqueo': 'Удалить блок',

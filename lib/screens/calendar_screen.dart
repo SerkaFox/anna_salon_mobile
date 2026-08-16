@@ -1030,6 +1030,15 @@ class _GridColumnState extends State<_GridColumn> {
                       _handleEmptyTap(context, details.localPosition.dy),
                 ),
               ),
+              if (widget.column.employeeId != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: _UnavailableScheduleLayer(
+                      hasSchedule: widget.column.hasSchedule,
+                      scheduleBlocks: widget.column.scheduleBlocks,
+                    ),
+                  ),
+                ),
               for (var minute = 0;
                   minute <= (_workEndHour - _workStartHour) * 60;
                   minute += _slotStepMinutes)
@@ -1114,6 +1123,18 @@ class _GridColumnState extends State<_GridColumn> {
   }
 
   void _handleEmptyTap(BuildContext context, double dy) {
+    if (!_isInsideWorkingSchedule(dy)) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).tr('Fuera del horario laboral'),
+            ),
+          ),
+        );
+      return;
+    }
     final startAt = _slotStartAt(widget.column.date, dy);
 
     widget.onEmptySlotTap(
@@ -1122,6 +1143,101 @@ class _GridColumnState extends State<_GridColumn> {
         employeeId: widget.column.employeeId,
       ),
     );
+  }
+
+  bool _isInsideWorkingSchedule(double dy) {
+    if (widget.column.employeeId == null) return true;
+    return widget.column.scheduleBlocks.any((block) {
+      if (block.kind != _TimeBlockKind.schedule) return false;
+      final start = block.top.clamp(0, _calendarHeight).toDouble();
+      final end =
+          (block.top + block.height).clamp(0, _calendarHeight).toDouble();
+      return dy >= start && dy < end;
+    });
+  }
+}
+
+class _UnavailableScheduleLayer extends StatelessWidget {
+  const _UnavailableScheduleLayer({
+    required this.hasSchedule,
+    required this.scheduleBlocks,
+  });
+
+  final bool hasSchedule;
+  final List<_TimeBlockView> scheduleBlocks;
+
+  @override
+  Widget build(BuildContext context) {
+    final schedules = scheduleBlocks
+        .where((block) => block.kind == _TimeBlockKind.schedule)
+        .toList();
+    final ranges = <({double start, double end})>[];
+    if (!hasSchedule || schedules.isEmpty) {
+      ranges.add((start: 0, end: _calendarHeight));
+    } else {
+      schedules.sort((a, b) => a.top.compareTo(b.top));
+      var cursor = 0.0;
+      for (final schedule in schedules) {
+        final start = schedule.top.clamp(0, _calendarHeight).toDouble();
+        final end = (schedule.top + schedule.height)
+            .clamp(0, _calendarHeight)
+            .toDouble();
+        if (start > cursor) ranges.add((start: cursor, end: start));
+        if (end > cursor) cursor = end;
+      }
+      if (cursor < _calendarHeight) {
+        ranges.add((start: cursor, end: _calendarHeight));
+      }
+    }
+    return CustomPaint(
+      painter: _UnavailableSchedulePainter(
+        ranges: ranges,
+        lineColor: AnnaColors.muted.withValues(alpha: 0.28),
+        fillColor: AnnaColors.bgSoft.withValues(alpha: 0.72),
+      ),
+    );
+  }
+}
+
+class _UnavailableSchedulePainter extends CustomPainter {
+  const _UnavailableSchedulePainter({
+    required this.ranges,
+    required this.lineColor,
+    required this.fillColor,
+  });
+
+  final List<({double start, double end})> ranges;
+  final Color lineColor;
+  final Color fillColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fillPaint = Paint()..color = fillColor;
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1;
+    for (final range in ranges) {
+      if (range.end <= range.start) continue;
+      final rect = Rect.fromLTRB(0, range.start, size.width, range.end);
+      canvas.drawRect(rect, fillPaint);
+      canvas.save();
+      canvas.clipRect(rect);
+      for (var x = -size.height; x < size.width + size.height; x += 9) {
+        canvas.drawLine(
+          Offset(x.toDouble(), rect.bottom),
+          Offset((x + rect.height).toDouble(), rect.top),
+          linePaint,
+        );
+      }
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _UnavailableSchedulePainter oldDelegate) {
+    return oldDelegate.ranges != ranges ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.fillColor != fillColor;
   }
 }
 
