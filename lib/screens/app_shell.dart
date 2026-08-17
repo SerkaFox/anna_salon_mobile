@@ -37,7 +37,19 @@ class _AppShellState extends State<AppShell> {
   late Future<Map<String, dynamic>> _profile = _loadProfile();
 
   Future<Map<String, dynamic>> _loadProfile() async {
-    return (await widget.api.me()).data;
+    final profile = (await widget.api.me()).data;
+    if (profile['can_manage_staff'] == true) {
+      try {
+        profile['whatsapp_status'] = (await widget.api.whatsappStatus()).data;
+      } on Object {
+        profile['whatsapp_status'] = {
+          'connected': false,
+          'needs_reconnect': true,
+          'status': 'error',
+        };
+      }
+    }
+    return profile;
   }
 
   void _handleBookingCreated(CreatedBooking booking) {
@@ -113,6 +125,9 @@ class _AppShellState extends State<AppShell> {
           bookingDraft: _bookingDraft,
           bookingDraftToken: _bookingDraftToken,
           canManageStaff: canManageStaff,
+          whatsappStatus: profile['whatsapp_status'] is Map
+              ? Map<String, dynamic>.from(profile['whatsapp_status'] as Map)
+              : null,
           employeeId: employeeId,
           onBookingCreated: _handleBookingCreated,
           onCalendarSlotSelected: _handleCalendarSlotSelected,
@@ -135,6 +150,7 @@ class _AppShellBody extends StatelessWidget {
     required this.bookingDraft,
     required this.bookingDraftToken,
     required this.canManageStaff,
+    required this.whatsappStatus,
     required this.employeeId,
     required this.onBookingCreated,
     required this.onCalendarSlotSelected,
@@ -151,6 +167,7 @@ class _AppShellBody extends StatelessWidget {
   final BookingDraft? bookingDraft;
   final int bookingDraftToken;
   final bool canManageStaff;
+  final Map<String, dynamic>? whatsappStatus;
   final String? employeeId;
   final ValueChanged<CreatedBooking> onBookingCreated;
   final ValueChanged<CalendarSlotDraft> onCalendarSlotSelected;
@@ -190,7 +207,17 @@ class _AppShellBody extends StatelessWidget {
     return Scaffold(
       body: DecoratedBox(
         decoration: annaBackgroundDecoration(context),
-        child: SafeArea(child: screens[index]),
+        child: SafeArea(
+          child: Column(
+            children: [
+              if (canManageStaff && whatsappStatus?['needs_reconnect'] == true)
+                _WhatsAppDisconnectedBanner(
+                  onOpenSettings: () => onIndexChanged(4),
+                ),
+              Expanded(child: screens[index]),
+            ],
+          ),
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
@@ -222,6 +249,45 @@ class _AppShellBody extends StatelessWidget {
             label: t.settings,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _WhatsAppDisconnectedBanner extends StatelessWidget {
+  const _WhatsAppDisconnectedBanner({required this.onOpenSettings});
+
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
+    return Material(
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: InkWell(
+        onTap: onOpenSettings,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  color: Theme.of(context).colorScheme.onErrorContainer),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  russian
+                      ? 'WhatsApp отключён. Нажмите, чтобы переподключить.'
+                      : 'WhatsApp esta desconectado. Pulsa para volver a conectarlo.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
       ),
     );
   }

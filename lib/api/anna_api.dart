@@ -103,6 +103,10 @@ class AnnaApi {
     return ApiDocument.fromJson(await _get('me/'));
   }
 
+  Future<ApiDocument> whatsappStatus() async {
+    return ApiDocument.fromJson(await _get('whatsapp/status/'));
+  }
+
   Future<ApiDocument> updateMe(Map<String, dynamic> payload) async {
     final document = ApiDocument.fromJson(await _patch('me/', payload));
     final newPassword = payload['new_password'];

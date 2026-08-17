@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../app_settings_controller.dart';
 import '../api/anna_api.dart';
@@ -161,6 +162,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   if (_canManageNotifications(profile)) ...[
                     const SizedBox(height: 16),
+                    _WhatsAppConnectionCard(api: widget.api),
+                    const SizedBox(height: 16),
                     _WhatsAppNotificationsCard(api: widget.api),
                   ],
                 ],
@@ -181,6 +184,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _WhatsAppConnectionCard extends StatefulWidget {
+  const _WhatsAppConnectionCard({required this.api});
+
+  final AnnaApi api;
+
+  @override
+  State<_WhatsAppConnectionCard> createState() =>
+      _WhatsAppConnectionCardState();
+}
+
+class _WhatsAppConnectionCardState extends State<_WhatsAppConnectionCard> {
+  late Future<Map<String, dynamic>> _status = _load();
+
+  Future<Map<String, dynamic>> _load() async {
+    return (await widget.api.whatsappStatus()).data;
+  }
+
+  void _reload() => setState(() => _status = _load());
+
+  @override
+  Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _status,
+      builder: (context, snapshot) {
+        final data = snapshot.data ?? const <String, dynamic>{};
+        final connected = data['connected'] == true;
+        final loading = snapshot.connectionState != ConnectionState.done;
+        final color =
+            connected ? Colors.green : Theme.of(context).colorScheme.error;
+        return PanelCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(connected ? Icons.check_circle : Icons.error_outline,
+                      color: loading ? AnnaColors.muted : color),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text('WhatsApp',
+                        style: Theme.of(context).textTheme.titleLarge),
+                  ),
+                  IconButton(
+                      onPressed: loading ? null : _reload,
+                      icon: const Icon(Icons.refresh)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                loading
+                    ? (russian
+                        ? 'Проверяем подключение…'
+                        : 'Comprobando la conexion…')
+                    : connected
+                        ? (russian
+                            ? 'Подключён и готов отправлять сообщения.'
+                            : 'Conectado y listo para enviar mensajes.')
+                        : (russian
+                            ? 'Отключён. Сообщения клиентам не отправляются.'
+                            : 'Desconectado. No se envian mensajes a clientes.'),
+                style: TextStyle(color: loading ? AnnaColors.muted : color),
+              ),
+              if (!loading && !connected) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      final raw = data['reconnect_url']?.toString() ?? '';
+                      final uri = Uri.tryParse(raw);
+                      if (uri != null) {
+                        await launchUrl(uri,
+                            mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    icon: const Icon(Icons.qr_code_2),
+                    label: Text(russian
+                        ? 'Переподключить WhatsApp'
+                        : 'Volver a conectar WhatsApp'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
