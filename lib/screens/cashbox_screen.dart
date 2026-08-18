@@ -1592,8 +1592,28 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
                     subtitle: Text(
                       '${line.valueAsText('quantity') ?? '1'} x ${line.valueAsText('unit_amount') ?? '0.00'}',
                     ),
-                    trailing: Text(
-                        '${line.valueAsText('total_amount') ?? '0.00'} EUR'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${line.valueAsText('total_amount') ?? '0.00'} EUR',
+                        ),
+                        IconButton(
+                          tooltip:
+                              t.isRussian ? 'Изменить цену' : 'Editar precio',
+                          onPressed: () => _editLinePrice(context, line),
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                        if (lines.length > 1)
+                          IconButton(
+                            tooltip: t.isRussian
+                                ? 'Удалить услугу'
+                                : 'Eliminar servicio',
+                            onPressed: () => _deleteLine(context, line),
+                            icon: const Icon(Icons.close),
+                          ),
+                      ],
+                    ),
                   ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -1666,6 +1686,97 @@ class _CashDocumentSheetState extends State<_CashDocumentSheet> {
         },
       ),
     );
+  }
+
+  Future<void> _editLinePrice(
+    BuildContext context,
+    ApiRecord line,
+  ) async {
+    final t = AppLocalizations.of(context);
+    final controller = TextEditingController(
+      text: line.valueAsText('unit_amount') ?? '',
+    );
+    final amount = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t.isRussian ? 'Изменить цену' : 'Editar precio'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: t.isRussian ? 'Цена услуги' : 'Precio del servicio',
+            suffixText: 'EUR',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t.isRussian ? 'Отмена' : 'Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              controller.text.trim(),
+            ),
+            child: Text(t.isRussian ? 'Сохранить' : 'Guardar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (amount == null || amount.isEmpty || !context.mounted) return;
+    try {
+      final response = await widget.api.updateCashDocumentLine(
+        line.valueAsText('id')!,
+        {'unit_amount': amount.replaceAll(',', '.')},
+      );
+      if (!mounted) return;
+      setState(() => _future = Future.value(response));
+      widget.onChanged();
+    } on AnnaApiException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    }
+  }
+
+  Future<void> _deleteLine(BuildContext context, ApiRecord line) async {
+    final t = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title:
+                Text(t.isRussian ? 'Удалить услугу?' : '¿Eliminar servicio?'),
+            content: Text(line.valueAsText('description') ?? ''),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(t.isRussian ? 'Отмена' : 'Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(t.isRussian ? 'Удалить' : 'Eliminar'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !context.mounted) return;
+    try {
+      final response = await widget.api.deleteCashDocumentLine(
+        line.valueAsText('id')!,
+      );
+      if (!mounted) return;
+      setState(() => _future = Future.value(response));
+      widget.onChanged();
+    } on AnnaApiException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    }
   }
 
   Future<void> _showAddLine(BuildContext context) async {

@@ -493,6 +493,19 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> updateCashDocumentLine(
+    Object lineId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _patch('cashbox/lines/$lineId/', payload),
+    );
+  }
+
+  Future<ApiDocument> deleteCashDocumentLine(Object lineId) async {
+    return ApiDocument.fromJson(await _delete('cashbox/lines/$lineId/'));
+  }
+
   Future<ApiDocument> addCashDocumentPayment(
     Object documentId,
     Map<String, dynamic> payload,
