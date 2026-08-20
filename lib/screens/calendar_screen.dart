@@ -37,6 +37,7 @@ class CalendarScreen extends StatefulWidget {
     this.highlightBookingId,
     this.highlightToken = 0,
     this.onCreateFromSlot,
+    this.onEmployeeFilterChanged,
     super.key,
   });
 
@@ -47,6 +48,7 @@ class CalendarScreen extends StatefulWidget {
   final String? highlightBookingId;
   final int highlightToken;
   final ValueChanged<CalendarSlotDraft>? onCreateFromSlot;
+  final ValueChanged<Set<String>?>? onEmployeeFilterChanged;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -272,6 +274,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         .toSet();
     if (ids.isEmpty || !mounted) return;
     setState(() => _selectedEmployeeIds = ids);
+    widget.onEmployeeFilterChanged?.call(Set.unmodifiable(ids));
   }
 
   Future<void> _saveSelectedEmployeeIds(Set<String>? ids) async {
@@ -299,6 +302,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _setSelectedEmployeeIds(Set<String>? ids) {
     setState(() => _selectedEmployeeIds = ids);
     unawaited(_saveSelectedEmployeeIds(ids));
+    widget.onEmployeeFilterChanged?.call(
+      ids == null ? null : Set.unmodifiable(ids),
+    );
   }
 
   void _toggleEmployee(String employeeId, List<_CalendarEmployee> employees) {

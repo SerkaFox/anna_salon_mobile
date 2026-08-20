@@ -34,6 +34,7 @@ class _AppShellState extends State<AppShell> {
   int _highlightToken = 0;
   BookingDraft? _bookingDraft;
   int _bookingDraftToken = 0;
+  Set<String>? _calendarEmployeeIds;
   late Future<Map<String, dynamic>> _profile = _loadProfile();
 
   Future<Map<String, dynamic>> _loadProfile() async {
@@ -131,6 +132,10 @@ class _AppShellState extends State<AppShell> {
           employeeId: employeeId,
           onBookingCreated: _handleBookingCreated,
           onCalendarSlotSelected: _handleCalendarSlotSelected,
+          calendarEmployeeIds: _calendarEmployeeIds,
+          onCalendarEmployeeFilterChanged: (ids) => setState(() {
+            _calendarEmployeeIds = ids;
+          }),
         );
       },
     );
@@ -154,6 +159,8 @@ class _AppShellBody extends StatelessWidget {
     required this.employeeId,
     required this.onBookingCreated,
     required this.onCalendarSlotSelected,
+    required this.calendarEmployeeIds,
+    required this.onCalendarEmployeeFilterChanged,
   });
 
   final AnnaApi api;
@@ -171,6 +178,8 @@ class _AppShellBody extends StatelessWidget {
   final String? employeeId;
   final ValueChanged<CreatedBooking> onBookingCreated;
   final ValueChanged<CalendarSlotDraft> onCalendarSlotSelected;
+  final Set<String>? calendarEmployeeIds;
+  final ValueChanged<Set<String>?> onCalendarEmployeeFilterChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -184,12 +193,14 @@ class _AppShellBody extends StatelessWidget {
         highlightBookingId: highlightBookingId,
         highlightToken: highlightToken,
         onCreateFromSlot: onCalendarSlotSelected,
+        onEmployeeFilterChanged: onCalendarEmployeeFilterChanged,
       ),
       BookingScreen(
         api: api,
         onBookingCreated: onBookingCreated,
         draft: bookingDraft,
         draftToken: bookingDraftToken,
+        allowedEmployeeIds: calendarEmployeeIds,
       ),
       ClientsScreen(api: api, canManagePhotos: canManageStaff),
       SalonScreen(

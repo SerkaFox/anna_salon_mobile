@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -18,6 +19,7 @@ class BookingScreen extends StatefulWidget {
     this.onBookingCreated,
     this.draft,
     this.draftToken = 0,
+    this.allowedEmployeeIds,
     super.key,
   });
 
@@ -25,6 +27,7 @@ class BookingScreen extends StatefulWidget {
   final ValueChanged<CreatedBooking>? onBookingCreated;
   final BookingDraft? draft;
   final int draftToken;
+  final Set<String>? allowedEmployeeIds;
 
   @override
   State<BookingScreen> createState() => _BookingScreenState();
@@ -100,6 +103,9 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void didUpdateWidget(covariant BookingScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!setEquals(widget.allowedEmployeeIds, oldWidget.allowedEmployeeIds)) {
+      _references = _loadReferences();
+    }
     if (widget.draftToken != oldWidget.draftToken) {
       setState(() => _applyDraft(widget.draft));
     }
@@ -146,6 +152,7 @@ class _BookingScreenState extends State<BookingScreen> {
       services: results[1],
       employees: results[2],
       zones: results[3],
+      allowedEmployeeIds: widget.allowedEmployeeIds,
     );
   }
 
@@ -1500,19 +1507,26 @@ class _BookingReferences {
     required this.services,
     required this.employees,
     required this.zones,
+    this.allowedEmployeeIds,
   });
 
   final ApiCollection clients;
   final ApiCollection services;
   final ApiCollection employees;
   final ApiCollection zones;
+  final Set<String>? allowedEmployeeIds;
 
   List<_BookingOption> get clientOptions =>
       _options(clients.items, _clientLabel);
   List<_BookingOption> get serviceOptions =>
       _options(services.items, _serviceLabel);
-  List<_BookingOption> get employeeOptions =>
-      _options(employees.items, _employeeLabel);
+  List<_BookingOption> get employeeOptions {
+    final options = _options(employees.items, _employeeLabel);
+    final allowed = allowedEmployeeIds;
+    if (allowed == null) return options;
+    return options.where((employee) => allowed.contains(employee.id)).toList();
+  }
+
   List<_BookingOption> get zoneOptions => _options(zones.items, _zoneLabel);
 
   _BookingOption? optionById(List<_BookingOption> options, String? id) {
