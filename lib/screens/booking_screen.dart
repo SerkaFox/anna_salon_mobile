@@ -86,6 +86,8 @@ class _BookingScreenState extends State<BookingScreen> {
   final List<String> _additionalServiceIds = [];
   String? _employeeId;
   String? _rewardRuleId;
+  int _extraDurationMinutes = 0;
+  int _cleanupDurationMinutes = 0;
   Future<ApiCollection>? _clientRewardsFuture;
   String? _clientRewardsClientId;
   String _source = 'manual';
@@ -286,6 +288,8 @@ class _BookingScreenState extends State<BookingScreen> {
       'start_at': _startAtText(),
       'source': _source,
       'prepayment_required': _requiresPrepayment,
+      'extra_duration_minutes': _extraDurationMinutes,
+      'cleanup_duration_minutes': _cleanupDurationMinutes,
     };
     if (_rewardRuleId != null) {
       payload['reward_rule'] = _coerceId(_rewardRuleId);
@@ -319,9 +323,11 @@ class _BookingScreenState extends State<BookingScreen> {
 
   String? _endAtText(_BookingReferences refs) {
     final duration = _selectedServices(refs).fold<int>(
-      0,
-      (total, service) => total + (service.durationMinutes ?? 0),
-    );
+          0,
+          (total, service) => total + (service.durationMinutes ?? 0),
+        ) +
+        _extraDurationMinutes +
+        _cleanupDurationMinutes;
     if (duration <= 0) return null;
     final start = DateTime(
       _selectedDate.year,
@@ -391,6 +397,8 @@ class _BookingScreenState extends State<BookingScreen> {
       _employeeId,
       _serviceId,
       ..._additionalServiceIds,
+      _extraDurationMinutes,
+      _cleanupDurationMinutes,
     ].join('|');
   }
 
@@ -402,7 +410,10 @@ class _BookingScreenState extends State<BookingScreen> {
       'employee': _employeeId!,
       'service': _serviceId!,
       'duration_minutes': _selectedServices(refs)
-          .fold<int>(0, (total, item) => total + (item.durationMinutes ?? 0))
+          .fold<int>(
+            _extraDurationMinutes + _cleanupDurationMinutes,
+            (total, item) => total + (item.durationMinutes ?? 0),
+          )
           .toString(),
     };
     final response = await widget.api.availabilitySlots(query);
@@ -527,6 +538,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 clientId: _clientId,
                 serviceId: _serviceId,
                 additionalServiceIds: _additionalServiceIds,
+                extraDurationMinutes: _extraDurationMinutes,
+                cleanupDurationMinutes: _cleanupDurationMinutes,
                 employeeId: _employeeId,
                 source: _source,
                 requiresPrepayment: _requiresPrepayment,
@@ -580,6 +593,14 @@ class _BookingScreenState extends State<BookingScreen> {
                   _additionalServiceIds.remove(id);
                   _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
                 }),
+                onExtraDurationChanged: (value) => setState(() {
+                  _extraDurationMinutes = value;
+                  _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
+                }),
+                onCleanupDurationChanged: (value) => setState(() {
+                  _cleanupDurationMinutes = value;
+                  _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
+                }),
                 onSourceChanged: (value) => setState(() {
                   _source = value ?? 'manual';
                 }),
@@ -616,6 +637,8 @@ class _BookingFormCard extends StatelessWidget {
     required this.clientId,
     required this.serviceId,
     required this.additionalServiceIds,
+    required this.extraDurationMinutes,
+    required this.cleanupDurationMinutes,
     required this.employeeId,
     required this.source,
     required this.requiresPrepayment,
@@ -629,6 +652,8 @@ class _BookingFormCard extends StatelessWidget {
     required this.onServiceChanged,
     required this.onAddService,
     required this.onRemoveService,
+    required this.onExtraDurationChanged,
+    required this.onCleanupDurationChanged,
     required this.onEmployeeChanged,
     required this.onSourceChanged,
     required this.onRequiresPrepaymentChanged,
@@ -652,6 +677,8 @@ class _BookingFormCard extends StatelessWidget {
   final String? clientId;
   final String? serviceId;
   final List<String> additionalServiceIds;
+  final int extraDurationMinutes;
+  final int cleanupDurationMinutes;
   final String? employeeId;
   final String source;
   final bool requiresPrepayment;
@@ -666,6 +693,8 @@ class _BookingFormCard extends StatelessWidget {
   final ValueChanged<String?> onServiceChanged;
   final VoidCallback onAddService;
   final ValueChanged<String> onRemoveService;
+  final ValueChanged<int> onExtraDurationChanged;
+  final ValueChanged<int> onCleanupDurationChanged;
   final ValueChanged<String?> onEmployeeChanged;
   final ValueChanged<String?> onSourceChanged;
   final ValueChanged<bool> onRequiresPrepaymentChanged;
@@ -696,10 +725,12 @@ class _BookingFormCard extends StatelessWidget {
       if (service != null) service,
       ...additionalServices
     ];
-    final totalDuration = selectedServices.fold<int>(
+    final serviceDuration = selectedServices.fold<int>(
       0,
       (total, item) => total + (item.durationMinutes ?? 0),
     );
+    final totalDuration =
+        serviceDuration + extraDurationMinutes + cleanupDurationMinutes;
     final totalPrice = selectedServices.fold<double>(
       0,
       (total, item) =>
@@ -847,13 +878,75 @@ class _BookingFormCard extends StatelessWidget {
                       Text(t.isRussian ? 'Добавить услугу' : 'Anadir servicio'),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      key: ValueKey('extra-$extraDurationMinutes'),
+                      initialValue: extraDurationMinutes,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: t.isRussian ? 'Доп. время' : 'Tiempo extra',
+                        prefixIcon: const Icon(Icons.more_time_outlined),
+                      ),
+                      items: [
+                        for (var minutes = 0; minutes <= 180; minutes += 15)
+                          DropdownMenuItem(
+                            value: minutes,
+                            child:
+                                Text(minutes == 0 ? '0 min' : '+$minutes min'),
+                          ),
+                      ],
+                      onChanged: creating
+                          ? null
+                          : (value) => onExtraDurationChanged(value ?? 0),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      key: ValueKey('cleanup-$cleanupDurationMinutes'),
+                      initialValue: cleanupDurationMinutes,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: t.isRussian ? 'Уборка' : 'Limpieza',
+                        prefixIcon:
+                            const Icon(Icons.cleaning_services_outlined),
+                      ),
+                      items: [
+                        for (var minutes = 0; minutes <= 90; minutes += 15)
+                          DropdownMenuItem(
+                            value: minutes,
+                            child:
+                                Text(minutes == 0 ? '0 min' : '+$minutes min'),
+                          ),
+                      ],
+                      onChanged: creating
+                          ? null
+                          : (value) => onCleanupDurationChanged(value ?? 0),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               Text(
                 t.isRussian
-                    ? 'Итого: $totalDuration мин · ${totalPrice.toStringAsFixed(2)} EUR'
-                    : 'Total: $totalDuration min · ${totalPrice.toStringAsFixed(2)} EUR',
+                    ? 'Занято: $totalDuration мин · ${totalPrice.toStringAsFixed(2)} EUR'
+                    : 'Tiempo ocupado: $totalDuration min · ${totalPrice.toStringAsFixed(2)} EUR',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
+              if (extraDurationMinutes > 0 || cleanupDurationMinutes > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Text(
+                    t.isRussian
+                        ? 'Услуги: $serviceDuration мин · доп.: $extraDurationMinutes мин · уборка: $cleanupDurationMinutes мин'
+                        : 'Servicios: $serviceDuration min · extra: $extraDurationMinutes min · limpieza: $cleanupDurationMinutes min',
+                    style: TextStyle(color: AnnaColors.muted, fontSize: 12),
+                  ),
+                ),
             ],
             const SizedBox(height: 14),
             if (service != null && employeeOptions.isEmpty) ...[

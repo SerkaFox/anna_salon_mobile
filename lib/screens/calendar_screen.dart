@@ -1039,7 +1039,7 @@ class _GridColumnState extends State<_GridColumn> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTapDown: (details) =>
-                      _handleEmptyTap(context, details.localPosition.dy),
+                      _handleEmptyTap(details.localPosition.dy),
                 ),
               ),
               if (widget.column.employeeId != null)
@@ -1140,19 +1140,7 @@ class _GridColumnState extends State<_GridColumn> {
     return _slotStartAt(widget.column.date, local.dy);
   }
 
-  void _handleEmptyTap(BuildContext context, double dy) {
-    if (!_isInsideWorkingSchedule(dy)) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).tr('Fuera del horario laboral'),
-            ),
-          ),
-        );
-      return;
-    }
+  void _handleEmptyTap(double dy) {
     final startAt = _slotStartAt(widget.column.date, dy);
 
     widget.onEmptySlotTap(
@@ -1161,17 +1149,6 @@ class _GridColumnState extends State<_GridColumn> {
         employeeId: widget.column.employeeId,
       ),
     );
-  }
-
-  bool _isInsideWorkingSchedule(double dy) {
-    if (widget.column.employeeId == null) return true;
-    return widget.column.scheduleBlocks.any((block) {
-      if (block.kind != _TimeBlockKind.schedule) return false;
-      final start = block.top.clamp(0, _calendarHeight).toDouble();
-      final end =
-          (block.top + block.height).clamp(0, _calendarHeight).toDouble();
-      return dy >= start && dy < end;
-    });
   }
 }
 
