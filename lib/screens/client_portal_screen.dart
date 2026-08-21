@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../app_settings_controller.dart';
 import '../api/anna_api.dart';
@@ -862,7 +863,7 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
       _error = null;
     });
     try {
-      await widget.api.createBooking({
+      final response = await widget.api.createBooking({
         'service': int.tryParse(_serviceId!) ?? _serviceId,
         'employee': int.tryParse(_employeeId!) ?? _employeeId,
         if (_zoneId != null) 'zone': int.tryParse(_zoneId!) ?? _zoneId,
@@ -872,6 +873,9 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
           'reward_rule': int.tryParse(_rewardRuleId!) ?? _rewardRuleId,
       });
       if (!mounted) return;
+      final bookingId = response.data['id'];
+      final checkoutUrl =
+          response.data['prepayment_checkout_url']?.toString() ?? '';
       _notesController.clear();
       setState(() {
         _serviceId = null;
@@ -882,14 +886,89 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
         _resetSlots();
       });
       widget.onCreated();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitud de reserva enviada.')),
-      );
+      await _showRequiredPrepayment(bookingId, checkoutUrl);
     } on AnnaApiException catch (error) {
       setState(() => _error = formatApiError(error));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _showRequiredPrepayment(Object? bookingId, String checkoutUrl) {
+    var sending = false;
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            icon: const Icon(Icons.lock_clock_outlined,
+                size: 54, color: AnnaColors.warning),
+            title: const Text(
+              'La reserva todavía no está confirmada',
+              textAlign: TextAlign.center,
+            ),
+            content: const Text(
+              'Para fijar la fecha y la hora debes realizar el prepago obligatorio. '
+              'Si no pagas en 30 minutos, la reserva no se formalizará y otra persona podrá ocupar ese horario.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 17, height: 1.45),
+            ),
+            actions: [
+              FilledButton.icon(
+                onPressed: checkoutUrl.isEmpty
+                    ? null
+                    : () async {
+                        final opened = await launchUrl(
+                          Uri.parse(checkoutUrl),
+                          mode: LaunchMode.externalApplication,
+                        );
+                        if (opened && dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                        }
+                      },
+                icon: const Icon(Icons.payment),
+                label: const Text('Pagar ahora'),
+              ),
+              OutlinedButton.icon(
+                onPressed: sending || bookingId == null
+                    ? null
+                    : () async {
+                        final messenger = ScaffoldMessenger.of(this.context);
+                        setDialogState(() => sending = true);
+                        try {
+                          await widget.api
+                              .updateBookingPrepayment(bookingId, true);
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('Enlace de pago enviado por WhatsApp.'),
+                            ),
+                          );
+                        } on AnnaApiException catch (error) {
+                          if (!dialogContext.mounted) return;
+                          setDialogState(() => sending = false);
+                          messenger.showSnackBar(
+                            SnackBar(content: Text(formatApiError(error))),
+                          );
+                        }
+                      },
+                icon: sending
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chat_outlined),
+                label: const Text('Recibir enlace por WhatsApp'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override

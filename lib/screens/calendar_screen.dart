@@ -18,7 +18,7 @@ import 'shared.dart';
 
 const _workStartHour = 9;
 const _workEndHour = 20;
-const _calendarPixelsPerMinute = 2.10;
+const _calendarPixelsPerMinute = 2.35;
 const _calendarHeight =
     (_workEndHour - _workStartHour) * 60.0 * _calendarPixelsPerMinute;
 const _desktopTimeRailWidth = 48.0;
@@ -803,16 +803,21 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
       for (final day in days)
         _CalendarColumn(
           date: day.date,
+          employeeId: day.employees.length == 1 ? day.employees.first.id : null,
+          hasSchedule:
+              day.employees.length != 1 || day.employees.first.hasSchedule,
           title: DateFormat('EEE', localeCode).format(day.date),
           subtitle: DateFormat('d/M', localeCode).format(day.date),
           color:
               _isSameDate(day.date, DateTime.now()) ? primary : AnnaColors.line,
           bookings: day.bookings,
-          scheduleBlocks: [
-            for (final employee in day.employees)
-              for (final block in employee.blocks)
-                if (block.kind != _TimeBlockKind.schedule) block,
-          ],
+          scheduleBlocks: day.employees.length == 1
+              ? day.employees.first.blocks
+              : [
+                  for (final employee in day.employees)
+                    for (final block in employee.blocks)
+                      if (block.kind != _TimeBlockKind.schedule) block,
+                ],
         ),
     ];
   }
@@ -1055,15 +1060,15 @@ class _GridColumnState extends State<_GridColumn> {
                   top: minute * _calendarPixelsPerMinute,
                   child: Container(
                     height: minute % 60 == 0
-                        ? 1.2
+                        ? 1.8
                         : minute % 30 == 0
-                            ? 0.9
-                            : 0.6,
+                            ? 1.35
+                            : 0.95,
                     color: minute % 60 == 0
-                        ? const Color(0x348CE5B0)
+                        ? const Color(0x5A8CE5B0)
                         : minute % 30 == 0
-                            ? const Color(0x268CE5B0)
-                            : const Color(0x148CE5B0),
+                            ? const Color(0x428CE5B0)
+                            : const Color(0x2E8CE5B0),
                   ),
                 ),
               for (final block in widget.column.scheduleBlocks)

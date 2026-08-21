@@ -2822,6 +2822,15 @@ Future<void> _showShareSheet(
           _DocumentPrintButton(document: document.data),
           const SizedBox(height: 10),
           _DocumentShareActions(api: api, document: document),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: Text(t.isRussian ? 'Без чека' : 'Sin recibo'),
+            ),
+          ),
         ],
       ),
     ),

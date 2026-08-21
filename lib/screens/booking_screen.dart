@@ -83,6 +83,7 @@ class _BookingScreenState extends State<BookingScreen> {
   String? _selectedSlotValue;
   String? _clientId;
   String? _serviceId;
+  final List<String> _additionalServiceIds = [];
   String? _employeeId;
   String? _rewardRuleId;
   Future<ApiCollection>? _clientRewardsFuture;
@@ -256,6 +257,13 @@ class _BookingScreenState extends State<BookingScreen> {
           _error = t.tr('Este empleado no realiza el servicio seleccionado.'));
       return false;
     }
+    for (final additional in _selectedServices(refs).skip(1)) {
+      if (!refs.employeeSupportsService(_employeeId, additional)) {
+        setState(() => _error = t.tr(
+            'Este empleado no realiza uno de los servicios seleccionados.'));
+        return false;
+      }
+    }
     if (_selectedSlotValue == null) {
       setState(() => _error = t.tr('Selecciona un horario disponible.'));
       return false;
@@ -271,6 +279,9 @@ class _BookingScreenState extends State<BookingScreen> {
     final payload = <String, dynamic>{
       'client': _coerceId(_clientId),
       'service': _coerceId(_serviceId),
+      'services': [
+        for (final service in _selectedServices(refs)) _coerceId(service.id),
+      ],
       'employee': _coerceId(_employeeId),
       'start_at': _startAtText(),
       'source': _source,
@@ -307,8 +318,11 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   String? _endAtText(_BookingReferences refs) {
-    final duration = _selectedService(refs)?.durationMinutes;
-    if (duration == null) return null;
+    final duration = _selectedServices(refs).fold<int>(
+      0,
+      (total, service) => total + (service.durationMinutes ?? 0),
+    );
+    if (duration <= 0) return null;
     final start = DateTime(
       _selectedDate.year,
       _selectedDate.month,
@@ -324,6 +338,38 @@ class _BookingScreenState extends State<BookingScreen> {
       if (option.id == _serviceId) return option;
     }
     return null;
+  }
+
+  List<_BookingOption> _selectedServices(_BookingReferences refs) {
+    final ids = [_serviceId, ..._additionalServiceIds];
+    return [
+      for (final id in ids)
+        if (refs.optionById(refs.serviceOptions, id) case final service?)
+          service,
+    ];
+  }
+
+  Future<void> _addService(_BookingReferences refs) async {
+    final employee = refs.optionById(refs.employeeOptions, _employeeId);
+    final usedIds = {_serviceId, ..._additionalServiceIds};
+    final options = (employee == null
+            ? refs.serviceOptions
+            : refs.servicesForEmployee(employee))
+        .where((option) => !usedIds.contains(option.id))
+        .toList();
+    if (options.isEmpty) return;
+    final picked = await _SearchableOptionsSheet.show(
+      context,
+      title: AppLocalizations.of(context).tr('Anadir servicio'),
+      searchHint: AppLocalizations.of(context).tr('Nombre del servicio'),
+      options: options,
+      selectedId: null,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _additionalServiceIds.add(picked.id);
+      _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
+    });
   }
 
   String? _autoEmployeeIdForService(
@@ -344,6 +390,7 @@ class _BookingScreenState extends State<BookingScreen> {
       DateFormat('yyyy-MM-dd').format(_selectedDate),
       _employeeId,
       _serviceId,
+      ..._additionalServiceIds,
     ].join('|');
   }
 
@@ -354,6 +401,9 @@ class _BookingScreenState extends State<BookingScreen> {
       'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
       'employee': _employeeId!,
       'service': _serviceId!,
+      'duration_minutes': _selectedServices(refs)
+          .fold<int>(0, (total, item) => total + (item.durationMinutes ?? 0))
+          .toString(),
     };
     final response = await widget.api.availabilitySlots(query);
     return _AvailabilitySlotsData.fromResponse(response.data);
@@ -476,6 +526,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 selectedDate: _selectedDate,
                 clientId: _clientId,
                 serviceId: _serviceId,
+                additionalServiceIds: _additionalServiceIds,
                 employeeId: _employeeId,
                 source: _source,
                 requiresPrepayment: _requiresPrepayment,
@@ -496,6 +547,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 onServiceChanged: (value) {
                   setState(() {
                     _serviceId = value;
+                    _additionalServiceIds.remove(value);
                     final service = _selectedService(refs);
                     final autoEmployeeId =
                         _autoEmployeeIdForService(refs, service);
@@ -517,6 +569,15 @@ class _BookingScreenState extends State<BookingScreen> {
                   if (!refs.employeeSupportsService(value, service)) {
                     _serviceId = null;
                   }
+                  _additionalServiceIds.removeWhere((id) {
+                    final item = refs.optionById(refs.serviceOptions, id);
+                    return !refs.employeeSupportsService(value, item);
+                  });
+                  _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
+                }),
+                onAddService: () => _addService(refs),
+                onRemoveService: (id) => setState(() {
+                  _additionalServiceIds.remove(id);
                   _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
                 }),
                 onSourceChanged: (value) => setState(() {
@@ -554,6 +615,7 @@ class _BookingFormCard extends StatelessWidget {
     required this.selectedDate,
     required this.clientId,
     required this.serviceId,
+    required this.additionalServiceIds,
     required this.employeeId,
     required this.source,
     required this.requiresPrepayment,
@@ -565,6 +627,8 @@ class _BookingFormCard extends StatelessWidget {
     required this.creating,
     required this.onClientChanged,
     required this.onServiceChanged,
+    required this.onAddService,
+    required this.onRemoveService,
     required this.onEmployeeChanged,
     required this.onSourceChanged,
     required this.onRequiresPrepaymentChanged,
@@ -587,6 +651,7 @@ class _BookingFormCard extends StatelessWidget {
   final DateTime selectedDate;
   final String? clientId;
   final String? serviceId;
+  final List<String> additionalServiceIds;
   final String? employeeId;
   final String source;
   final bool requiresPrepayment;
@@ -599,6 +664,8 @@ class _BookingFormCard extends StatelessWidget {
   final bool creating;
   final ValueChanged<String?> onClientChanged;
   final ValueChanged<String?> onServiceChanged;
+  final VoidCallback onAddService;
+  final ValueChanged<String> onRemoveService;
   final ValueChanged<String?> onEmployeeChanged;
   final ValueChanged<String?> onSourceChanged;
   final ValueChanged<bool> onRequiresPrepaymentChanged;
@@ -621,10 +688,34 @@ class _BookingFormCard extends StatelessWidget {
         ? refs.serviceOptions
         : refs.servicesForEmployee(selectedEmployee);
     final service = refs.optionById(serviceOptions, serviceId);
+    final additionalServices = [
+      for (final id in additionalServiceIds)
+        if (refs.optionById(serviceOptions, id) case final item?) item,
+    ];
+    final selectedServices = [
+      if (service != null) service,
+      ...additionalServices
+    ];
+    final totalDuration = selectedServices.fold<int>(
+      0,
+      (total, item) => total + (item.durationMinutes ?? 0),
+    );
+    final totalPrice = selectedServices.fold<double>(
+      0,
+      (total, item) =>
+          total +
+          (double.tryParse((item.price ?? '0').replaceAll(',', '.')) ?? 0),
+    );
     final zoneNeeded = service?.requiresZone ?? false;
     final employeeOptions = service == null
         ? refs.employeeOptions
-        : refs.employeesForService(service);
+        : refs.employeeOptions
+            .where(
+              (employee) => selectedServices.every(
+                (item) => refs.employeeSupportsService(employee.id, item),
+              ),
+            )
+            .toList();
     final hasValidEmployee =
         refs.optionById(employeeOptions, employeeId) != null;
     final canCreate =
@@ -717,6 +808,51 @@ class _BookingFormCard extends StatelessWidget {
                         : t.tr('Sin zona'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              for (final item in additionalServices)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                  decoration: BoxDecoration(
+                    color: AnnaColors.panel,
+                    borderRadius: BorderRadius.circular(AnnaRadii.md),
+                    border: Border.all(color: AnnaColors.line),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.add_circle_outline, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${item.label} · ${item.durationMinutes ?? 0} min · ${item.price ?? '0'} EUR',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed:
+                            creating ? null : () => onRemoveService(item.id),
+                        icon: const Icon(Icons.close),
+                        tooltip: t.tr('Eliminar'),
+                      ),
+                    ],
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: creating ? null : onAddService,
+                  icon: const Icon(Icons.add),
+                  label:
+                      Text(t.isRussian ? 'Добавить услугу' : 'Anadir servicio'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t.isRussian
+                    ? 'Итого: $totalDuration мин · ${totalPrice.toStringAsFixed(2)} EUR'
+                    : 'Total: $totalDuration min · ${totalPrice.toStringAsFixed(2)} EUR',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
             const SizedBox(height: 14),
