@@ -370,20 +370,19 @@ class _WaitlistCreateSheetState extends State<_WaitlistCreateSheet> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _clientId,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: ru
-                            ? 'Клиент из базы (необязательно)'
-                            : 'Cliente existente (opcional)',
-                        prefixIcon: const Icon(Icons.person_outline),
-                      ),
-                      items: [
-                        for (final item in clients)
-                          DropdownMenuItem(
-                              value: _id(item), child: Text(_label(item))),
-                      ],
+                    _WaitlistSearchField(
+                      label: ru
+                          ? 'Клиент из базы (необязательно)'
+                          : 'Cliente existente (opcional)',
+                      searchHint: ru
+                          ? 'Введите имя или телефон'
+                          : 'Escribe nombre o telefono',
+                      value: _clientId,
+                      options: clients,
+                      idOf: _id,
+                      labelOf: _label,
+                      icon: Icons.person_search_outlined,
+                      allowClear: true,
                       onChanged: (value) => setState(() {
                         _clientId = value;
                         for (final client in clients) {
@@ -419,39 +418,36 @@ class _WaitlistCreateSheetState extends State<_WaitlistCreateSheet> {
                               : null,
                     ),
                     const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: _serviceId,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                          labelText: ru ? 'Услуга' : 'Servicio'),
-                      items: [
-                        for (final item in services)
-                          DropdownMenuItem(
-                              value: _id(item), child: Text(_label(item))),
-                      ],
-                      validator: (value) => value == null
-                          ? (ru ? 'Выберите услугу' : 'Selecciona servicio')
-                          : null,
+                    _WaitlistSearchField(
+                      label: ru ? 'Услуга' : 'Servicio',
+                      searchHint: ru
+                          ? 'Введите название услуги'
+                          : 'Escribe el nombre del servicio',
+                      value: _serviceId,
+                      options: services,
+                      idOf: _id,
+                      labelOf: _label,
+                      icon: Icons.search,
+                      requiredMessage:
+                          ru ? 'Выберите услугу' : 'Selecciona servicio',
                       onChanged: (value) => setState(() {
                         _serviceId = value;
                         _employeeId = null;
                       }),
                     ),
                     const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      key: ValueKey(_serviceId),
-                      initialValue: _employeeId,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                          labelText: ru ? 'Сотрудник' : 'Empleado'),
-                      items: [
-                        for (final item in employees)
-                          DropdownMenuItem(
-                              value: _id(item), child: Text(_label(item))),
-                      ],
-                      validator: (value) => value == null
-                          ? (ru ? 'Выберите сотрудника' : 'Selecciona empleado')
-                          : null,
+                    _WaitlistSearchField(
+                      label: ru ? 'Сотрудник' : 'Empleado',
+                      searchHint: ru
+                          ? 'Введите имя сотрудника'
+                          : 'Escribe el nombre del empleado',
+                      value: _employeeId,
+                      options: employees,
+                      idOf: _id,
+                      labelOf: _label,
+                      icon: Icons.badge_outlined,
+                      requiredMessage:
+                          ru ? 'Выберите сотрудника' : 'Selecciona empleado',
                       onChanged: (value) => setState(() => _employeeId = value),
                     ),
                     const SizedBox(height: 12),
@@ -522,6 +518,214 @@ class _WaitlistCreateSheetState extends State<_WaitlistCreateSheet> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _WaitlistSearchField extends StatelessWidget {
+  const _WaitlistSearchField({
+    required this.label,
+    required this.searchHint,
+    required this.value,
+    required this.options,
+    required this.idOf,
+    required this.labelOf,
+    required this.icon,
+    required this.onChanged,
+    this.requiredMessage,
+    this.allowClear = false,
+  });
+
+  final String label;
+  final String searchHint;
+  final String? value;
+  final List<ApiRecord> options;
+  final String Function(ApiRecord) idOf;
+  final String Function(ApiRecord) labelOf;
+  final IconData icon;
+  final ValueChanged<String?> onChanged;
+  final String? requiredMessage;
+  final bool allowClear;
+
+  @override
+  Widget build(BuildContext context) {
+    String? selectedLabel;
+    for (final option in options) {
+      if (idOf(option) == value) {
+        selectedLabel = labelOf(option);
+        break;
+      }
+    }
+    return FormField<String>(
+      key: ValueKey('$label|$value|${options.length}'),
+      initialValue: value,
+      validator: (current) => current == null ? requiredMessage : null,
+      builder: (field) => InkWell(
+        borderRadius: BorderRadius.circular(AnnaRadii.md),
+        onTap: () async {
+          final selected = await showModalBottomSheet<String>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: AnnaColors.bgSoft,
+            builder: (_) => _WaitlistSearchSheet(
+              title: label,
+              searchHint: searchHint,
+              options: options,
+              idOf: idOf,
+              labelOf: labelOf,
+            ),
+          );
+          if (selected == null) return;
+          field.didChange(selected);
+          onChanged(selected);
+        },
+        child: InputDecorator(
+          isEmpty: selectedLabel == null,
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon),
+            errorText: field.errorText,
+            suffixIcon: value != null && allowClear
+                ? IconButton(
+                    tooltip:
+                        MaterialLocalizations.of(context).deleteButtonTooltip,
+                    onPressed: () {
+                      field.didChange(null);
+                      onChanged(null);
+                    },
+                    icon: const Icon(Icons.close),
+                  )
+                : const Icon(Icons.arrow_drop_down),
+          ),
+          child: Text(
+            selectedLabel ?? searchHint,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selectedLabel == null ? AnnaColors.muted : AnnaColors.text,
+              fontWeight:
+                  selectedLabel == null ? FontWeight.w500 : FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WaitlistSearchSheet extends StatefulWidget {
+  const _WaitlistSearchSheet({
+    required this.title,
+    required this.searchHint,
+    required this.options,
+    required this.idOf,
+    required this.labelOf,
+  });
+
+  final String title;
+  final String searchHint;
+  final List<ApiRecord> options;
+  final String Function(ApiRecord) idOf;
+  final String Function(ApiRecord) labelOf;
+
+  @override
+  State<_WaitlistSearchSheet> createState() => _WaitlistSearchSheetState();
+}
+
+class _WaitlistSearchSheetState extends State<_WaitlistSearchSheet> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _searchableText(ApiRecord option) {
+    final data = option.data;
+    return [
+      widget.labelOf(option),
+      data['phone'],
+      data['email'],
+      data['description'],
+    ].whereType<Object>().join(' ').toLowerCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.options.where((option) {
+      return _query.isEmpty || _searchableText(option).contains(_query);
+    }).toList();
+    return SafeArea(
+      child: FractionallySizedBox(
+        heightFactor: .78,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            18,
+            16,
+            18,
+            12 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(widget.title,
+                        style: Theme.of(context).textTheme.titleLarge),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _searchController,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: widget.searchHint,
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                          icon: const Icon(Icons.close),
+                        ),
+                ),
+                onChanged: (value) =>
+                    setState(() => _query = value.trim().toLowerCase()),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: filtered.isEmpty
+                    ? const Center(child: Text('Нет результатов'))
+                    : ListView.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) =>
+                            Divider(height: 1, color: AnnaColors.line),
+                        itemBuilder: (context, index) {
+                          final option = filtered[index];
+                          return ListTile(
+                            leading: const Icon(Icons.search_outlined),
+                            title: Text(widget.labelOf(option)),
+                            onTap: () =>
+                                Navigator.pop(context, widget.idOf(option)),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
