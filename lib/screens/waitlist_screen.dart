@@ -43,6 +43,11 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
 
   void _reload() => setState(() => _future = _load());
 
+  Future<void> _createEntry() async {
+    final created = await _WaitlistCreateSheet.show(context, api: widget.api);
+    if (created == true && mounted) _reload();
+  }
+
   Future<void> _setStatus(ApiRecord entry, String status) async {
     await widget.api.updateWaitlistStatus(entry.data['id']!, status);
     if (mounted) _reload();
@@ -94,10 +99,20 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
       color: Colors.transparent,
       child: ScreenScaffold(
         title: _tr(t, 'Lista de espera', 'Очередь ожидания'),
-        action: IconButton(
-          tooltip: t.refresh,
-          onPressed: _reload,
-          icon: Icon(Icons.refresh),
+        action: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: _tr(t, 'Anadir persona', 'Добавить человека'),
+              onPressed: _createEntry,
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+            ),
+            IconButton(
+              tooltip: t.refresh,
+              onPressed: _reload,
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
         ),
         child: FutureBuilder<_WaitlistData>(
           future: _future,
@@ -186,6 +201,352 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
   }
 }
 
+class _WaitlistCreateSheet extends StatefulWidget {
+  const _WaitlistCreateSheet({required this.api});
+
+  final AnnaApi api;
+
+  static Future<bool?> show(BuildContext context, {required AnnaApi api}) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (_) => _WaitlistCreateSheet(api: api),
+    );
+  }
+
+  @override
+  State<_WaitlistCreateSheet> createState() => _WaitlistCreateSheetState();
+}
+
+class _WaitlistCreateSheetState extends State<_WaitlistCreateSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _timeController = TextEditingController();
+  final _notesController = TextEditingController();
+  late final Future<List<ApiCollection>> _references = Future.wait([
+    widget.api.clients(),
+    widget.api.services(),
+    widget.api.employees(),
+  ]);
+  String? _clientId;
+  String? _serviceId;
+  String? _employeeId;
+  DateTime _dateFrom = DateTime.now();
+  DateTime? _dateTo;
+  String? _error;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _timeController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  String _id(ApiRecord item) => item.data['id'].toString();
+
+  String _label(ApiRecord item) {
+    final data = item.data;
+    final full = data['full_name']?.toString().trim();
+    if (full != null && full.isNotEmpty) return full;
+    final name = [data['first_name'], data['last_name']]
+        .where((value) => value?.toString().trim().isNotEmpty == true)
+        .join(' ');
+    return name.isNotEmpty
+        ? name
+        : (data['name']?.toString() ?? '#${_id(item)}');
+  }
+
+  bool _employeeSupports(ApiRecord employee, String serviceId) {
+    final raw = employee.data['service_ids'] ?? employee.data['services'];
+    return raw is List &&
+        raw.map((value) => value.toString()).contains(serviceId);
+  }
+
+  Future<void> _pickDate({required bool end}) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: end ? (_dateTo ?? _dateFrom) : _dateFrom,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (end) {
+        _dateTo = picked.isBefore(_dateFrom) ? _dateFrom : picked;
+      } else {
+        _dateFrom = picked;
+        if (_dateTo != null && _dateTo!.isBefore(picked)) _dateTo = picked;
+      }
+    });
+  }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final payload = <String, dynamic>{
+        'client': _clientId == null ? null : int.tryParse(_clientId!),
+        'service': int.tryParse(_serviceId!),
+        'employee': int.tryParse(_employeeId!),
+        'desired_date': DateFormat('yyyy-MM-dd').format(_dateFrom),
+        'desired_date_to':
+            _dateTo == null ? null : DateFormat('yyyy-MM-dd').format(_dateTo!),
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'time_range': _timeController.text.trim(),
+        'notes': _notesController.text.trim(),
+      };
+      payload.removeWhere((_, value) => value == null);
+      await widget.api.createWaitlistEntry(payload);
+      if (mounted) Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) setState(() => _error = formatApiError(error));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final ru = t.isRussian;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          18,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: FutureBuilder<List<ApiCollection>>(
+          future: _references,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox(
+                height: 220,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return ErrorState(
+                error: snapshot.error!,
+                onRetry: () => Navigator.pop(context),
+              );
+            }
+            final clients = snapshot.data![0].items;
+            final services = snapshot.data![1].items;
+            final employees = snapshot.data![2].items.where((employee) {
+              return _serviceId == null ||
+                  _employeeSupports(employee, _serviceId!);
+            }).toList();
+            return SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            ru
+                                ? 'Добавить в лист ожидания'
+                                : 'Anadir a la lista de espera',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _clientId,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: ru
+                            ? 'Клиент из базы (необязательно)'
+                            : 'Cliente existente (opcional)',
+                        prefixIcon: const Icon(Icons.person_outline),
+                      ),
+                      items: [
+                        for (final item in clients)
+                          DropdownMenuItem(
+                              value: _id(item), child: Text(_label(item))),
+                      ],
+                      onChanged: (value) => setState(() {
+                        _clientId = value;
+                        for (final client in clients) {
+                          if (_id(client) != value) continue;
+                          _nameController.text = _label(client);
+                          final phone = client.data['phone']?.toString() ?? '';
+                          if (phone.isNotEmpty) _phoneController.text = phone;
+                          break;
+                        }
+                      }),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                          labelText: ru ? 'Имя звонившего' : 'Nombre'),
+                      validator: (value) =>
+                          _clientId == null && (value ?? '').trim().isEmpty
+                              ? (ru
+                                  ? 'Укажите имя или выберите клиента'
+                                  : 'Indica nombre o cliente')
+                              : null,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                          labelText: ru ? 'Телефон' : 'Telefono'),
+                      validator: (value) =>
+                          _clientId == null && (value ?? '').trim().isEmpty
+                              ? (ru ? 'Укажите телефон' : 'Indica telefono')
+                              : null,
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: _serviceId,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                          labelText: ru ? 'Услуга' : 'Servicio'),
+                      items: [
+                        for (final item in services)
+                          DropdownMenuItem(
+                              value: _id(item), child: Text(_label(item))),
+                      ],
+                      validator: (value) => value == null
+                          ? (ru ? 'Выберите услугу' : 'Selecciona servicio')
+                          : null,
+                      onChanged: (value) => setState(() {
+                        _serviceId = value;
+                        _employeeId = null;
+                      }),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      key: ValueKey(_serviceId),
+                      initialValue: _employeeId,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                          labelText: ru ? 'Сотрудник' : 'Empleado'),
+                      items: [
+                        for (final item in employees)
+                          DropdownMenuItem(
+                              value: _id(item), child: Text(_label(item))),
+                      ],
+                      validator: (value) => value == null
+                          ? (ru ? 'Выберите сотрудника' : 'Selecciona empleado')
+                          : null,
+                      onChanged: (value) => setState(() => _employeeId = value),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _WaitlistDateButton(
+                            label: ru ? 'С даты' : 'Desde',
+                            date: _dateFrom,
+                            onTap: () => _pickDate(end: false),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _WaitlistDateButton(
+                            label: ru ? 'До даты' : 'Hasta',
+                            date: _dateTo,
+                            onTap: () => _pickDate(end: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _timeController,
+                      decoration: InputDecoration(
+                        labelText: ru ? 'Желаемое время' : 'Horario deseado',
+                        hintText: ru
+                            ? 'Например, 10:00–15:00 или любое'
+                            : 'Ej. 10:00–15:00 o cualquiera',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _notesController,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: ru ? 'Комментарий' : 'Comentario',
+                        hintText: ru
+                            ? 'Позвонить, если кто-то отменит запись'
+                            : 'Llamar si alguien cancela',
+                      ),
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 10),
+                      Text(_error!,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error)),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _saving ? null : _save,
+                        icon: _saving
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.playlist_add),
+                        label: Text(ru ? 'Добавить' : 'Anadir'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _WaitlistDateButton extends StatelessWidget {
+  const _WaitlistDateButton(
+      {required this.label, required this.date, required this.onTap});
+
+  final String label;
+  final DateTime? date;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.event_outlined),
+      label: Text(
+          '$label\n${date == null ? '—' : DateFormat('dd/MM/yyyy').format(date!)}'),
+    );
+  }
+}
+
 class _WaitlistCard extends StatelessWidget {
   const _WaitlistCard(
       {required this.entry,
@@ -205,6 +566,14 @@ class _WaitlistCard extends StatelessWidget {
         .where((value) => value != null && value.toString().trim().isNotEmpty)
         .join(' · ');
     final notified = data['status'] == 'notified';
+    final dateFrom = DateTime.tryParse(data['desired_date']?.toString() ?? '');
+    final dateTo = DateTime.tryParse(data['desired_date_to']?.toString() ?? '');
+    final dateText = dateFrom == null
+        ? ''
+        : dateTo == null || dateTo == dateFrom
+            ? DateFormat('dd/MM/yyyy').format(dateFrom)
+            : '${DateFormat('dd/MM/yyyy').format(dateFrom)}–${DateFormat('dd/MM/yyyy').format(dateTo)}';
+    final notes = data['notes']?.toString().trim() ?? '';
     return PanelCard(
       padding: EdgeInsets.zero,
       child: ListTile(
@@ -218,7 +587,8 @@ class _WaitlistCard extends StatelessWidget {
           padding: const EdgeInsets.only(top: 5),
           child: Text(
             '${data['service_name']} · ${data['employee_name']}\n'
-            '${data['time_range']?.toString().isNotEmpty == true ? data['time_range'] : (t.isRussian ? 'Любое время' : 'Cualquier hora')}\n$contact',
+            '$dateText · ${data['time_range']?.toString().isNotEmpty == true ? data['time_range'] : (t.isRussian ? 'Любое время' : 'Cualquier hora')}\n'
+            '$contact${notes.isEmpty ? '' : '\n$notes'}',
             style: TextStyle(color: AnnaColors.muted),
           ),
         ),

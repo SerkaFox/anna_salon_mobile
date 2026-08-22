@@ -312,6 +312,10 @@ class AnnaApi {
     return ApiCollection.fromJson(await _get('waitlist/'));
   }
 
+  Future<ApiDocument> createWaitlistEntry(Map<String, dynamic> payload) async {
+    return ApiDocument.fromJson(await _post('waitlist/', payload));
+  }
+
   Future<ApiDocument> updateWaitlistStatus(
     Object entryId,
     String status,

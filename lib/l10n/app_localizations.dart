@@ -185,6 +185,9 @@ class AppLocalizations {
     'Crear empleado': 'Создать сотрудника',
     'Guardar': 'Сохранить',
     'Horario': 'График',
+    'Fuera del horario (manual)': 'Вне графика (вручную)',
+    'Hora elegida manualmente por el personal. No esta disponible para clientes.':
+        'Время выбрано сотрудником вручную. Клиентам оно недоступно.',
     'Editar horario': 'Изменить график',
     'Horario de trabajo': 'Рабочий график',
     'Guardar horario': 'Сохранить график',

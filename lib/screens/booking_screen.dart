@@ -81,6 +81,7 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<_AvailabilitySlotsData>? _slotsFuture;
   String? _slotsSignature;
   String? _selectedSlotValue;
+  String? _manualSlotValue;
   String? _clientId;
   String? _serviceId;
   final List<String> _additionalServiceIds = [];
@@ -130,6 +131,7 @@ class _BookingScreenState extends State<BookingScreen> {
     _selectedTime = TimeOfDay.fromDateTime(draft.startAt);
     _employeeId = draft.employeeId;
     _selectedSlotValue = _startAtSlotValue();
+    _manualSlotValue = _selectedSlotValue;
     _resetSlots(keepSelectedSlot: true);
   }
 
@@ -444,6 +446,9 @@ class _BookingScreenState extends State<BookingScreen> {
     if (parsed == null) return;
     setState(() {
       _selectedSlotValue = value;
+      if (_normalizeSlotValue(value) != _manualSlotValue) {
+        _manualSlotValue = null;
+      }
       _selectedDate = DateTime(parsed.year, parsed.month, parsed.day);
       _selectedTime = TimeOfDay.fromDateTime(parsed);
       _error = null;
@@ -547,6 +552,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 clientRewardsFuture: _clientRewardsFuture,
                 slotsFuture: _slotsFuture,
                 selectedSlotValue: _selectedSlotValue,
+                manualSlotValue: _manualSlotValue,
                 notesController: _notesController,
                 error: _error,
                 creating: _creating,
@@ -646,6 +652,7 @@ class _BookingFormCard extends StatelessWidget {
     required this.clientRewardsFuture,
     required this.slotsFuture,
     required this.selectedSlotValue,
+    required this.manualSlotValue,
     required this.notesController,
     required this.creating,
     required this.onClientChanged,
@@ -686,6 +693,7 @@ class _BookingFormCard extends StatelessWidget {
   final Future<ApiCollection>? clientRewardsFuture;
   final Future<_AvailabilitySlotsData>? slotsFuture;
   final String? selectedSlotValue;
+  final String? manualSlotValue;
   final TextEditingController notesController;
   final String? error;
   final bool creating;
@@ -971,6 +979,7 @@ class _BookingFormCard extends StatelessWidget {
             _AvailableSlotField(
               slotsFuture: slotsFuture,
               selectedValue: selectedSlotValue,
+              manualSelectedValue: manualSlotValue,
               enabled: service != null && hasValidEmployee,
               onChanged: onSlotChanged,
             ),
@@ -1552,12 +1561,14 @@ class _AvailableSlotField extends StatelessWidget {
   const _AvailableSlotField({
     required this.slotsFuture,
     required this.selectedValue,
+    required this.manualSelectedValue,
     required this.enabled,
     required this.onChanged,
   });
 
   final Future<_AvailabilitySlotsData>? slotsFuture;
   final String? selectedValue;
+  final String? manualSelectedValue;
   final bool enabled;
   final ValueChanged<String?> onChanged;
 
@@ -1635,6 +1646,22 @@ class _AvailableSlotField extends StatelessWidget {
         }
 
         final slots = _dedupeSlots(snapshot.data?.slots ?? const []);
+        final normalizedManual = manualSelectedValue == null
+            ? null
+            : _normalizeSlotValue(manualSelectedValue!);
+        final isManualOutsideSchedule = normalizedSelected != null &&
+            normalizedSelected == normalizedManual &&
+            !slots.any((slot) => slot.value == normalizedSelected);
+        if (isManualOutsideSchedule) {
+          slots.insert(
+            0,
+            _AvailableSlot(
+              value: normalizedSelected,
+              label:
+                  '${_slotLabel(normalizedSelected)} · ${t.tr('Fuera del horario (manual)')}',
+            ),
+          );
+        }
         final value = slots.any((slot) => slot.value == normalizedSelected)
             ? normalizedSelected
             : null;
@@ -1651,24 +1678,44 @@ class _AvailableSlotField extends StatelessWidget {
           );
         }
 
-        return DropdownButtonFormField<String>(
-          initialValue: value,
-          isExpanded: true,
-          dropdownColor: AnnaColors.accentDeep,
-          decoration: InputDecoration(
-            labelText: t.tr('Hora disponible'),
-            prefixIcon: Icon(Icons.schedule),
-          ),
-          items: [
-            for (final slot in slots)
-              DropdownMenuItem(
-                value: slot.value,
-                child: Text(slot.label, overflow: TextOverflow.ellipsis),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              key: ValueKey('${slotsFuture.hashCode}|$value'),
+              initialValue: value,
+              isExpanded: true,
+              dropdownColor: AnnaColors.accentDeep,
+              decoration: InputDecoration(
+                labelText: t.tr('Hora disponible'),
+                prefixIcon: Icon(Icons.schedule),
+              ),
+              items: [
+                for (final slot in slots)
+                  DropdownMenuItem(
+                    value: slot.value,
+                    child: Text(slot.label, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              validator: (value) =>
+                  value == null ? t.selectField(t.tr('Hora disponible')) : null,
+              onChanged: onChanged,
+            ),
+            if (isManualOutsideSchedule)
+              Padding(
+                padding: const EdgeInsets.only(top: 7, left: 12),
+                child: Text(
+                  t.tr(
+                    'Hora elegida manualmente por el personal. No esta disponible para clientes.',
+                  ),
+                  style: TextStyle(
+                    color: AnnaColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
           ],
-          validator: (value) =>
-              value == null ? t.selectField(t.tr('Hora disponible')) : null,
-          onChanged: onChanged,
         );
       },
     );
