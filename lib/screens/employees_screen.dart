@@ -349,6 +349,13 @@ class _EmployeeCard extends StatelessWidget {
                             warning: !employee.isActive),
                         if (employee.username != null)
                           AnnaBadge('@${employee.username}'),
+                        if (canManageStaff)
+                          AnnaBadge(
+                            t.isRussian
+                                ? 'Отпуск: ${employee.vacationDaysRemaining} дн.'
+                                : 'Vacaciones: ${employee.vacationDaysRemaining} días',
+                            warning: employee.vacationDaysRemaining <= 0,
+                          ),
                       ],
                     ),
                   ],
@@ -645,6 +652,13 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                           icon: Icons.percent,
                           label: t.commission(
                               detail.employee.commissionPercent ?? '-')),
+                    if (canManageStaff)
+                      _EmployeeInfoLine(
+                        icon: Icons.beach_access_outlined,
+                        label: t.isRussian
+                            ? 'Отпуск ${detail.employee.vacationYear}: использовано ${detail.employee.vacationDaysUsed} из ${detail.employee.vacationDaysAllowance}, осталось ${detail.employee.vacationDaysRemaining}'
+                            : 'Vacaciones ${detail.employee.vacationYear}: usados ${detail.employee.vacationDaysUsed} de ${detail.employee.vacationDaysAllowance}, quedan ${detail.employee.vacationDaysRemaining}',
+                      ),
                     _EmployeeInfoLine(
                         icon: Icons.person_outline,
                         label: detail.employee.username == null
@@ -1660,6 +1674,15 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   final _passwordController = TextEditingController();
   late final _commissionController =
       TextEditingController(text: widget.employee?.commissionPercent ?? '');
+  late final _vacationYearController = TextEditingController(
+    text: (widget.employee?.vacationYear ?? DateTime.now().year).toString(),
+  );
+  late final _vacationAllowanceController = TextEditingController(
+    text: (widget.employee?.vacationDaysAllowance ?? 30).toString(),
+  );
+  late final _vacationUsedController = TextEditingController(
+    text: (widget.employee?.vacationDaysUsed ?? 0).toString(),
+  );
   late String _color = widget.employee?.colorHex ?? '#C75C8B';
   late final _notesController =
       TextEditingController(text: widget.employee?.notes ?? '');
@@ -1680,6 +1703,9 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     _usernameController.dispose();
     _passwordController.dispose();
     _commissionController.dispose();
+    _vacationYearController.dispose();
+    _vacationAllowanceController.dispose();
+    _vacationUsedController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -1709,6 +1735,12 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
         'commission_percent': _commissionController.text.trim().isEmpty
             ? '0'
             : _commissionController.text.trim(),
+        'vacation_year': int.tryParse(_vacationYearController.text.trim()) ??
+            DateTime.now().year,
+        'vacation_days_allowance':
+            int.tryParse(_vacationAllowanceController.text.trim()) ?? 0,
+        'vacation_days_used':
+            int.tryParse(_vacationUsedController.text.trim()) ?? 0,
         'notes': _notesController.text.trim(),
         'is_active': _isActive,
       });
@@ -1927,6 +1959,58 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                       decoration:
                           InputDecoration(labelText: t.tr('Comision %')),
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      t.isRussian ? 'Счётчик отпускных' : 'Vacaciones',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _vacationYearController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: t.isRussian ? 'Год' : 'Año',
+                            ),
+                            validator: _nonNegativeIntegerValidator,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _vacationAllowanceController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: t.isRussian
+                                  ? 'Положено дней'
+                                  : 'Días asignados',
+                            ),
+                            validator: _nonNegativeIntegerValidator,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _vacationUsedController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText:
+                                  t.isRussian ? 'Использовано' : 'Días usados',
+                            ),
+                            validator: _nonNegativeIntegerValidator,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      t.isRussian
+                          ? 'Остаток рассчитывается автоматически.'
+                          : 'Los días restantes se calculan automáticamente.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
@@ -2098,6 +2182,10 @@ class _EmployeeView {
     this.email,
     this.username,
     this.commissionPercent,
+    this.vacationYear,
+    this.vacationDaysAllowance = 30,
+    this.vacationDaysUsed = 0,
+    this.vacationDaysRemaining = 30,
     this.notes,
     this.createdAt,
     this.updatedAt,
@@ -2115,6 +2203,10 @@ class _EmployeeView {
   final String? email;
   final String? username;
   final String? commissionPercent;
+  final int? vacationYear;
+  final int vacationDaysAllowance;
+  final int vacationDaysUsed;
+  final int vacationDaysRemaining;
   final String? notes;
   final String? createdAt;
   final String? updatedAt;
@@ -2182,6 +2274,15 @@ class _EmployeeView {
       email: _nonEmpty(record.valueAsText('email')),
       username: _nonEmpty(record.valueAsText('username')),
       commissionPercent: _nonEmpty(record.valueAsText('commission_percent')),
+      vacationYear: int.tryParse(record.valueAsText('vacation_year') ?? ''),
+      vacationDaysAllowance:
+          int.tryParse(record.valueAsText('vacation_days_allowance') ?? '') ??
+              30,
+      vacationDaysUsed:
+          int.tryParse(record.valueAsText('vacation_days_used') ?? '') ?? 0,
+      vacationDaysRemaining:
+          int.tryParse(record.valueAsText('vacation_days_remaining') ?? '') ??
+              30,
       notes: _nonEmpty(record.valueAsText('notes')),
       createdAt: _nonEmpty(record.valueAsText('created_at')),
       updatedAt: _nonEmpty(record.valueAsText('updated_at')),
@@ -2199,6 +2300,12 @@ String? _dateText(String? value) {
 String? _nonEmpty(String? value) {
   if (value == null || value.trim().isEmpty) return null;
   return value;
+}
+
+String? _nonNegativeIntegerValidator(String? value) {
+  final parsed = int.tryParse(value?.trim() ?? '');
+  if (parsed == null || parsed < 0) return 'Введите целое число от 0';
+  return null;
 }
 
 String? _normalizePhone(String phone) {

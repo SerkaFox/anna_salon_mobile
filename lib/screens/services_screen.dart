@@ -132,7 +132,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
   }
 }
 
-class _ServicesTab extends StatelessWidget {
+class _ServicesTab extends StatefulWidget {
   const _ServicesTab(
       {required this.api,
       required this.refs,
@@ -143,6 +143,42 @@ class _ServicesTab extends StatelessWidget {
   final _ServiceReferences refs;
   final bool canManageStaff;
   final VoidCallback onChanged;
+
+  @override
+  State<_ServicesTab> createState() => _ServicesTabState();
+}
+
+class _ServicesTabState extends State<_ServicesTab> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<ApiRecord> get _filteredServices {
+    final query = _query.trim().toLowerCase();
+    final items = widget.refs.services.items.where((service) {
+      if (query.isEmpty) return true;
+      final name = service.valueAsText('name')?.toLowerCase() ?? '';
+      final description =
+          service.valueAsText('description')?.toLowerCase() ?? '';
+      return name.contains(query) || description.contains(query);
+    }).toList();
+    if (query.isNotEmpty) {
+      items.sort((a, b) {
+        final aName = a.valueAsText('name')?.toLowerCase() ?? '';
+        final bName = b.valueAsText('name')?.toLowerCase() ?? '';
+        final aStarts = aName.startsWith(query);
+        final bStarts = bName.startsWith(query);
+        if (aStarts != bStarts) return aStarts ? -1 : 1;
+        return aName.compareTo(bName);
+      });
+    }
+    return items;
+  }
 
   Future<void> _deleteService(BuildContext context, ApiRecord service) async {
     final t = AppLocalizations.of(context);
@@ -158,9 +194,9 @@ class _ServicesTab extends StatelessWidget {
     );
     if (confirmed != true || !context.mounted) return;
     try {
-      await api.deleteService(id);
+      await widget.api.deleteService(id);
       if (!context.mounted) return;
-      onChanged();
+      widget.onChanged();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t.tr('Servicio eliminado.'))),
       );
@@ -175,21 +211,56 @@ class _ServicesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final services = _filteredServices;
     return ListView(
       children: [
-        if (canManageStaff) ...[
+        if (widget.canManageStaff) ...[
           FilledButton.icon(
             onPressed: () async {
               final changed = await _ServiceFormSheet.show(context,
-                  api: api, refs: refs, service: null);
-              if (changed == true && context.mounted) onChanged();
+                  api: widget.api, refs: widget.refs, service: null);
+              if (changed == true && context.mounted) widget.onChanged();
             },
             icon: Icon(Icons.add),
             label: Text(t.tr('Crear servicio')),
           ),
           const SizedBox(height: 12),
         ],
-        for (final service in refs.services.items) ...[
+        TextField(
+          controller: _searchController,
+          onChanged: (value) => setState(() => _query = value),
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            labelText: t.isRussian ? 'Поиск услуги' : 'Buscar servicio',
+            hintText: t.isRussian
+                ? 'Введите 2–3 буквы названия'
+                : 'Escribe 2–3 letras del nombre',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _query.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: t.isRussian ? 'Очистить' : 'Limpiar',
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _query = '');
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (services.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28),
+            child: Center(
+              child: Text(
+                t.isRussian
+                    ? 'Услуги не найдены'
+                    : 'No se encontraron servicios',
+              ),
+            ),
+          ),
+        for (final service in services) ...[
           _SalonListCard(
             icon: Icons.spa_outlined,
             color: parseHexColor(service.valueAsText('color')) ??
@@ -202,15 +273,16 @@ class _ServicesTab extends StatelessWidget {
                 t.tr('Con zona'),
             ],
             description: service.valueAsText('description'),
-            onTap: canManageStaff
+            onTap: widget.canManageStaff
                 ? () async {
                     final changed = await _ServiceFormSheet.show(context,
-                        api: api, refs: refs, service: service);
-                    if (changed == true && context.mounted) onChanged();
+                        api: widget.api, refs: widget.refs, service: service);
+                    if (changed == true && context.mounted) widget.onChanged();
                   }
                 : null,
-            onDelete:
-                canManageStaff ? () => _deleteService(context, service) : null,
+            onDelete: widget.canManageStaff
+                ? () => _deleteService(context, service)
+                : null,
           ),
           const SizedBox(height: 10),
         ],

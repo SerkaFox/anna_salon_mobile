@@ -60,6 +60,8 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
   late bool _isBlacklisted = _boolValue(widget.client?.data['is_blacklisted']);
   late bool _prepaymentExempt =
       _boolValue(widget.client?.data['prepayment_exempt']);
+  late String _pricingCategory =
+      widget.client?.valueAsText('pricing_category') ?? 'standard';
   bool _saving = false;
   String? _error;
 
@@ -95,6 +97,7 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
         'notes': _notesController.text.trim(),
         'is_blacklisted': _isBlacklisted,
         'prepayment_exempt': _prepaymentExempt,
+        'pricing_category': _pricingCategory,
       };
       var username = _usernameController.text.trim();
       var password = _passwordController.text;
@@ -389,6 +392,48 @@ class _ClientFormSheetState extends State<ClientFormSheet> {
                   'Usar para clientes que no pueden pagar mediante el enlace.',
                 )),
               ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _pricingCategory,
+                decoration: InputDecoration(
+                  labelText:
+                      t.isRussian ? 'Категория оплаты' : 'Categoría de pago',
+                  prefixIcon: const Icon(Icons.price_check_outlined),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'standard',
+                    child: Text(
+                      t.isRussian ? 'Обычный клиент' : 'Cliente normal',
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'complimentary',
+                    child: Text(
+                      t.isRussian
+                          ? 'Бесплатное обслуживание'
+                          : 'Servicio gratuito',
+                    ),
+                  ),
+                ],
+                onChanged: _saving
+                    ? null
+                    : (value) => setState(() {
+                          _pricingCategory = value ?? 'standard';
+                          if (_pricingCategory == 'complimentary') {
+                            _prepaymentExempt = true;
+                          }
+                        }),
+              ),
+              if (_pricingCategory == 'complimentary') ...[
+                const SizedBox(height: 6),
+                Text(
+                  t.isRussian
+                      ? 'Все услуги и общий заказ для этого клиента будут рассчитаны по цене 0 €. Предоплата не потребуется.'
+                      : 'Todos los servicios y el total de la reserva serán 0 €. No se solicitará prepago.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
               const SizedBox(height: 14),
               Text(t.tr('Acceso cliente'),
                   style: Theme.of(context).textTheme.titleMedium),

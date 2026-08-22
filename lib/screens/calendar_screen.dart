@@ -1060,15 +1060,11 @@ class _GridColumnState extends State<_GridColumn> {
                   top: minute * _calendarPixelsPerMinute,
                   child: Container(
                     height: minute % 60 == 0
-                        ? 1.8
+                        ? 2.0
                         : minute % 30 == 0
-                            ? 1.35
-                            : 0.95,
-                    color: minute % 60 == 0
-                        ? const Color(0x5A8CE5B0)
-                        : minute % 30 == 0
-                            ? const Color(0x428CE5B0)
-                            : const Color(0x2E8CE5B0),
+                            ? 1.5
+                            : 1.0,
+                    color: Colors.black,
                   ),
                 ),
               for (final block in widget.column.scheduleBlocks)
@@ -1347,9 +1343,15 @@ class _BookingCardSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final employeeColor = _calendarCardColor(booking.employeeColor);
+    final isPaid = booking.paymentState?.trim().toLowerCase() == 'paid';
+    final cardColor = isPaid ? const Color(0xFFE1E4E2) : employeeColor;
+    final borderColor =
+        isPaid ? const Color(0xFF9EA6A1) : booking.employeeColor;
     final textColor = highlighted
         ? const Color(0xFF2F2300)
-        : _readableTextColor(employeeColor);
+        : isPaid
+            ? const Color(0xFF3F4743)
+            : _readableTextColor(employeeColor);
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Material(
@@ -1359,18 +1361,18 @@ class _BookingCardSurface extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.fromLTRB(12, 6, 7, 6),
             decoration: BoxDecoration(
-              color: highlighted ? const Color(0xFFFFF7D8) : employeeColor,
+              color: highlighted ? const Color(0xFFFFF7D8) : cardColor,
               border: Border.all(
                 color: highlighted
                     ? AnnaColors.warning
-                    : booking.employeeColor.withValues(alpha: 0.95),
+                    : borderColor.withValues(alpha: 0.95),
                 width: highlighted ? 2 : 1.4,
               ),
               boxShadow: [
                 BoxShadow(
                   color: highlighted
                       ? const Color(0x80D4A000)
-                      : booking.employeeColor.withValues(alpha: 0.40),
+                      : borderColor.withValues(alpha: isPaid ? 0.22 : 0.40),
                   blurRadius: highlighted ? 22 : 16,
                   offset: const Offset(0, 6),
                 ),
@@ -1378,7 +1380,7 @@ class _BookingCardSurface extends StatelessWidget {
             ),
             child: _CompactBookingCardContent(
               booking: booking,
-              serviceColor: serviceColor,
+              serviceColor: isPaid ? const Color(0xFF8F9792) : serviceColor,
               textColor: textColor,
             ),
           ),
