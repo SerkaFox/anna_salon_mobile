@@ -763,22 +763,31 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
                       SizedBox(
                         height: bodyHeight,
                         child: SingleChildScrollView(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Stack(
                             children: [
-                              _TimeRail(width: timeRailWidth),
-                              for (var i = 0; i < columns.length; i++) ...[
-                                if (i > 0) const SizedBox(width: _columnGap),
-                                _GridColumn(
-                                  column: columns[i],
-                                  width: columnWidth,
-                                  onBookingTap: onBookingTap,
-                                  highlightBookingId: highlightBookingId,
-                                  onTimeBlockTap: onTimeBlockTap,
-                                  onEmptySlotTap: onEmptySlotTap,
-                                  onBookingDrop: onBookingDrop,
-                                ),
-                              ],
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _TimeRail(width: timeRailWidth),
+                                  for (var i = 0; i < columns.length; i++) ...[
+                                    if (i > 0)
+                                      const SizedBox(width: _columnGap),
+                                    _GridColumn(
+                                      column: columns[i],
+                                      width: columnWidth,
+                                      onBookingTap: onBookingTap,
+                                      highlightBookingId: highlightBookingId,
+                                      onTimeBlockTap: onTimeBlockTap,
+                                      onEmptySlotTap: onEmptySlotTap,
+                                      onBookingDrop: onBookingDrop,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              _CurrentTimeLine(
+                                columns: columns,
+                                timeRailWidth: timeRailWidth,
+                              ),
                             ],
                           ),
                         ),
@@ -849,6 +858,103 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
           scheduleBlocks: employee.blocks,
         ),
     ];
+  }
+}
+
+class _CurrentTimeLine extends StatefulWidget {
+  const _CurrentTimeLine({
+    required this.columns,
+    required this.timeRailWidth,
+  });
+
+  final List<_CalendarColumn> columns;
+  final double timeRailWidth;
+
+  @override
+  State<_CurrentTimeLine> createState() => _CurrentTimeLineState();
+}
+
+class _CurrentTimeLineState extends State<_CurrentTimeLine> {
+  late DateTime _now = DateTime.now();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasToday =
+        widget.columns.any((column) => _isSameDate(column.date, _now));
+    final minutes = (_now.hour - _workStartHour) * 60 + _now.minute;
+    final visibleMinutes = (_workEndHour - _workStartHour) * 60;
+    if (!hasToday || minutes < 0 || minutes > visibleMinutes) {
+      return const SizedBox.shrink();
+    }
+
+    final top = minutes * _calendarPixelsPerMinute;
+    final label =
+        '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}';
+    return Positioned(
+      top: top - 11,
+      left: 0,
+      right: 0,
+      height: 22,
+      child: IgnorePointer(
+        child: Row(
+          children: [
+            SizedBox(
+              width: widget.timeRailWidth,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE51C23),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                height: 2.5,
+                color: const Color(0xFFE51C23),
+              ),
+            ),
+            const SizedBox(
+              width: 7,
+              height: 7,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Color(0xFFE51C23),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
