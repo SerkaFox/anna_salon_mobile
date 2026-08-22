@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_settings_controller.dart';
+import '../app_version.dart';
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
@@ -171,6 +172,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const SizedBox(height: 16),
+          const _AppVersionCard(),
+          const SizedBox(height: 16),
           PanelCard(
             padding: const EdgeInsets.all(18),
             child: SizedBox(
@@ -183,6 +186,167 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AppVersionCard extends StatelessWidget {
+  const _AppVersionCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
+    return PanelCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: .18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.info_outline),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      russian
+                          ? 'Версия приложения'
+                          : 'Version de la aplicacion',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$appVersionName ($appVersionBuild)',
+                      style: TextStyle(
+                        color: AnnaColors.muted,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AnnaBadge('v$appVersionName'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showChangeLog(context),
+              icon: const Icon(Icons.history),
+              label: Text(
+                russian ? 'История изменений' : 'Historial de cambios',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showChangeLog(BuildContext context) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (_) => const _ChangeLogSheet(),
+    );
+  }
+}
+
+class _ChangeLogSheet extends StatelessWidget {
+  const _ChangeLogSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
+    return SafeArea(
+      child: FractionallySizedBox(
+        heightFactor: .82,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      russian ? 'История изменений' : 'Historial de cambios',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: appChangeLog.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final release = appChangeLog[index];
+                    final changes =
+                        russian ? release.changesRu : release.changesEs;
+                    return PanelCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'v${release.version}',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(width: 8),
+                              AnnaBadge('${release.build}'),
+                              if (index == 0) ...[
+                                const SizedBox(width: 8),
+                                AnnaBadge(russian ? 'Текущая' : 'Actual'),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          for (final change in changes)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 7),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 3),
+                                    child: Icon(Icons.check_circle_outline,
+                                        size: 17),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(change)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
