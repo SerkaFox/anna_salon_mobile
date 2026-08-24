@@ -15,6 +15,7 @@ import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
     private val updaterChannel = "brimoon/app_updater"
+    private var installPermissionResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -30,8 +31,7 @@ class MainActivity : FlutterActivity() {
                     result.success(directory.absolutePath)
                 }
                 "requestInstallPermission" -> {
-                    requestInstallPermission()
-                    result.success(null)
+                    requestInstallPermission(result)
                 }
                 "sha256" -> {
                     val path = call.argument<String>("path")
@@ -65,14 +65,32 @@ class MainActivity : FlutterActivity() {
             packageManager.canRequestPackageInstalls()
     }
 
-    private fun requestInstallPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        startActivity(
+    private fun requestInstallPermission(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || canInstallPackages()) {
+            result.success(true)
+            return
+        }
+        if (installPermissionResult != null) {
+            result.error("permission_in_progress", "Install permission is already open.", null)
+            return
+        }
+        installPermissionResult = result
+        startActivityForResult(
             Intent(
                 Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                 Uri.parse("package:$packageName"),
             ),
+            INSTALL_PERMISSION_REQUEST_CODE,
         )
+    }
+
+    @Deprecated("Deprecated in Android, retained for the system settings result callback.")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != INSTALL_PERMISSION_REQUEST_CODE) return
+        val callback = installPermissionResult
+        installPermissionResult = null
+        callback?.success(canInstallPackages())
     }
 
     private fun installApk(apk: File) {
@@ -126,5 +144,9 @@ class MainActivity : FlutterActivity() {
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    companion object {
+        private const val INSTALL_PERMISSION_REQUEST_CODE = 9102
     }
 }

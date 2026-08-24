@@ -134,8 +134,8 @@ class AppUpdater {
               russian ? 'Разрешение на установку' : 'Permiso para instalar'),
           content: Text(
             russian
-                ? 'Один раз разрешите BRIMOON Studio устанавливать обновления. Затем вернитесь в приложение и снова нажмите «Проверить обновления».'
-                : 'Permite una vez que BRIMOON Studio instale actualizaciones. Despues vuelve y pulsa de nuevo «Comprobar actualizaciones».',
+                ? 'Один раз разрешите BRIMOON Studio устанавливать обновления. После возврата установка продолжится автоматически.'
+                : 'Permite una vez que BRIMOON Studio instale actualizaciones. Al volver, la instalacion continuara automaticamente.',
           ),
           actions: [
             TextButton(
@@ -150,11 +150,32 @@ class AppUpdater {
         ),
       );
       if (openSettings == true) {
-        await _channel.invokeMethod<void>('requestInstallPermission');
+        final granted = await _channel
+                .invokeMethod<bool>('requestInstallPermission') ??
+            false;
+        if (!context.mounted) return;
+        if (!granted) {
+          _message(
+            context,
+            russian
+                ? 'Разрешение не выдано. Установка обновления отменена.'
+                : 'No se concedio el permiso. La instalacion se cancelo.',
+          );
+          return;
+        }
+        await _startInstallation(context, path, russian);
       }
       return;
     }
 
+    await _startInstallation(context, path, russian);
+  }
+
+  static Future<void> _startInstallation(
+    BuildContext context,
+    String path,
+    bool russian,
+  ) async {
     try {
       await _channel.invokeMethod<String>('installApk', {'path': path});
       if (context.mounted) {

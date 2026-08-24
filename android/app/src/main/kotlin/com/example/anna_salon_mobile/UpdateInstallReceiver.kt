@@ -14,7 +14,14 @@ class UpdateInstallReceiver : BroadcastReceiver() {
                 confirmation?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 if (confirmation != null) context.startActivity(confirmation)
             }
-            PackageInstaller.STATUS_SUCCESS -> Unit
+            PackageInstaller.STATUS_SUCCESS -> {
+                val launchIntent = context.packageManager
+                    .getLaunchIntentForPackage(context.packageName)
+                    ?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    }
+                if (launchIntent != null) context.startActivity(launchIntent)
+            }
             else -> Unit
         }
     }

@@ -1,7 +1,19 @@
-const appVersionName = '0.1.33';
-const appVersionBuild = 34;
+const appVersionName = '0.1.34';
+const appVersionBuild = 35;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.34',
+    build: 35,
+    changesRu: [
+      'Установка продолжается автоматически после выдачи разрешения.',
+      'Приложение повторно запускается после успешного обновления.',
+    ],
+    changesEs: [
+      'La instalacion continua automaticamente despues del permiso.',
+      'La aplicacion vuelve a abrirse despues de actualizarse.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.33',
     build: 34,
