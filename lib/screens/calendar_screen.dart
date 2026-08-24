@@ -17,7 +17,7 @@ import 'services_screen.dart';
 import 'shared.dart';
 
 const _workStartHour = 9;
-const _workEndHour = 20;
+const _workEndHour = 21;
 const _calendarPixelsPerMinute = 2.35;
 const _calendarHeight =
     (_workEndHour - _workStartHour) * 60.0 * _calendarPixelsPerMinute;

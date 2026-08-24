@@ -1,7 +1,17 @@
-const appVersionName = '0.1.32';
-const appVersionBuild = 33;
+const appVersionName = '0.1.33';
+const appVersionBuild = 34;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.33',
+    build: 34,
+    changesRu: [
+      'Шкала календаря продлена до 21:00.',
+    ],
+    changesEs: [
+      'La escala del calendario se amplio hasta las 21:00.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.32',
     build: 33,
