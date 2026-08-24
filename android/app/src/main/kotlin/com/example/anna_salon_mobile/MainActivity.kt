@@ -1,11 +1,14 @@
 package com.example.anna_salon_mobile
 
+import android.app.ActivityOptions
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
@@ -16,6 +19,17 @@ import java.security.MessageDigest
 class MainActivity : FlutterActivity() {
     private val updaterChannel = "brimoon/app_updater"
     private var installPermissionResult: MethodChannel.Result? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        handleInstallResultIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleInstallResultIntent(intent)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -113,8 +127,8 @@ class MainActivity : FlutterActivity() {
                     session.fsync(output)
                 }
             }
-            val callback = Intent(this, UpdateInstallReceiver::class.java).apply {
-                action = UpdateInstallReceiver.ACTION_INSTALL_RESULT
+            val callback = Intent(this, MainActivity::class.java).apply {
+                action = ACTION_INSTALL_RESULT
             }
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -122,13 +136,40 @@ class MainActivity : FlutterActivity() {
                 } else {
                     0
                 }
-            val pendingIntent = PendingIntent.getBroadcast(
+            val creatorOptions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                ActivityOptions.makeBasic().apply {
+                    pendingIntentCreatorBackgroundActivityStartMode =
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                }.toBundle()
+            } else {
+                null
+            }
+            val pendingIntent = PendingIntent.getActivity(
                 this,
                 sessionId,
                 callback,
                 flags,
+                creatorOptions,
             )
             session.commit(pendingIntent.intentSender)
+        }
+    }
+
+    private fun handleInstallResultIntent(resultIntent: Intent?) {
+        if (resultIntent?.action != ACTION_INSTALL_RESULT) return
+        resultIntent.action = null
+        when (resultIntent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
+            PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                @Suppress("DEPRECATION")
+                val confirmation = resultIntent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+                confirmation?.let(::startActivity)
+            }
+            PackageInstaller.STATUS_SUCCESS -> Unit
+            else -> Toast.makeText(
+                this,
+                "Не удалось установить обновление.",
+                Toast.LENGTH_LONG,
+            ).show()
         }
     }
 
@@ -148,5 +189,7 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val INSTALL_PERMISSION_REQUEST_CODE = 9102
+        private const val ACTION_INSTALL_RESULT =
+            "com.example.anna_salon_mobile.UPDATE_INSTALL_RESULT"
     }
 }

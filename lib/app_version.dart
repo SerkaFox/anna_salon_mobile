@@ -1,7 +1,17 @@
-const appVersionName = '0.1.35';
-const appVersionBuild = 36;
+const appVersionName = '0.1.36';
+const appVersionBuild = 37;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.36',
+    build: 37,
+    changesRu: [
+      'Системный установщик возвращает пользователя прямо в приложение.',
+    ],
+    changesEs: [
+      'El instalador del sistema devuelve al usuario directamente a la aplicacion.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.35',
     build: 36,
