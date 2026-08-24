@@ -1,7 +1,17 @@
-const appVersionName = '0.1.34';
-const appVersionBuild = 35;
+const appVersionName = '0.1.35';
+const appVersionBuild = 36;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.35',
+    build: 36,
+    changesRu: [
+      'Перезапуск после обновления адаптирован для ограничений Android 14–16.',
+    ],
+    changesEs: [
+      'Reinicio tras actualizar adaptado a las restricciones de Android 14–16.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.34',
     build: 35,
