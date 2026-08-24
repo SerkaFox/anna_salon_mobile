@@ -1,14 +1,10 @@
 package com.example.anna_salon_mobile
 
-import android.app.ActivityOptions
-import android.app.PendingIntent
 import android.content.Intent
-import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
-import android.os.Bundle
 import android.provider.Settings
-import android.widget.Toast
+import androidx.core.content.FileProvider
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
@@ -19,17 +15,6 @@ import java.security.MessageDigest
 class MainActivity : FlutterActivity() {
     private val updaterChannel = "brimoon/app_updater"
     private var installPermissionResult: MethodChannel.Result? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        handleInstallResultIntent(intent)
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        handleInstallResultIntent(intent)
-    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -109,68 +94,17 @@ class MainActivity : FlutterActivity() {
 
     private fun installApk(apk: File) {
         require(apk.exists() && apk.length() > 0) { "Downloaded APK does not exist." }
-        val installer = packageManager.packageInstaller
-        val params = PackageInstaller.SessionParams(
-            PackageInstaller.SessionParams.MODE_FULL_INSTALL,
-        ).apply {
-            setAppPackageName(packageName)
-            setSize(apk.length())
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
-            }
-        }
-        val sessionId = installer.createSession(params)
-        installer.openSession(sessionId).use { session ->
-            FileInputStream(apk).use { input ->
-                session.openWrite("brimoon-update.apk", 0, apk.length()).use { output ->
-                    input.copyTo(output)
-                    session.fsync(output)
-                }
-            }
-            val callback = Intent(this, MainActivity::class.java).apply {
-                action = ACTION_INSTALL_RESULT
-            }
-            val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    PendingIntent.FLAG_MUTABLE
-                } else {
-                    0
-                }
-            val creatorOptions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                ActivityOptions.makeBasic().apply {
-                    pendingIntentCreatorBackgroundActivityStartMode =
-                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-                }.toBundle()
-            } else {
-                null
-            }
-            val pendingIntent = PendingIntent.getActivity(
-                this,
-                sessionId,
-                callback,
-                flags,
-                creatorOptions,
-            )
-            session.commit(pendingIntent.intentSender)
-        }
-    }
-
-    private fun handleInstallResultIntent(resultIntent: Intent?) {
-        if (resultIntent?.action != ACTION_INSTALL_RESULT) return
-        resultIntent.action = null
-        when (resultIntent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
-            PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                @Suppress("DEPRECATION")
-                val confirmation = resultIntent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
-                confirmation?.let(::startActivity)
-            }
-            PackageInstaller.STATUS_SUCCESS -> Unit
-            else -> Toast.makeText(
-                this,
-                "Не удалось установить обновление.",
-                Toast.LENGTH_LONG,
-            ).show()
-        }
+        val apkUri = FileProvider.getUriForFile(
+            this,
+            "$packageName.update_files",
+            apk,
+        )
+        startActivity(
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            },
+        )
     }
 
     private fun sha256(file: File): String {
@@ -189,7 +123,5 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val INSTALL_PERMISSION_REQUEST_CODE = 9102
-        private const val ACTION_INSTALL_RESULT =
-            "com.example.anna_salon_mobile.UPDATE_INSTALL_RESULT"
     }
 }

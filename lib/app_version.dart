@@ -1,7 +1,17 @@
-const appVersionName = '0.1.37';
-const appVersionBuild = 38;
+const appVersionName = '0.1.38';
+const appVersionBuild = 39;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.38',
+    build: 39,
+    changesRu: [
+      'После установки Android показывает понятную кнопку «Открыть».',
+    ],
+    changesEs: [
+      'Android muestra un boton claro para abrir la aplicacion tras instalar.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.37',
     build: 38,
