@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app_settings_controller.dart';
+import 'app_updater.dart';
 import 'api/anna_api.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/app_shell.dart';
@@ -45,8 +46,10 @@ class AnnaSalonApp extends StatefulWidget {
 class _AnnaSalonAppState extends State<AnnaSalonApp> {
   final AnnaApi _api = AnnaApi();
   final AppSettingsController _settings = AppSettingsController();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _checkingSession = true;
   bool _signedIn = false;
+  bool _automaticUpdateChecked = false;
 
   @override
   void initState() {
@@ -68,6 +71,7 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
       _signedIn = restored;
       _checkingSession = false;
     });
+    _scheduleAutomaticUpdateCheck();
   }
 
   @override
@@ -78,6 +82,21 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
 
   Future<void> _handleSignedIn() async {
     setState(() => _signedIn = true);
+    _scheduleAutomaticUpdateCheck();
+  }
+
+  void _scheduleAutomaticUpdateCheck() {
+    if (_automaticUpdateChecked) return;
+    _automaticUpdateChecked = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      final context = _navigatorKey.currentContext;
+      if (!mounted || context == null || !context.mounted) return;
+      await AppUpdater.checkForUpdates(
+        context,
+        languageCode: _settings.languageCode,
+      );
+    });
   }
 
   Future<void> _handleSignOut() async {
@@ -92,6 +111,7 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
       animation: _settings,
       builder: (context, _) {
         return MaterialApp(
+          navigatorKey: _navigatorKey,
           title: 'BRIMOON Studio',
           debugShowCheckedModeBanner: false,
           theme: buildAnnaTheme(

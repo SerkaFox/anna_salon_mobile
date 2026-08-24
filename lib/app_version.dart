@@ -1,7 +1,21 @@
-const appVersionName = '0.1.31';
-const appVersionBuild = 32;
+const appVersionName = '0.1.32';
+const appVersionBuild = 33;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.32',
+    build: 33,
+    changesRu: [
+      'Автоматическая проверка обновлений при запуске.',
+      'Защищённое скачивание APK с проверкой SHA-256.',
+      'Установка обновлений и ручная проверка из настроек.',
+    ],
+    changesEs: [
+      'Comprobacion automatica de actualizaciones al iniciar.',
+      'Descarga protegida del APK con verificacion SHA-256.',
+      'Instalacion y comprobacion manual desde los ajustes.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.31',
     build: 32,

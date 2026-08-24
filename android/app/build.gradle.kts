@@ -30,11 +30,20 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("brimoonRelease") {
+            val signingKeyPath = System.getenv("BRIMOON_SIGNING_KEY_PATH")
+                ?: "C:/projects/.signing/brimoon-signing-key.keystore"
+            storeFile = file(signingKeyPath)
+            storePassword = System.getenv("BRIMOON_SIGNING_STORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("BRIMOON_SIGNING_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword = System.getenv("BRIMOON_SIGNING_KEY_PASSWORD") ?: "android"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("brimoonRelease")
         }
     }
 }

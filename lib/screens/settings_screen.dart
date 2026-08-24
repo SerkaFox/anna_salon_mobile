@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_settings_controller.dart';
+import '../app_updater.dart';
 import '../app_version.dart';
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
@@ -243,12 +244,30 @@ class _AppVersionCard extends StatelessWidget {
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showChangeLog(context),
-              icon: const Icon(Icons.history),
-              label: Text(
-                russian ? 'История изменений' : 'Historial de cambios',
-              ),
+            child: Column(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => AppUpdater.checkForUpdates(
+                    context,
+                    languageCode: russian ? 'ru' : 'es',
+                    manual: true,
+                  ),
+                  icon: const Icon(Icons.system_update_alt),
+                  label: Text(
+                    russian
+                        ? 'Проверить обновления'
+                        : 'Comprobar actualizaciones',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _showChangeLog(context),
+                  icon: const Icon(Icons.history),
+                  label: Text(
+                    russian ? 'История изменений' : 'Historial de cambios',
+                  ),
+                ),
+              ],
             ),
           ),
         ],
