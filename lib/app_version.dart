@@ -1,7 +1,19 @@
-const appVersionName = '0.1.38';
-const appVersionBuild = 39;
+const appVersionName = '0.1.39';
+const appVersionBuild = 40;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.39',
+    build: 40,
+    changesRu: [
+      'Уведомления работнику о новых записях с именем клиента, датой, временем и услугами.',
+      'Нажатие на уведомление открывает нужную запись в календаре.',
+    ],
+    changesEs: [
+      'Avisos al empleado sobre nuevas reservas con cliente, fecha, hora y servicios.',
+      'Al pulsar el aviso se abre la reserva correspondiente en el calendario.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.38',
     build: 39,
