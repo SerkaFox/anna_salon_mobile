@@ -103,6 +103,24 @@ class AnnaApi {
     return ApiDocument.fromJson(await _get('me/'));
   }
 
+  Future<void> registerPushDevice({
+    required String registrationToken,
+    required String locale,
+  }) async {
+    await _post('push-devices/', {
+      'registration_token': registrationToken,
+      'platform': 'android',
+      'locale': locale == 'ru' ? 'ru' : 'es',
+    });
+  }
+
+  Future<void> unregisterPushDevice(String registrationToken) async {
+    await _delete(
+      'push-devices/',
+      body: {'registration_token': registrationToken},
+    );
+  }
+
   Future<ApiDocument> whatsappStatus() async {
     return ApiDocument.fromJson(await _get('whatsapp/status/'));
   }
@@ -613,11 +631,15 @@ class AnnaApi {
     return _decode(response);
   }
 
-  Future<dynamic> _delete(String path) async {
+  Future<dynamic> _delete(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
     final response = await _client
         .delete(
           _uri(path),
-          headers: _headers(),
+          headers: _headers(jsonBody: body != null),
+          body: body == null ? null : jsonEncode(body),
         )
         .timeout(const Duration(seconds: 20));
     return _decode(response);

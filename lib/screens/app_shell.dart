@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_settings_controller.dart';
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
+import '../push_notifications.dart';
 import 'shared.dart';
 import 'booking_screen.dart';
 import 'calendar_screen.dart';
@@ -16,12 +17,16 @@ class AppShell extends StatefulWidget {
     required this.api,
     required this.settings,
     required this.onSignOut,
+    required this.pushTarget,
+    required this.pushTargetToken,
     super.key,
   });
 
   final AnnaApi api;
   final AppSettingsController settings;
   final VoidCallback onSignOut;
+  final PushBookingEvent? pushTarget;
+  final int pushTargetToken;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -36,6 +41,29 @@ class _AppShellState extends State<AppShell> {
   int _bookingDraftToken = 0;
   Set<String>? _calendarEmployeeIds;
   late Future<Map<String, dynamic>> _profile = _loadProfile();
+
+  @override
+  void initState() {
+    super.initState();
+    _applyPushTarget();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pushTargetToken != oldWidget.pushTargetToken) {
+      _applyPushTarget();
+    }
+  }
+
+  void _applyPushTarget() {
+    final target = widget.pushTarget;
+    if (target == null) return;
+    _calendarDate = target.date;
+    _highlightBookingId = target.bookingId;
+    _highlightToken++;
+    _index = 0;
+  }
 
   Future<Map<String, dynamic>> _loadProfile() async {
     final profile = (await widget.api.me()).data;
