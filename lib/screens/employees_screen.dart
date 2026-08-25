@@ -575,9 +575,9 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
               );
             }
             final detail = _EmployeeDetail.fromMap(snapshot.data?.data ?? {});
-            final canEdit = canManageStaff ||
-                (currentEmployeeId != null &&
-                    currentEmployeeId == detail.employee.id);
+            final isOwnProfile = currentEmployeeId != null &&
+                currentEmployeeId == detail.employee.id;
+            final canEdit = canManageStaff || isOwnProfile;
             return ListView(
               controller: controller,
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
@@ -652,7 +652,7 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                           icon: Icons.percent,
                           label: t.commission(
                               detail.employee.commissionPercent ?? '-')),
-                    if (canManageStaff)
+                    if (canManageStaff || isOwnProfile)
                       _EmployeeInfoLine(
                         icon: Icons.beach_access_outlined,
                         label: t.isRussian
@@ -677,6 +677,15 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                         employee: detail.employee,
                       );
                       if (changed == true && mounted) setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ] else if (isOwnProfile) ...[
+                  _EmployeeSelfServiceScheduleCard(
+                    api: api,
+                    employee: detail.employee,
+                    onChanged: () {
+                      if (mounted) setState(() {});
                     },
                   ),
                   const SizedBox(height: 12),
@@ -777,6 +786,242 @@ class _EmployeeStatsGrid extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _EmployeeSelfServiceScheduleCard extends StatelessWidget {
+  const _EmployeeSelfServiceScheduleCard({
+    required this.api,
+    required this.employee,
+    required this.onChanged,
+  });
+
+  final AnnaApi api;
+  final _EmployeeView employee;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return PanelCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.isRussian ? 'Мой график' : 'Mi horario',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: employee.vacationDaysRemaining <= 0
+                    ? null
+                    : () => _requestVacationDay(context),
+                icon: const Icon(Icons.beach_access_outlined),
+                label: Text(
+                  t.isRussian ? 'Взять день отпуска' : 'Pedir vacaciones',
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _EmployeeSelfBreakSheet.show(
+                  context,
+                  api: api,
+                  employeeId: employee.id,
+                ).then((_) => onChanged()),
+                icon: const Icon(Icons.free_breakfast_outlined),
+                label: Text(t.isRussian ? 'Мой обед' : 'Mi pausa'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _requestVacationDay(BuildContext context) async {
+    final t = AppLocalizations.of(context);
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 1),
+    );
+    if (picked == null || !context.mounted) return;
+    try {
+      await api.setEmployeeVacationDay(employee.id, date: picked);
+      onChanged();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.isRussian
+              ? 'День отпуска добавлен.'
+              : 'Día de vacaciones registrado.'),
+        ),
+      );
+    } on AnnaApiException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    }
+  }
+}
+
+class _EmployeeSelfBreakSheet extends StatefulWidget {
+  const _EmployeeSelfBreakSheet({
+    required this.api,
+    required this.employeeId,
+  });
+
+  final AnnaApi api;
+  final String employeeId;
+
+  static Future<void> show(
+    BuildContext context, {
+    required AnnaApi api,
+    required String employeeId,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AnnaColors.bgSoft,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _EmployeeSelfBreakSheet(
+        api: api,
+        employeeId: employeeId,
+      ),
+    );
+  }
+
+  @override
+  State<_EmployeeSelfBreakSheet> createState() =>
+      _EmployeeSelfBreakSheetState();
+}
+
+class _EmployeeSelfBreakSheetState extends State<_EmployeeSelfBreakSheet> {
+  DateTime _date = DateTime.now();
+  TimeOfDay? _breakStart = const TimeOfDay(hour: 13, minute: 0);
+  TimeOfDay? _breakEnd = const TimeOfDay(hour: 14, minute: 0);
+  bool _saving = false;
+
+  DateTime? _combine(TimeOfDay? time) {
+    if (time == null) return null;
+    return DateTime(_date.year, _date.month, _date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime(DateTime.now().year + 1),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  Future<void> _pickTime(bool isStart) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: (isStart ? _breakStart : _breakEnd) ??
+          const TimeOfDay(hour: 13, minute: 0),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isStart) {
+        _breakStart = picked;
+      } else {
+        _breakEnd = picked;
+      }
+    });
+  }
+
+  Future<void> _save({required bool clear}) async {
+    setState(() => _saving = true);
+    try {
+      await widget.api.updateEmployeeBreak(
+        widget.employeeId,
+        date: _date,
+        breakStart: clear ? null : _combine(_breakStart),
+        breakEnd: clear ? null : _combine(_breakEnd),
+      );
+      if (mounted) Navigator.pop(context);
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final locale = t.locale.languageCode;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.isRussian ? 'Мой обед' : 'Mi pausa',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 14),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.event_outlined),
+            title: Text(DateFormat('d MMMM yyyy', locale).format(_date)),
+            onTap: _pickDate,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.schedule_outlined),
+            title: Text(t.isRussian ? 'Начало обеда' : 'Inicio de la pausa'),
+            trailing: Text(_breakStart?.format(context) ?? '--:--'),
+            onTap: () => _pickTime(true),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.schedule_outlined),
+            title: Text(t.isRussian ? 'Конец обеда' : 'Fin de la pausa'),
+            trailing: Text(_breakEnd?.format(context) ?? '--:--'),
+            onTap: () => _pickTime(false),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _saving ? null : () => _save(clear: true),
+                  child: Text(t.isRussian ? 'Убрать обед' : 'Quitar pausa'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _saving ? null : () => _save(clear: false),
+                  child: _saving
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(t.isRussian ? 'Сохранить' : 'Guardar'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

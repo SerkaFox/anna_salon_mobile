@@ -58,10 +58,12 @@ class CalendarSlotDraft {
   const CalendarSlotDraft({
     required this.startAt,
     this.employeeId,
+    this.isOutsideSchedule = false,
   });
 
   final DateTime startAt;
   final String? employeeId;
+  final bool isOutsideSchedule;
 }
 
 class _BookingDropDraft {
@@ -435,7 +437,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _openCreateFromSlot(CalendarSlotDraft draft) async {
-    final action = await _SlotActionSheet.show(context, draft: draft);
+    final canFreeThisSlot = draft.isOutsideSchedule &&
+        draft.employeeId != null &&
+        (widget.canManageStaff || widget.currentEmployeeId == draft.employeeId);
+    final action = await _SlotActionSheet.show(
+      context,
+      draft: draft,
+      canFreeThisSlot: canFreeThisSlot,
+    );
     if (!mounted || action == null) return;
     switch (action) {
       case _SlotAction.booking:
@@ -449,6 +458,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
           onChanged: _refresh,
         );
         break;
+      case _SlotAction.freeTime:
+        await _freeScheduleSlot(draft);
+        break;
+    }
+  }
+
+  Future<void> _freeScheduleSlot(CalendarSlotDraft draft) async {
+    final employeeId = draft.employeeId;
+    if (employeeId == null) return;
+    final slotEnd = draft.startAt.add(const Duration(minutes: _slotStepMinutes));
+    try {
+      await widget.api.extendEmployeeScheduleSlot(
+        employeeId,
+        date: draft.startAt,
+        slotStart: draft.startAt,
+        slotEnd: slotEnd,
+      );
+      if (!mounted) return;
+      _refresh();
+      _showCalendarMessage(
+        context,
+        AppLocalizations.of(context).isRussian
+            ? 'Время освобождено для записи.'
+            : 'Horario liberado para reservas.',
+      );
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      _showCalendarMessage(context, formatApiError(error));
     }
   }
 
@@ -1244,14 +1281,56 @@ class _GridColumnState extends State<_GridColumn> {
 
   void _handleEmptyTap(double dy) {
     final startAt = _slotStartAt(widget.column.date, dy);
+    final isOutsideSchedule = _dyIsInUnavailableRange(
+      dy,
+      widget.column.hasSchedule,
+      widget.column.scheduleBlocks,
+    );
 
     widget.onEmptySlotTap(
       CalendarSlotDraft(
         startAt: startAt,
         employeeId: widget.column.employeeId,
+        isOutsideSchedule: isOutsideSchedule,
       ),
     );
   }
+}
+
+List<({double start, double end})> _unavailableRanges(
+  bool hasSchedule,
+  List<_TimeBlockView> scheduleBlocks,
+) {
+  final schedules = scheduleBlocks
+      .where((block) => block.kind == _TimeBlockKind.schedule)
+      .toList();
+  final ranges = <({double start, double end})>[];
+  if (!hasSchedule || schedules.isEmpty) {
+    ranges.add((start: 0, end: _calendarHeight));
+  } else {
+    schedules.sort((a, b) => a.top.compareTo(b.top));
+    var cursor = 0.0;
+    for (final schedule in schedules) {
+      final start = schedule.top.clamp(0, _calendarHeight).toDouble();
+      final end =
+          (schedule.top + schedule.height).clamp(0, _calendarHeight).toDouble();
+      if (start > cursor) ranges.add((start: cursor, end: start));
+      if (end > cursor) cursor = end;
+    }
+    if (cursor < _calendarHeight) {
+      ranges.add((start: cursor, end: _calendarHeight));
+    }
+  }
+  return ranges;
+}
+
+bool _dyIsInUnavailableRange(
+  double dy,
+  bool hasSchedule,
+  List<_TimeBlockView> scheduleBlocks,
+) {
+  final ranges = _unavailableRanges(hasSchedule, scheduleBlocks);
+  return ranges.any((range) => dy >= range.start && dy < range.end);
 }
 
 class _UnavailableScheduleLayer extends StatelessWidget {
@@ -1265,27 +1344,7 @@ class _UnavailableScheduleLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final schedules = scheduleBlocks
-        .where((block) => block.kind == _TimeBlockKind.schedule)
-        .toList();
-    final ranges = <({double start, double end})>[];
-    if (!hasSchedule || schedules.isEmpty) {
-      ranges.add((start: 0, end: _calendarHeight));
-    } else {
-      schedules.sort((a, b) => a.top.compareTo(b.top));
-      var cursor = 0.0;
-      for (final schedule in schedules) {
-        final start = schedule.top.clamp(0, _calendarHeight).toDouble();
-        final end = (schedule.top + schedule.height)
-            .clamp(0, _calendarHeight)
-            .toDouble();
-        if (start > cursor) ranges.add((start: cursor, end: start));
-        if (end > cursor) cursor = end;
-      }
-      if (cursor < _calendarHeight) {
-        ranges.add((start: cursor, end: _calendarHeight));
-      }
-    }
+    final ranges = _unavailableRanges(hasSchedule, scheduleBlocks);
     return CustomPaint(
       painter: _UnavailableSchedulePainter(
         ranges: ranges,
@@ -1581,7 +1640,7 @@ class _PositionedScheduleBlock extends StatelessWidget {
   }
 }
 
-enum _SlotAction { booking, timeBlock }
+enum _SlotAction { booking, timeBlock, freeTime }
 
 enum _BlockRecurrence {
   none('none', 'Solo este dia'),
@@ -1595,13 +1654,15 @@ enum _BlockRecurrence {
 }
 
 class _SlotActionSheet extends StatelessWidget {
-  const _SlotActionSheet({required this.draft});
+  const _SlotActionSheet({required this.draft, this.canFreeThisSlot = false});
 
   final CalendarSlotDraft draft;
+  final bool canFreeThisSlot;
 
   static Future<_SlotAction?> show(
     BuildContext context, {
     required CalendarSlotDraft draft,
+    bool canFreeThisSlot = false,
   }) {
     return showModalBottomSheet<_SlotAction>(
       context: context,
@@ -1609,7 +1670,10 @@ class _SlotActionSheet extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => _SlotActionSheet(draft: draft),
+      builder: (context) => _SlotActionSheet(
+        draft: draft,
+        canFreeThisSlot: canFreeThisSlot,
+      ),
     );
   }
 
@@ -1645,6 +1709,19 @@ class _SlotActionSheet extends StatelessWidget {
               subtitle: t.tr('Bloquear este tramo en el calendario.'),
               onTap: () => Navigator.of(context).pop(_SlotAction.timeBlock),
             ),
+            if (canFreeThisSlot) ...[
+              const SizedBox(height: 10),
+              _SheetActionTile(
+                icon: Icons.event_available_outlined,
+                title: t.isRussian
+                    ? 'Освободить это время'
+                    : 'Liberar este horario',
+                subtitle: t.isRussian
+                    ? 'Убрать штриховку и разрешить записи в этот интервал.'
+                    : 'Quitar el bloqueo y permitir reservas en este tramo.',
+                onTap: () => Navigator.of(context).pop(_SlotAction.freeTime),
+              ),
+            ],
           ],
         ),
       ),

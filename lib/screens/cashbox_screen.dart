@@ -175,6 +175,9 @@ class _CashboxScreenState extends State<CashboxScreen> {
               : <String, dynamic>{};
           final canCloseCashbox =
               _dateFrom == _dateTo && _methodFilter == 'all';
+          // The backend omits these keys entirely for staff who aren't
+          // admin/owner, so their absence is the signal to hide totals here.
+          final canSeeTotals = cash.containsKey('payments_total');
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,18 +220,20 @@ class _CashboxScreenState extends State<CashboxScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        AnnaBadge(
-                          '${_dateFrom == _dateTo ? t.tr('Total del dia') : (t.isRussian ? 'Итого за период' : 'Total del periodo')}: ${cash['payments_total'] ?? '0.00'} EUR',
-                        ),
-                        AnnaBadge(
-                          '${t.tr('Efectivo')}: ${totalsByMethod['cash'] ?? '0.00'} EUR',
-                        ),
-                        AnnaBadge(
-                          '${t.tr('Tarjeta')}: ${totalsByMethod['card'] ?? '0.00'} EUR',
-                        ),
-                        AnnaBadge(
-                          '${t.tr('Pagos del dia')}: ${cash['payments_count'] ?? '0'}',
-                        ),
+                        if (canSeeTotals) ...[
+                          AnnaBadge(
+                            '${_dateFrom == _dateTo ? t.tr('Total del dia') : (t.isRussian ? 'Итого за период' : 'Total del periodo')}: ${cash['payments_total'] ?? '0.00'} EUR',
+                          ),
+                          AnnaBadge(
+                            '${t.tr('Efectivo')}: ${totalsByMethod['cash'] ?? '0.00'} EUR',
+                          ),
+                          AnnaBadge(
+                            '${t.tr('Tarjeta')}: ${totalsByMethod['card'] ?? '0.00'} EUR',
+                          ),
+                          AnnaBadge(
+                            '${t.tr('Pagos del dia')}: ${cash['payments_count'] ?? '0'}',
+                          ),
+                        ],
                         AnnaBadge(
                           '${t.tr('Documentos pendientes')}: ${pendingDocs.length}',
                         ),
@@ -242,20 +247,22 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              _StripeBalanceCard(
-                stripe: cash['stripe'] is Map
-                    ? Map<String, dynamic>.from(cash['stripe'])
-                    : const <String, dynamic>{},
-                payouts: cash['stripe_payouts'] is List
-                    ? List<Map<String, dynamic>>.from(
-                        (cash['stripe_payouts'] as List)
-                            .whereType<Map>()
-                            .map(Map<String, dynamic>.from),
-                      )
-                    : const <Map<String, dynamic>>[],
-                onPayout: (stripe) => _requestStripePayout(context, stripe),
-              ),
-              const SizedBox(height: 14),
+              if (canSeeTotals) ...[
+                _StripeBalanceCard(
+                  stripe: cash['stripe'] is Map
+                      ? Map<String, dynamic>.from(cash['stripe'])
+                      : const <String, dynamic>{},
+                  payouts: cash['stripe_payouts'] is List
+                      ? List<Map<String, dynamic>>.from(
+                          (cash['stripe_payouts'] as List)
+                              .whereType<Map>()
+                              .map(Map<String, dynamic>.from),
+                        )
+                      : const <Map<String, dynamic>>[],
+                  onPayout: (stripe) => _requestStripePayout(context, stripe),
+                ),
+                const SizedBox(height: 14),
+              ],
               PanelCard(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -492,6 +499,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
     Map<String, dynamic> closure,
   ) {
     final t = AppLocalizations.of(context);
+    final canSeeTotals = closure.containsKey('total_amount');
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -505,42 +513,46 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 label: t.isRussian ? 'Дата' : 'Fecha',
                 value: closure['closure_date']?.toString() ?? '',
               ),
-              _ClosureValue(
-                label: t.isRussian ? 'Всего' : 'Total',
-                value: '${closure['total_amount'] ?? '0.00'} EUR',
-              ),
-              _ClosureValue(
-                label: t.isRussian ? 'Наличные по системе' : 'Efectivo sistema',
-                value: '${closure['cash_amount'] ?? '0.00'} EUR',
-              ),
-              _ClosureValue(
-                label: t.isRussian ? 'Наличные посчитано' : 'Efectivo contado',
-                value: '${closure['declared_cash_amount'] ?? '0.00'} EUR',
-              ),
-              _ClosureValue(
-                label: t.isRussian ? 'Разница' : 'Diferencia',
-                value: '${closure['cash_difference'] ?? '0.00'} EUR',
-                emphasize: _money(
-                      closure['cash_difference']?.toString(),
-                    ) !=
-                    0,
-              ),
-              _ClosureValue(
-                label: t.isRussian ? 'Карта' : 'Tarjeta',
-                value: '${closure['card_amount'] ?? '0.00'} EUR',
-              ),
-              _ClosureValue(
-                label: 'Bizum',
-                value: '${closure['bizum_amount'] ?? '0.00'} EUR',
-              ),
-              _ClosureValue(
-                label: t.isRussian ? 'Перевод' : 'Transferencia',
-                value: '${closure['transfer_amount'] ?? '0.00'} EUR',
-              ),
-              _ClosureValue(
-                label: t.isRussian ? 'Операций' : 'Movimientos',
-                value: closure['payments_count']?.toString() ?? '0',
-              ),
+              if (canSeeTotals) ...[
+                _ClosureValue(
+                  label: t.isRussian ? 'Всего' : 'Total',
+                  value: '${closure['total_amount'] ?? '0.00'} EUR',
+                ),
+                _ClosureValue(
+                  label:
+                      t.isRussian ? 'Наличные по системе' : 'Efectivo sistema',
+                  value: '${closure['cash_amount'] ?? '0.00'} EUR',
+                ),
+                _ClosureValue(
+                  label:
+                      t.isRussian ? 'Наличные посчитано' : 'Efectivo contado',
+                  value: '${closure['declared_cash_amount'] ?? '0.00'} EUR',
+                ),
+                _ClosureValue(
+                  label: t.isRussian ? 'Разница' : 'Diferencia',
+                  value: '${closure['cash_difference'] ?? '0.00'} EUR',
+                  emphasize: _money(
+                        closure['cash_difference']?.toString(),
+                      ) !=
+                      0,
+                ),
+                _ClosureValue(
+                  label: t.isRussian ? 'Карта' : 'Tarjeta',
+                  value: '${closure['card_amount'] ?? '0.00'} EUR',
+                ),
+                _ClosureValue(
+                  label: 'Bizum',
+                  value: '${closure['bizum_amount'] ?? '0.00'} EUR',
+                ),
+                _ClosureValue(
+                  label: t.isRussian ? 'Перевод' : 'Transferencia',
+                  value: '${closure['transfer_amount'] ?? '0.00'} EUR',
+                ),
+                _ClosureValue(
+                  label: t.isRussian ? 'Операций' : 'Movimientos',
+                  value: closure['payments_count']?.toString() ?? '0',
+                ),
+              ],
               if ((closure['notes']?.toString() ?? '').isNotEmpty)
                 _ClosureValue(
                   label: t.isRussian ? 'Примечание' : 'Notas',
@@ -820,12 +832,13 @@ class _CashCloseSheet extends StatefulWidget {
 }
 
 class _CashCloseSheetState extends State<_CashCloseSheet> {
+  late final bool _canSeeTotals = widget.cash.containsKey('payments_total');
   late final Map<String, dynamic> _totals =
       widget.cash['totals_by_method'] is Map
           ? Map<String, dynamic>.from(widget.cash['totals_by_method'])
           : <String, dynamic>{};
   late final TextEditingController _declaredCash = TextEditingController(
-    text: _totals['cash']?.toString() ?? '0.00',
+    text: _canSeeTotals ? (_totals['cash']?.toString() ?? '0.00') : '',
   );
   final TextEditingController _notes = TextEditingController();
   bool _saving = false;
@@ -885,38 +898,40 @@ class _CashCloseSheetState extends State<_CashCloseSheet> {
               style: TextStyle(color: AnnaColors.muted, fontSize: 14),
             ),
             const SizedBox(height: 14),
-            PanelCard(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  _ClosureValue(
-                    label: t.isRussian ? 'Всего за день' : 'Total del dia',
-                    value: '${widget.cash['payments_total'] ?? '0.00'} EUR',
-                  ),
-                  _ClosureValue(
-                    label: t.isRussian ? 'Операций' : 'Movimientos',
-                    value: widget.cash['payments_count']?.toString() ?? '0',
-                  ),
-                  _ClosureValue(
-                    label: t.isRussian ? 'Наличные' : 'Efectivo',
-                    value: '${_totals['cash'] ?? '0.00'} EUR',
-                  ),
-                  _ClosureValue(
-                    label: t.isRussian ? 'Карта' : 'Tarjeta',
-                    value: '${_totals['card'] ?? '0.00'} EUR',
-                  ),
-                  _ClosureValue(
-                    label: 'Bizum',
-                    value: '${_totals['bizum'] ?? '0.00'} EUR',
-                  ),
-                  _ClosureValue(
-                    label: t.isRussian ? 'Перевод' : 'Transferencia',
-                    value: '${_totals['transfer'] ?? '0.00'} EUR',
-                  ),
-                ],
+            if (_canSeeTotals) ...[
+              PanelCard(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    _ClosureValue(
+                      label: t.isRussian ? 'Всего за день' : 'Total del dia',
+                      value: '${widget.cash['payments_total'] ?? '0.00'} EUR',
+                    ),
+                    _ClosureValue(
+                      label: t.isRussian ? 'Операций' : 'Movimientos',
+                      value: widget.cash['payments_count']?.toString() ?? '0',
+                    ),
+                    _ClosureValue(
+                      label: t.isRussian ? 'Наличные' : 'Efectivo',
+                      value: '${_totals['cash'] ?? '0.00'} EUR',
+                    ),
+                    _ClosureValue(
+                      label: t.isRussian ? 'Карта' : 'Tarjeta',
+                      value: '${_totals['card'] ?? '0.00'} EUR',
+                    ),
+                    _ClosureValue(
+                      label: 'Bizum',
+                      value: '${_totals['bizum'] ?? '0.00'} EUR',
+                    ),
+                    _ClosureValue(
+                      label: t.isRussian ? 'Перевод' : 'Transferencia',
+                      value: '${_totals['transfer'] ?? '0.00'} EUR',
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
             TextField(
               controller: _declaredCash,
               keyboardType:
@@ -928,12 +943,14 @@ class _CashCloseSheetState extends State<_CashCloseSheet> {
                 suffixText: 'EUR',
               ),
             ),
-            const SizedBox(height: 8),
-            _ClosureValue(
-              label: t.isRussian ? 'Разница наличных' : 'Diferencia',
-              value: '${_formatMoney(difference)} EUR',
-              emphasize: difference != 0,
-            ),
+            if (_canSeeTotals) ...[
+              const SizedBox(height: 8),
+              _ClosureValue(
+                label: t.isRussian ? 'Разница наличных' : 'Diferencia',
+                value: '${_formatMoney(difference)} EUR',
+                emphasize: difference != 0,
+              ),
+            ],
             const SizedBox(height: 8),
             TextField(
               controller: _notes,
@@ -954,9 +971,13 @@ class _CashCloseSheetState extends State<_CashCloseSheet> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  t.isRussian
-                      ? 'Осталось неоплаченных документов: $pendingCount на сумму ${widget.cash['pending_total'] ?? '0.00'} EUR.'
-                      : 'Quedan $pendingCount documentos pendientes por ${widget.cash['pending_total'] ?? '0.00'} EUR.',
+                  _canSeeTotals
+                      ? (t.isRussian
+                          ? 'Осталось неоплаченных документов: $pendingCount на сумму ${widget.cash['pending_total'] ?? '0.00'} EUR.'
+                          : 'Quedan $pendingCount documentos pendientes por ${widget.cash['pending_total'] ?? '0.00'} EUR.')
+                      : (t.isRussian
+                          ? 'Осталось неоплаченных документов: $pendingCount.'
+                          : 'Quedan $pendingCount documentos pendientes.'),
                   style: TextStyle(fontSize: 13, height: 1.3),
                 ),
               ),

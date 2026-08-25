@@ -244,6 +244,51 @@ class AnnaApi {
     await _delete('employees/$employeeId/');
   }
 
+  Future<ApiDocument> extendEmployeeScheduleSlot(
+    Object employeeId, {
+    required DateTime date,
+    required DateTime slotStart,
+    required DateTime slotEnd,
+  }) async {
+    return ApiDocument.fromJson(
+      await _post('employees/$employeeId/schedule/extend-slot/', {
+        'date': DateFormat('yyyy-MM-dd').format(date),
+        'slot_start': DateFormat('HH:mm').format(slotStart),
+        'slot_end': DateFormat('HH:mm').format(slotEnd),
+      }),
+    );
+  }
+
+  Future<ApiDocument> setEmployeeVacationDay(
+    Object employeeId, {
+    required DateTime date,
+    String action = 'set',
+  }) async {
+    return ApiDocument.fromJson(
+      await _post('employees/$employeeId/schedule/vacation/', {
+        'date': DateFormat('yyyy-MM-dd').format(date),
+        'action': action,
+      }),
+    );
+  }
+
+  Future<ApiDocument> updateEmployeeBreak(
+    Object employeeId, {
+    required DateTime date,
+    DateTime? breakStart,
+    DateTime? breakEnd,
+  }) async {
+    return ApiDocument.fromJson(
+      await _patch('employees/$employeeId/schedule/break/', {
+        'date': DateFormat('yyyy-MM-dd').format(date),
+        'break_start':
+            breakStart == null ? null : DateFormat('HH:mm').format(breakStart),
+        'break_end':
+            breakEnd == null ? null : DateFormat('HH:mm').format(breakEnd),
+      }),
+    );
+  }
+
   Future<ApiDocument> bookingDetail(Object bookingId) async {
     return ApiDocument.fromJson(await _get('bookings/$bookingId/'));
   }
