@@ -1,7 +1,21 @@
-const appVersionName = '0.1.40';
-const appVersionBuild = 41;
+const appVersionName = '0.1.41';
+const appVersionBuild = 42;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.41',
+    build: 42,
+    changesRu: [
+      'Сотрудники сами могут взять день отпуска и поставить себе обед прямо в приложении.',
+      'Штриховку нерабочего времени в календаре можно снять одним нажатием, чтобы поработать сверх графика.',
+      'Касса открыта для сотрудников: можно выставлять счета и закрывать кассу, но общую выручку и данные Stripe видит только Анна.',
+    ],
+    changesEs: [
+      'Los empleados ya pueden pedir su propio día de vacaciones y poner su hora de comida desde la app.',
+      'Se puede liberar de un toque el horario bloqueado del calendario para trabajar fuera de turno.',
+      'La caja está disponible para el equipo: pueden facturar y cerrar caja, pero el total del día y Stripe solo los ve Anna.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.40',
     build: 41,
