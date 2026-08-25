@@ -21,6 +21,22 @@ class PushBookingEvent {
   final String body;
 }
 
+class PushActivationResult {
+  const PushActivationResult({
+    required this.configured,
+    required this.permissionGranted,
+    required this.registered,
+    this.error,
+  });
+
+  final bool configured;
+  final bool permissionGranted;
+  final bool registered;
+  final String? error;
+
+  bool get active => configured && permissionGranted && registered;
+}
+
 class PushNotifications {
   PushNotifications._();
 
@@ -32,6 +48,8 @@ class PushNotifications {
   static final _events = StreamController<PushBookingEvent>.broadcast();
   static StreamSubscription<String>? _tokenRefreshSubscription;
   static bool _initialized = false;
+  static bool _registered = false;
+  static String? _initializationError;
   static PushBookingEvent? _initialEvent;
 
   static Stream<PushBookingEvent> get events => _events.stream;
@@ -63,7 +81,8 @@ class PushNotifications {
       } else {
         await Firebase.initializeApp();
       }
-    } on Object {
+    } on Object catch (error) {
+      _initializationError = error.toString();
       return;
     }
     _initialized = true;
@@ -80,8 +99,42 @@ class PushNotifications {
     }
   }
 
-  static Future<void> activate(AnnaApi api, String languageCode) async {
-    if (!_initialized) return;
+  static Future<PushActivationResult> status() async {
+    if (!_initialized) {
+      return PushActivationResult(
+        configured: false,
+        permissionGranted: false,
+        registered: false,
+        error: _initializationError,
+      );
+    }
+    try {
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
+      final granted =
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
+              settings.authorizationStatus == AuthorizationStatus.provisional;
+      return PushActivationResult(
+        configured: true,
+        permissionGranted: granted,
+        registered: _registered,
+      );
+    } on Object catch (error) {
+      return PushActivationResult(
+        configured: true,
+        permissionGranted: false,
+        registered: false,
+        error: error.toString(),
+      );
+    }
+  }
+
+  static Future<PushActivationResult> activate(
+    AnnaApi api,
+    String languageCode,
+  ) async {
+    if (!_initialized) await initialize();
+    if (!_initialized) return status();
     try {
       final messaging = FirebaseMessaging.instance;
       final permission = await messaging.requestPermission(
@@ -89,14 +142,27 @@ class PushNotifications {
         badge: true,
         sound: true,
       );
-      if (permission.authorizationStatus == AuthorizationStatus.denied) return;
-      final token = await messaging.getToken();
-      if (token != null && token.isNotEmpty) {
-        await api.registerPushDevice(
-          registrationToken: token,
-          locale: languageCode,
+      if (permission.authorizationStatus == AuthorizationStatus.denied) {
+        return const PushActivationResult(
+          configured: true,
+          permissionGranted: false,
+          registered: false,
         );
       }
+      final token = await messaging.getToken();
+      if (token == null || token.isEmpty) {
+        return const PushActivationResult(
+          configured: true,
+          permissionGranted: true,
+          registered: false,
+          error: 'Firebase did not return a device token.',
+        );
+      }
+      await api.registerPushDevice(
+        registrationToken: token,
+        locale: languageCode,
+      );
+      _registered = true;
       await _tokenRefreshSubscription?.cancel();
       _tokenRefreshSubscription = messaging.onTokenRefresh.listen((newToken) {
         unawaited(
@@ -106,8 +172,18 @@ class PushNotifications {
           ),
         );
       });
-    } on Object {
-      // Push must never prevent login or normal app use.
+      return const PushActivationResult(
+        configured: true,
+        permissionGranted: true,
+        registered: true,
+      );
+    } on Object catch (error) {
+      return PushActivationResult(
+        configured: true,
+        permissionGranted: false,
+        registered: false,
+        error: error.toString(),
+      );
     }
   }
 
@@ -123,6 +199,7 @@ class PushNotifications {
     }
     await _tokenRefreshSubscription?.cancel();
     _tokenRefreshSubscription = null;
+    _registered = false;
   }
 
   static void _emitBooking(RemoteMessage message, {required bool opened}) {

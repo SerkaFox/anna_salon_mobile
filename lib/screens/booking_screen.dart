@@ -268,6 +268,17 @@ class _BookingScreenState extends State<BookingScreen> {
         return false;
       }
     }
+    final adjustedServiceDuration = _selectedServices(refs).fold<int>(
+          0,
+          (total, item) => total + (item.durationMinutes ?? 0),
+        ) +
+        _extraDurationMinutes;
+    if (adjustedServiceDuration < 15) {
+      setState(() => _error = t.isRussian
+          ? 'Длительность услуг должна быть не меньше 15 минут.'
+          : 'La duración de los servicios debe ser de al menos 15 minutos.');
+      return false;
+    }
     if (_selectedSlotValue == null) {
       setState(() => _error = t.tr('Selecciona un horario disponible.'));
       return false;
@@ -355,6 +366,19 @@ class _BookingScreenState extends State<BookingScreen> {
         if (refs.optionById(refs.serviceOptions, id) case final service?)
           service,
     ];
+  }
+
+  void _clampExtraDuration(_BookingReferences refs) {
+    final serviceDuration = _selectedServices(refs).fold<int>(
+      0,
+      (total, service) => total + (service.durationMinutes ?? 0),
+    );
+    final minimum =
+        serviceDuration <= 15 ? 0 : -((serviceDuration - 15) ~/ 15) * 15;
+    if (_extraDurationMinutes < minimum) {
+      _extraDurationMinutes = minimum;
+    }
+    if (serviceDuration == 0) _extraDurationMinutes = 0;
   }
 
   Future<void> _addService(_BookingReferences refs) async {
@@ -578,6 +602,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     )) {
                       _employeeId = null;
                     }
+                    _clampExtraDuration(refs);
                     _error = null;
                     _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
                   });
@@ -592,11 +617,13 @@ class _BookingScreenState extends State<BookingScreen> {
                     final item = refs.optionById(refs.serviceOptions, id);
                     return !refs.employeeSupportsService(value, item);
                   });
+                  _clampExtraDuration(refs);
                   _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
                 }),
                 onAddService: () => _addService(refs),
                 onRemoveService: (id) => setState(() {
                   _additionalServiceIds.remove(id);
+                  _clampExtraDuration(refs);
                   _resetSlots(keepSelectedSlot: _selectedSlotValue != null);
                 }),
                 onExtraDurationChanged: (value) => setState(() {
@@ -739,6 +766,8 @@ class _BookingFormCard extends StatelessWidget {
     );
     final totalDuration =
         serviceDuration + extraDurationMinutes + cleanupDurationMinutes;
+    final minimumExtraDuration =
+        serviceDuration <= 15 ? 0 : -((serviceDuration - 15) ~/ 15) * 15;
     final totalPrice = selectedServices.fold<double>(
       0,
       (total, item) =>
@@ -896,15 +925,22 @@ class _BookingFormCard extends StatelessWidget {
                       initialValue: extraDurationMinutes,
                       isExpanded: true,
                       decoration: InputDecoration(
-                        labelText: t.isRussian ? 'Доп. время' : 'Tiempo extra',
+                        labelText: t.isRussian
+                            ? 'Коррекция времени'
+                            : 'Ajuste de tiempo',
                         prefixIcon: const Icon(Icons.more_time_outlined),
                       ),
                       items: [
-                        for (var minutes = 0; minutes <= 180; minutes += 15)
+                        for (var minutes = minimumExtraDuration;
+                            minutes <= 180;
+                            minutes += 15)
                           DropdownMenuItem(
                             value: minutes,
-                            child:
-                                Text(minutes == 0 ? '0 min' : '+$minutes min'),
+                            child: Text(minutes == 0
+                                ? '0 min'
+                                : minutes > 0
+                                    ? '+$minutes min'
+                                    : '$minutes min'),
                           ),
                       ],
                       onChanged: creating
@@ -945,13 +981,13 @@ class _BookingFormCard extends StatelessWidget {
                     : 'Tiempo ocupado: $totalDuration min · ${totalPrice.toStringAsFixed(2)} EUR',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              if (extraDurationMinutes > 0 || cleanupDurationMinutes > 0)
+              if (extraDurationMinutes != 0 || cleanupDurationMinutes > 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 5),
                   child: Text(
                     t.isRussian
-                        ? 'Услуги: $serviceDuration мин · доп.: $extraDurationMinutes мин · уборка: $cleanupDurationMinutes мин'
-                        : 'Servicios: $serviceDuration min · extra: $extraDurationMinutes min · limpieza: $cleanupDurationMinutes min',
+                        ? 'Услуги: $serviceDuration мин · коррекция: ${extraDurationMinutes > 0 ? '+' : ''}$extraDurationMinutes мин · уборка: $cleanupDurationMinutes мин'
+                        : 'Servicios: $serviceDuration min · ajuste: ${extraDurationMinutes > 0 ? '+' : ''}$extraDurationMinutes min · limpieza: $cleanupDurationMinutes min',
                     style: TextStyle(color: AnnaColors.muted, fontSize: 12),
                   ),
                 ),

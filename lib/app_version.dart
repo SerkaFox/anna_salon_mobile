@@ -1,7 +1,19 @@
-const appVersionName = '0.1.39';
-const appVersionBuild = 40;
+const appVersionName = '0.1.40';
+const appVersionBuild = 41;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.40',
+    build: 41,
+    changesRu: [
+      'В настройках появился статус уведомлений и кнопка их включения.',
+      'Время услуги можно не только увеличить, но и сократить шагом 15 минут; минимум — 15 минут.',
+    ],
+    changesEs: [
+      'Los ajustes muestran el estado de los avisos y permiten activarlos.',
+      'La duración del servicio se puede aumentar o reducir en pasos de 15 minutos; mínimo 15 minutos.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.39',
     build: 40,

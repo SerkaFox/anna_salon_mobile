@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_settings_controller.dart';
@@ -8,6 +9,7 @@ import '../app_updater.dart';
 import '../app_version.dart';
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
+import '../push_notifications.dart';
 import '../theme/app_theme.dart';
 import 'color_palette_picker.dart';
 import 'notification_settings_screen.dart';
@@ -162,6 +164,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     error: _error,
                     onSave: _saveProfile,
                   ),
+                  if (profile['employee_id'] != null) ...[
+                    const SizedBox(height: 16),
+                    _PushNotificationsCard(
+                      api: widget.api,
+                      languageCode: widget.settings.languageCode,
+                    ),
+                  ],
                   if (_canManageNotifications(profile)) ...[
                     const SizedBox(height: 16),
                     _WhatsAppConnectionCard(api: widget.api),
@@ -188,6 +197,145 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PushNotificationsCard extends StatefulWidget {
+  const _PushNotificationsCard({
+    required this.api,
+    required this.languageCode,
+  });
+
+  final AnnaApi api;
+  final String languageCode;
+
+  @override
+  State<_PushNotificationsCard> createState() => _PushNotificationsCardState();
+}
+
+class _PushNotificationsCardState extends State<_PushNotificationsCard> {
+  late Future<PushActivationResult> _status = PushNotifications.status();
+  bool _activating = false;
+
+  Future<void> _activate() async {
+    setState(() => _activating = true);
+    final result = await PushNotifications.activate(
+      widget.api,
+      widget.languageCode,
+    );
+    if (!mounted) return;
+    setState(() {
+      _activating = false;
+      _status = Future.value(result);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
+    return FutureBuilder<PushActivationResult>(
+      future: _status,
+      builder: (context, snapshot) {
+        final result = snapshot.data;
+        final loading = snapshot.connectionState != ConnectionState.done;
+        final active = result?.active == true;
+        final permissionDenied = result != null &&
+            result.configured &&
+            !result.permissionGranted &&
+            result.error == null;
+        final color = active
+            ? Colors.green
+            : result?.error != null
+                ? Theme.of(context).colorScheme.error
+                : Colors.orange.shade700;
+        final statusText = loading
+            ? (russian ? 'Проверяем состояние…' : 'Comprobando el estado…')
+            : active
+                ? (russian
+                    ? 'Включены. Этот телефон получает новые записи.'
+                    : 'Activados. Este teléfono recibe nuevas reservas.')
+                : result?.error != null
+                    ? (russian
+                        ? 'Не удалось подключить уведомления. Нажмите «Повторить».'
+                        : 'No se pudieron conectar los avisos. Pulsa «Reintentar».')
+                    : (russian
+                        ? 'Не включены на этом телефоне.'
+                        : 'No están activados en este teléfono.');
+        return PanelCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    active
+                        ? Icons.notifications_active
+                        : Icons.notifications_none,
+                    color: loading ? AnnaColors.muted : color,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      russian
+                          ? 'Уведомления о новых записях'
+                          : 'Avisos de nuevas reservas',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                statusText,
+                style: TextStyle(
+                  color: loading ? AnnaColors.muted : color,
+                ),
+              ),
+              if (result?.error case final error?) ...[
+                const SizedBox(height: 6),
+                Text(
+                  error,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AnnaColors.muted, fontSize: 11),
+                ),
+              ],
+              if (!active) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: loading || _activating ? null : _activate,
+                    icon: _activating
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.notifications_active_outlined),
+                    label: Text(russian
+                        ? (result?.error == null ? 'Включить' : 'Повторить')
+                        : (result?.error == null ? 'Activar' : 'Reintentar')),
+                  ),
+                ),
+                if (permissionDenied) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: openAppSettings,
+                      icon: const Icon(Icons.settings_outlined),
+                      label: Text(russian
+                          ? 'Открыть настройки Android'
+                          : 'Abrir ajustes de Android'),
+                    ),
+                  ),
+                ],
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
