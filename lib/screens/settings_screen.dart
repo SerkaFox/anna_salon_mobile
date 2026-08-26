@@ -164,18 +164,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     error: _error,
                     onSave: _saveProfile,
                   ),
-                  if (profile['employee_id'] != null) ...[
-                    const SizedBox(height: 16),
-                    _PushNotificationsCard(
-                      api: widget.api,
-                      languageCode: widget.settings.languageCode,
-                    ),
-                  ],
                   if (_canManageNotifications(profile)) ...[
                     const SizedBox(height: 16),
                     _WhatsAppConnectionCard(api: widget.api),
                     const SizedBox(height: 16),
                     _WhatsAppNotificationsCard(api: widget.api),
+                  ],
+                  if (_canReceivePushNotifications(profile)) ...[
+                    const SizedBox(height: 16),
+                    _PushNotificationsCard(
+                      api: widget.api,
+                      languageCode: widget.settings.languageCode,
+                    ),
                   ],
                 ],
               );
@@ -217,16 +217,32 @@ class _PushNotificationsCard extends StatefulWidget {
 class _PushNotificationsCardState extends State<_PushNotificationsCard> {
   late Future<PushActivationResult> _status = PushNotifications.status();
   bool _activating = false;
+  bool _deactivating = false;
 
   Future<void> _activate() async {
     setState(() => _activating = true);
     final result = await PushNotifications.activate(
       widget.api,
       widget.languageCode,
+      manual: true,
     );
     if (!mounted) return;
     setState(() {
       _activating = false;
+      _status = Future.value(result);
+    });
+  }
+
+  Future<void> _deactivate() async {
+    setState(() => _deactivating = true);
+    await PushNotifications.deactivate(
+      widget.api,
+      rememberDisabled: true,
+    );
+    final result = await PushNotifications.status();
+    if (!mounted) return;
+    setState(() {
+      _deactivating = false;
       _status = Future.value(result);
     });
   }
@@ -331,6 +347,22 @@ class _PushNotificationsCardState extends State<_PushNotificationsCard> {
                     ),
                   ),
                 ],
+              ],
+              if (active) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: loading || _deactivating ? null : _deactivate,
+                    icon: _deactivating
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.notifications_off_outlined),
+                    label: Text(russian ? 'Выключить' : 'Desactivar'),
+                  ),
+                ),
               ],
             ],
           ),
@@ -617,6 +649,7 @@ class _WhatsAppNotificationsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
     return PanelCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -643,12 +676,16 @@ class _WhatsAppNotificationsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Notificaciones WhatsApp',
+                      russian
+                          ? 'Уведомления WhatsApp'
+                          : 'Notificaciones WhatsApp',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Activa, pausa y edita las plantillas automaticas.',
+                      russian
+                          ? 'Включайте, приостанавливайте и редактируйте автоматические шаблоны.'
+                          : 'Activa, pausa y edita las plantillas automáticas.',
                       style: TextStyle(color: AnnaColors.muted),
                     ),
                   ],
@@ -668,7 +705,9 @@ class _WhatsAppNotificationsCard extends StatelessWidget {
                 );
               },
               icon: Icon(Icons.chevron_right),
-              label: const Text('Gestionar notificaciones'),
+              label: Text(russian
+                  ? 'Управление уведомлениями'
+                  : 'Gestionar notificaciones'),
             ),
           ),
         ],
@@ -680,6 +719,11 @@ class _WhatsAppNotificationsCard extends StatelessWidget {
 bool _canManageNotifications(Map<String, dynamic> profile) {
   final role = _text(profile['role']).toLowerCase();
   return role == 'owner' || role == 'admin';
+}
+
+bool _canReceivePushNotifications(Map<String, dynamic> profile) {
+  final role = _text(profile['role']).toLowerCase();
+  return profile['employee_id'] != null || role == 'owner' || role == 'admin';
 }
 
 class _AppearanceCard extends StatelessWidget {

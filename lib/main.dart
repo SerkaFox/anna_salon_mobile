@@ -77,7 +77,10 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
     if (!PushNotifications.isConfigured || !_api.hasCredentials) return;
     try {
       final profile = (await _api.me()).data;
-      if (profile['employee_id'] != null) {
+      final role = '${profile['role'] ?? ''}'.toLowerCase();
+      if (profile['employee_id'] != null ||
+          role == 'owner' ||
+          role == 'admin') {
         await PushNotifications.activate(_api, _settings.languageCode);
       }
     } on Object {
@@ -129,7 +132,8 @@ class _AnnaSalonAppState extends State<AnnaSalonApp> {
     if (restored && _deferredPushEvent != null) {
       final event = _deferredPushEvent!;
       _deferredPushEvent = null;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openPushBooking(event));
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openPushBooking(event));
     }
     _scheduleAutomaticUpdateCheck();
   }

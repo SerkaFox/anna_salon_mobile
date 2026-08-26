@@ -1,7 +1,21 @@
-const appVersionName = '0.1.41';
-const appVersionBuild = 42;
+const appVersionName = '0.1.42';
+const appVersionBuild = 43;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.42',
+    build: 43,
+    changesRu: [
+      'Интерфейс управления уведомлениями WhatsApp полностью переведён; тексты шаблонов сохранены на испанском.',
+      'В настройках появился отдельный раздел уведомлений приложения с кнопками включения и выключения.',
+      'Владелец и администратор получают уведомления обо всех новых записях, сотрудники — о своих.',
+    ],
+    changesEs: [
+      'La interfaz de gestión de WhatsApp sigue el idioma de la aplicación; los textos de las plantillas permanecen en español.',
+      'Los ajustes incluyen una sección separada para activar o desactivar los avisos de la aplicación.',
+      'Propietario y administrador reciben avisos de todas las reservas nuevas; cada empleado recibe las suyas.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.41',
     build: 42,

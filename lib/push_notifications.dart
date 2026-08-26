@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'api/anna_api.dart';
 
@@ -39,6 +40,9 @@ class PushActivationResult {
 
 class PushNotifications {
   PushNotifications._();
+
+  static const _storage = FlutterSecureStorage();
+  static const _disabledKey = 'push_notifications_disabled';
 
   static const _apiKey = String.fromEnvironment('FIREBASE_ANDROID_API_KEY');
   static const _appId = String.fromEnvironment('FIREBASE_ANDROID_APP_ID');
@@ -131,11 +135,17 @@ class PushNotifications {
 
   static Future<PushActivationResult> activate(
     AnnaApi api,
-    String languageCode,
-  ) async {
+    String languageCode, {
+    bool manual = false,
+  }) async {
     if (!_initialized) await initialize();
     if (!_initialized) return status();
     try {
+      if (manual) {
+        await _storage.delete(key: _disabledKey);
+      } else if (await _storage.read(key: _disabledKey) == 'true') {
+        return status();
+      }
       final messaging = FirebaseMessaging.instance;
       final permission = await messaging.requestPermission(
         alert: true,
@@ -187,7 +197,13 @@ class PushNotifications {
     }
   }
 
-  static Future<void> deactivate(AnnaApi api) async {
+  static Future<void> deactivate(
+    AnnaApi api, {
+    bool rememberDisabled = false,
+  }) async {
+    if (rememberDisabled) {
+      await _storage.write(key: _disabledKey, value: 'true');
+    }
     if (!_initialized) return;
     try {
       final token = await FirebaseMessaging.instance.getToken();

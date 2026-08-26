@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/anna_api.dart';
+import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
 import 'shared.dart';
@@ -32,7 +33,9 @@ class _NotificationSettingsScreenState
       _reload();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(enabled ? 'Plantilla activada.' : 'Plantilla pausada.'),
+          content: Text(AppLocalizations.of(context).isRussian
+              ? (enabled ? 'Шаблон включён.' : 'Шаблон приостановлен.')
+              : (enabled ? 'Plantilla activada.' : 'Plantilla pausada.')),
         ),
       );
     } on Object catch (error) {
@@ -54,14 +57,15 @@ class _NotificationSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
     return Scaffold(
       body: DecoratedBox(
         decoration: annaBackgroundDecoration(context),
         child: SafeArea(
           child: ScreenScaffold(
-            title: 'Notificaciones WhatsApp',
+            title: russian ? 'Уведомления WhatsApp' : 'Notificaciones WhatsApp',
             action: IconButton(
-              tooltip: 'Actualizar',
+              tooltip: russian ? 'Обновить' : 'Actualizar',
               onPressed: _reload,
               icon: Icon(Icons.refresh),
             ),
@@ -81,17 +85,20 @@ class _NotificationSettingsScreenState
                 }
                 final items = snapshot.data?.items ?? const <ApiRecord>[];
                 if (items.isEmpty) {
-                  return const EmptyState(
-                    'No hay plantillas de WhatsApp configuradas.',
+                  return EmptyState(
+                    russian
+                        ? 'Шаблоны WhatsApp ещё не настроены.'
+                        : 'No hay plantillas de WhatsApp configuradas.',
                   );
                 }
                 return Column(
                   children: [
-                    const _NotificationHelpCard(),
+                    _NotificationHelpCard(russian: russian),
                     const SizedBox(height: 14),
                     for (final item in items) ...[
                       _NotificationTemplateCard(
                         record: item,
+                        russian: russian,
                         onToggle: (value) => _toggle(item, value),
                         onEdit: () => _openEditor(item),
                       ),
@@ -109,7 +116,9 @@ class _NotificationSettingsScreenState
 }
 
 class _NotificationHelpCard extends StatelessWidget {
-  const _NotificationHelpCard();
+  const _NotificationHelpCard({required this.russian});
+
+  final bool russian;
 
   @override
   Widget build(BuildContext context) {
@@ -121,9 +130,9 @@ class _NotificationHelpCard extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Gestiona las 10 plantillas automaticas de WhatsApp. '
-              'Puedes activar, pausar, editar el texto y restaurar cada '
-              'plantilla al valor por defecto.',
+              russian
+                  ? 'Здесь можно управлять 10 автоматическими шаблонами WhatsApp: включать, приостанавливать, редактировать текст и восстанавливать стандартный вариант.'
+                  : 'Gestiona las 10 plantillas automáticas de WhatsApp. Puedes activar, pausar, editar el texto y restaurar cada plantilla al valor por defecto.',
               style: TextStyle(color: AnnaColors.muted, height: 1.35),
             ),
           ),
@@ -136,11 +145,13 @@ class _NotificationHelpCard extends StatelessWidget {
 class _NotificationTemplateCard extends StatelessWidget {
   const _NotificationTemplateCard({
     required this.record,
+    required this.russian,
     required this.onToggle,
     required this.onEdit,
   });
 
   final ApiRecord record;
+  final bool russian;
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
 
@@ -211,7 +222,9 @@ class _NotificationTemplateCard extends StatelessWidget {
           ],
           if (kind == 'review_request') ...[
             const SizedBox(height: 10),
-            AnnaBadge('ENVIO ${_delayLabel(delayMinutes)}'),
+            AnnaBadge(russian
+                ? 'ОТПРАВКА ${_delayLabel(delayMinutes, true)}'
+                : 'ENVÍO ${_delayLabel(delayMinutes, false)}'),
           ],
           if (variables.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -229,7 +242,7 @@ class _NotificationTemplateCard extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onEdit,
               icon: Icon(Icons.edit_outlined),
-              label: const Text('Editar'),
+              label: Text(russian ? 'Редактировать' : 'Editar'),
             ),
           ),
         ],
@@ -308,7 +321,9 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
         if (delay == null || delay < 0 || delay > 10080) {
           setState(() {
             _saving = false;
-            _error = 'La espera debe estar entre 0 y 10080 minutos.';
+            _error = AppLocalizations.of(context).isRussian
+                ? 'Задержка должна быть от 0 до 10080 минут.'
+                : 'La espera debe estar entre 0 y 10080 minutos.';
           });
           return;
         }
@@ -326,22 +341,24 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
   Future<void> _reset() async {
     final kind = _text(widget.record.data['kind']);
     if (kind.isEmpty) return;
+    final russian = AppLocalizations.of(context).isRussian;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Restaurar plantilla'),
-        content: const Text(
-          'Se reemplazara el texto por defecto del servidor. '
-          'Esta accion no se puede deshacer.',
+        title: Text(russian ? 'Восстановить шаблон' : 'Restaurar plantilla'),
+        content: Text(
+          russian
+              ? 'Текст будет заменён стандартным вариантом с сервера. Это действие нельзя отменить.'
+              : 'Se reemplazará el texto por defecto del servidor. Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(russian ? 'Отмена' : 'Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Restaurar'),
+            child: Text(russian ? 'Восстановить' : 'Restaurar'),
           ),
         ],
       ),
@@ -377,6 +394,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final russian = AppLocalizations.of(context).isRussian;
     final data = widget.record.data;
     final variables = _variables(data['variables']);
     final kind = _text(data['kind']);
@@ -414,7 +432,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
               onChanged: _saving || _resetting
                   ? null
                   : (value) => setState(() => _enabled = value),
-              title: const Text('Plantilla activa'),
+              title: Text(russian ? 'Шаблон включён' : 'Plantilla activa'),
               subtitle: Text(_text(data['kind'])),
             ),
             const SizedBox(height: 12),
@@ -423,10 +441,10 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
               minLines: 7,
               maxLines: 12,
               textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                labelText: 'Texto del mensaje',
+              decoration: InputDecoration(
+                labelText: russian ? 'Текст сообщения' : 'Texto del mensaje',
                 alignLabelWithHint: true,
-                prefixIcon: Icon(Icons.message_outlined),
+                prefixIcon: const Icon(Icons.message_outlined),
               ),
             ),
             if (kind == 'review_request') ...[
@@ -434,17 +452,21 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
               TextField(
                 controller: _delayController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Minutos despues de finalizar la cita',
-                  helperText: '120 minutos equivalen a 2 horas.',
-                  prefixIcon: Icon(Icons.timer_outlined),
+                decoration: InputDecoration(
+                  labelText: russian
+                      ? 'Минут после завершения записи'
+                      : 'Minutos después de finalizar la cita',
+                  helperText: russian
+                      ? '120 минут — это 2 часа.'
+                      : '120 minutos equivalen a 2 horas.',
+                  prefixIcon: const Icon(Icons.timer_outlined),
                 ),
               ),
             ],
             if (variables.isNotEmpty) ...[
               const SizedBox(height: 14),
               Text(
-                'Variables disponibles',
+                russian ? 'Доступные переменные' : 'Variables disponibles',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -455,6 +477,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                   for (final variable in variables)
                     _VariableInsertChip(
                       variable: variable,
+                      russian: russian,
                       enabled: !_saving && !_resetting,
                       onPressed: () => _insertVariable(variable),
                     ),
@@ -462,7 +485,9 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Pulsa una variable para insertarla donde esta el cursor.',
+                russian
+                    ? 'Нажмите переменную, чтобы вставить её в позицию курсора.'
+                    : 'Pulsa una variable para insertarla donde está el cursor.',
                 style: TextStyle(color: AnnaColors.muted, height: 1.35),
               ),
             ],
@@ -482,7 +507,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Icon(Icons.restore),
-                    label: const Text('Restaurar'),
+                    label: Text(russian ? 'Восстановить' : 'Restaurar'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -495,7 +520,7 @@ class _NotificationTemplateSheetState extends State<NotificationTemplateSheet> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Icon(Icons.save_outlined),
-                    label: const Text('Guardar'),
+                    label: Text(russian ? 'Сохранить' : 'Guardar'),
                   ),
                 ),
               ],
@@ -532,34 +557,34 @@ String _variableName(Object? value) {
 
 String _variableToken(String variable) => '{${_variableName(variable)}}';
 
-String _variableLabel(String variable) {
+String _variableLabel(String variable, bool russian) {
   switch (_variableName(variable)) {
     case 'client_name':
-      return 'NOMBRE';
+      return russian ? 'ИМЯ' : 'NOMBRE';
     case 'salon_name':
-      return 'SALON';
+      return russian ? 'САЛОН' : 'SALÓN';
     case 'date':
-      return 'FECHA';
+      return russian ? 'ДАТА' : 'FECHA';
     case 'time':
-      return 'HORA';
+      return russian ? 'ВРЕМЯ' : 'HORA';
     case 'service_name':
-      return 'SERVICIO';
+      return russian ? 'УСЛУГА' : 'SERVICIO';
     case 'booking_url':
-      return 'LINK RESERVA';
+      return russian ? 'ССЫЛКА НА ЗАПИСЬ' : 'LINK RESERVA';
     case 'portal_url':
-      return 'LINK PORTAL';
+      return russian ? 'ССЫЛКА НА КАБИНЕТ' : 'LINK PORTAL';
     case 'username':
-      return 'USUARIO';
+      return russian ? 'ЛОГИН' : 'USUARIO';
     case 'password':
-      return 'CONTRASENA';
+      return russian ? 'ПАРОЛЬ' : 'CONTRASEÑA';
     case 'offer':
-      return 'OFERTA';
+      return russian ? 'ПРЕДЛОЖЕНИЕ' : 'OFERTA';
     case 'attend_url':
-      return 'LINK VOY';
+      return russian ? 'ССЫЛКА «ПРИДУ»' : 'LINK VOY';
     case 'decline_url':
-      return 'LINK NO VOY';
+      return russian ? 'ССЫЛКА «НЕ ПРИДУ»' : 'LINK NO VOY';
     case 'review_url':
-      return 'LINK OPINION PRIVADA';
+      return russian ? 'ССЫЛКА НА ОТЗЫВ' : 'LINK OPINIÓN PRIVADA';
     case 'google_review_url':
       return 'LINK GOOGLE';
     default:
@@ -570,11 +595,13 @@ String _variableLabel(String variable) {
 class _VariableInsertChip extends StatelessWidget {
   const _VariableInsertChip({
     required this.variable,
+    required this.russian,
     required this.enabled,
     required this.onPressed,
   });
 
   final String variable;
+  final bool russian;
   final bool enabled;
   final VoidCallback onPressed;
 
@@ -582,7 +609,7 @@ class _VariableInsertChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return ActionChip(
       avatar: Icon(Icons.add_circle_outline, size: 18),
-      label: Text(_variableLabel(variable)),
+      label: Text(_variableLabel(variable, russian)),
       tooltip: _variableToken(variable),
       onPressed: enabled ? onPressed : null,
     );
@@ -619,14 +646,18 @@ String _kindLabel(Object? kind) {
   }
 }
 
-String _delayLabel(int minutes) {
+String _delayLabel(int minutes, bool russian) {
   if (minutes > 0 && minutes % 1440 == 0) {
     final days = minutes ~/ 1440;
-    return 'TRAS $days ${days == 1 ? 'DIA' : 'DIAS'}';
+    return russian
+        ? 'ЧЕРЕЗ $days ${days == 1 ? 'ДЕНЬ' : 'ДН.'}'
+        : 'TRAS $days ${days == 1 ? 'DÍA' : 'DÍAS'}';
   }
   if (minutes > 0 && minutes % 60 == 0) {
     final hours = minutes ~/ 60;
-    return 'TRAS $hours ${hours == 1 ? 'HORA' : 'HORAS'}';
+    return russian
+        ? 'ЧЕРЕЗ $hours ${hours == 1 ? 'ЧАС' : 'Ч.'}'
+        : 'TRAS $hours ${hours == 1 ? 'HORA' : 'HORAS'}';
   }
-  return 'TRAS $minutes MIN';
+  return russian ? 'ЧЕРЕЗ $minutes МИН.' : 'TRAS $minutes MIN';
 }
