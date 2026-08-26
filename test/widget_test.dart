@@ -11,7 +11,13 @@ import 'package:anna_salon_mobile/theme/app_theme.dart';
 
 class _FakeAnnaApi extends AnnaApi {
   @override
-  Future<ApiCollection> clients() async => ApiCollection.fromJson([
+  Future<ApiCollection> clients({
+    int? page,
+    String search = '',
+    String filter = '',
+    String ordering = 'name',
+  }) async =>
+      ApiCollection.fromJson([
         {
           'id': 1,
           'full_name': 'Maria Garcia',

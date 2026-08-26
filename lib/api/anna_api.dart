@@ -145,8 +145,21 @@ class AnnaApi {
     );
   }
 
-  Future<ApiCollection> clients() async {
-    return ApiCollection.fromJson(await _get('clients/'));
+  Future<ApiCollection> clients({
+    int? page,
+    String search = '',
+    String filter = '',
+    String ordering = 'name',
+  }) async {
+    final query = <String, String>{
+      if (page != null) 'page': '$page',
+      if (search.trim().isNotEmpty) 'search': search.trim(),
+      if (filter.isNotEmpty && filter != 'all') 'filter': filter,
+      if (ordering.isNotEmpty) 'ordering': ordering,
+    };
+    return ApiCollection.fromJson(
+      await _get('clients/', query: query.isEmpty ? null : query),
+    );
   }
 
   Future<ApiDocument> clientDetail(Object clientId) async {

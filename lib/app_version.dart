@@ -1,7 +1,23 @@
-const appVersionName = '0.1.42';
-const appVersionBuild = 43;
+const appVersionName = '0.1.43';
+const appVersionBuild = 44;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.43',
+    build: 44,
+    changesRu: [
+      'Исправлены перепутанные имена и WhatsApp-телефоны клиентов из старого импорта.',
+      'Список клиентов загружается страницами по 10 записей и больше не подвешивает приложение.',
+      'Поиск, фильтры и сортировка клиентов работают по всей базе на сервере.',
+      'Сайт напоминает новым клиентам указать настоящее имя и не принимает номер телефона вместо имени.',
+    ],
+    changesEs: [
+      'Se corrigieron nombres y teléfonos de WhatsApp intercambiados en una importación anterior.',
+      'La lista de clientes carga páginas de 10 registros para evitar bloqueos.',
+      'La búsqueda, los filtros y el orden se aplican a toda la base de datos en el servidor.',
+      'La web recuerda a los clientes nuevos que indiquen su nombre y no acepta un teléfono como nombre.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.42',
     build: 43,

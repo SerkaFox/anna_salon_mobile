@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -32,14 +34,22 @@ class ClientsScreen extends StatefulWidget {
 
 class _ClientsScreenState extends State<ClientsScreen> {
   final _queryController = TextEditingController();
-  late Future<ApiCollection> _future = widget.api.clients();
-  final List<ApiRecord> _createdClientRecords = [];
+  late Future<ApiCollection> _future;
+  Timer? _searchDebounce;
   String _query = '';
   _ClientFilter _filter = _ClientFilter.all;
   _ClientSort _sort = _ClientSort.name;
+  int _page = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadClients();
+  }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _queryController.dispose();
     super.dispose();
   }
@@ -52,37 +62,67 @@ class _ClientsScreenState extends State<ClientsScreen> {
   }
 
   Future<ApiCollection> _loadClients() async {
-    final response = await widget.api.clients();
-    final byId = <String, ApiRecord>{};
-    for (final record in [
-      ..._createdClientRecords,
-      ...response.items,
-    ]) {
-      final id = record.valueAsText('id') ?? record.valueAsText('pk');
-      if (id == null) continue;
-      byId.putIfAbsent(id, () => record);
-    }
-    return ApiCollection(
-      byId.values.toList(),
-      raw: response.raw,
+    return widget.api.clients(
+      page: _page,
+      search: _query,
+      filter: _filter.name,
+      ordering: _sort.name,
     );
   }
 
   void _clearSearch() {
+    _searchDebounce?.cancel();
     _queryController.clear();
-    setState(() => _query = '');
+    setState(() {
+      _query = '';
+      _page = 1;
+      _future = _loadClients();
+    });
+  }
+
+  void _searchChanged(String value) {
+    _searchDebounce?.cancel();
+    _query = value.trim();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      setState(() {
+        _page = 1;
+        _future = _loadClients();
+      });
+    });
+  }
+
+  void _filterChanged(_ClientFilter value) {
+    setState(() {
+      _filter = value;
+      _page = 1;
+      _future = _loadClients();
+    });
+  }
+
+  void _sortChanged(_ClientSort value) {
+    setState(() {
+      _sort = value;
+      _page = 1;
+      _future = _loadClients();
+    });
+  }
+
+  void _goToPage(int page) {
+    if (page < 1 || page == _page) return;
+    setState(() {
+      _page = page;
+      _future = _loadClients();
+    });
   }
 
   Future<void> _createClient() async {
     final created = await ClientFormSheet.show(context, api: widget.api);
     if (created == null || !mounted) return;
-    final id = created.valueAsText('id') ?? created.valueAsText('pk');
-    _createdClientRecords.removeWhere((record) {
-      final recordId = record.valueAsText('id') ?? record.valueAsText('pk');
-      return id != null && recordId == id;
+    setState(() {
+      _page = 1;
+      _future = _loadClients();
     });
-    _createdClientRecords.insert(0, created);
-    _reload();
   }
 
   @override
@@ -115,53 +155,43 @@ class _ClientsScreenState extends State<ClientsScreen> {
             return ErrorState(error: snapshot.error!, onRetry: _reload);
           }
 
-          final clients = (snapshot.data?.items ?? const <ApiRecord>[])
+          final collection = snapshot.data;
+          final clients = (collection?.items ?? const <ApiRecord>[])
               .map(_ClientView.fromRecord)
               .whereType<_ClientView>()
               .toList();
-          final filtered = clients.where((client) {
-            if (_query.isNotEmpty && !client.searchText.contains(_query)) {
-              return false;
-            }
-            return switch (_filter) {
-              _ClientFilter.all => true,
-              _ClientFilter.blacklisted => client.isBlacklisted,
-              _ClientFilter.online => client.isOnlineClient,
-            };
-          }).toList()
-            ..sort((left, right) => switch (_sort) {
-                  _ClientSort.name => left.name.compareTo(right.name),
-                  _ClientSort.orders =>
-                    right.totalOrders.compareTo(left.totalOrders),
-                  _ClientSort.spent =>
-                    right.totalSpent.compareTo(left.totalSpent),
-                });
+          final raw = collection?.raw;
+          final total = raw is Map
+              ? int.tryParse('${raw['count'] ?? clients.length}') ??
+                  clients.length
+              : clients.length;
+          final hasPrevious = raw is Map ? raw['previous'] != null : false;
+          final hasNext = raw is Map ? raw['next'] != null : false;
+          final totalPages = total == 0 ? 1 : (total / 10).ceil();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _ClientSearchCard(
                 controller: _queryController,
-                total: clients.length,
-                visible: filtered.length,
+                total: total,
+                visible: clients.length,
                 filter: _filter,
                 sort: _sort,
-                onChanged: (value) {
-                  setState(() => _query = value.trim().toLowerCase());
-                },
+                onChanged: _searchChanged,
                 onClear: _clearSearch,
-                onFilterChanged: (value) => setState(() => _filter = value),
-                onSortChanged: (value) => setState(() => _sort = value),
+                onFilterChanged: _filterChanged,
+                onSortChanged: _sortChanged,
               ),
               const SizedBox(height: 14),
-              if (filtered.isEmpty)
+              if (clients.isEmpty)
                 EmptyState(
-                  clients.isEmpty
+                  total == 0 && _query.isEmpty && _filter == _ClientFilter.all
                       ? t.tr('No hay clientes todavia.')
                       : t.tr('No hay clientes para esta busqueda.'),
                 )
               else
-                for (final client in filtered) ...[
+                for (final client in clients) ...[
                   _ClientCard(
                     api: widget.api,
                     client: client,
@@ -170,6 +200,17 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
+              if (total > 10) ...[
+                const SizedBox(height: 2),
+                _ClientPagination(
+                  page: _page,
+                  totalPages: totalPages,
+                  hasPrevious: hasPrevious,
+                  hasNext: hasNext,
+                  onPrevious: () => _goToPage(_page - 1),
+                  onNext: () => _goToPage(_page + 1),
+                ),
+              ],
             ],
           );
         },
@@ -280,6 +321,55 @@ class _ClientSearchCard extends StatelessWidget {
               AnnaBadge(t.clientsCount(total)),
               if (visible != total) AnnaBadge(t.visibleCount(visible)),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClientPagination extends StatelessWidget {
+  const _ClientPagination({
+    required this.page,
+    required this.totalPages,
+    required this.hasPrevious,
+    required this.hasNext,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int page;
+  final int totalPages;
+  final bool hasPrevious;
+  final bool hasNext;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return PanelCard(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: hasPrevious ? onPrevious : null,
+              icon: const Icon(Icons.chevron_left),
+              label: Text(t.isRussian ? 'Назад' : 'Anterior'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          AnnaBadge(t.isRussian
+              ? 'Страница $page из $totalPages'
+              : 'Página $page de $totalPages'),
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: hasNext ? onNext : null,
+              icon: const Icon(Icons.chevron_right),
+              label: Text(t.isRussian ? 'Далее' : 'Siguiente'),
+            ),
           ),
         ],
       ),
