@@ -13,6 +13,7 @@ import '../push_notifications.dart';
 import '../theme/app_theme.dart';
 import 'color_palette_picker.dart';
 import 'notification_settings_screen.dart';
+import 'push_notification_settings_screen.dart';
 import 'shared.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -350,6 +351,25 @@ class _PushNotificationsCardState extends State<_PushNotificationsCard> {
               ],
               if (active) ...[
                 const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PushNotificationSettingsScreen(
+                            api: widget.api,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.tune),
+                    label: Text(russian
+                        ? 'Настроить виды уведомлений'
+                        : 'Configurar tipos de avisos'),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(

@@ -1,7 +1,21 @@
-const appVersionName = '0.1.43';
-const appVersionBuild = 44;
+const appVersionName = '0.1.44';
+const appVersionBuild = 45;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.44',
+    build: 45,
+    changesRu: [
+      'Добавлены отдельные переключатели для каждого вида уведомлений приложения.',
+      'Можно независимо включать новые записи, отмены, переносы, смену мастера, предоплаты и напоминания за 24 и 2 часа.',
+      'При нажатии на уведомление приложение открывает нужную запись в календаре.',
+    ],
+    changesEs: [
+      'Se añadieron interruptores independientes para cada tipo de aviso de la aplicación.',
+      'Se pueden configurar nuevas reservas, cancelaciones, cambios, especialista, prepagos y recordatorios de 24 y 2 horas.',
+      'Al pulsar un aviso, la aplicación abre la reserva correspondiente en el calendario.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.43',
     build: 44,

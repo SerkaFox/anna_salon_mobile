@@ -121,6 +121,28 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> pushNotificationPreferences(
+    String registrationToken,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('push-devices/preferences/', {
+        'registration_token': registrationToken,
+      }),
+    );
+  }
+
+  Future<ApiDocument> updatePushNotificationPreferences(
+    String registrationToken,
+    Map<String, bool> preferences,
+  ) async {
+    return ApiDocument.fromJson(
+      await _patch('push-devices/preferences/', {
+        'registration_token': registrationToken,
+        'preferences': preferences,
+      }),
+    );
+  }
+
   Future<ApiDocument> whatsappStatus() async {
     return ApiDocument.fromJson(await _get('whatsapp/status/'));
   }

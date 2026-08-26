@@ -218,6 +218,39 @@ class PushNotifications {
     _registered = false;
   }
 
+  static Future<Map<String, bool>> preferences(AnnaApi api) async {
+    if (!_initialized) await initialize();
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Firebase did not return a device token.');
+    }
+    final document = await api.pushNotificationPreferences(token);
+    return _preferencesFrom(document.data['preferences']);
+  }
+
+  static Future<Map<String, bool>> updatePreferences(
+    AnnaApi api,
+    Map<String, bool> preferences,
+  ) async {
+    if (!_initialized) await initialize();
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Firebase did not return a device token.');
+    }
+    final document = await api.updatePushNotificationPreferences(
+      token,
+      preferences,
+    );
+    return _preferencesFrom(document.data['preferences']);
+  }
+
+  static Map<String, bool> _preferencesFrom(Object? value) {
+    if (value is! Map) return const {};
+    return value.map(
+      (key, item) => MapEntry(key.toString(), item == true),
+    );
+  }
+
   static void _emitBooking(RemoteMessage message, {required bool opened}) {
     final event = _bookingEvent(message, opened: opened);
     if (event != null) _events.add(event);
@@ -227,7 +260,17 @@ class PushNotifications {
     RemoteMessage message, {
     required bool opened,
   }) {
-    if (message.data['type'] != 'new_booking') return null;
+    if (!const {
+      'new_booking',
+      'booking_cancelled',
+      'booking_rescheduled',
+      'employee_changed',
+      'prepayment_received',
+      'reminder_24h',
+      'reminder_2h',
+    }.contains(message.data['type'])) {
+      return null;
+    }
     final bookingId = message.data['booking_id'];
     final date = DateTime.tryParse(message.data['booking_date'] ?? '');
     if (bookingId == null || bookingId.isEmpty || date == null) return null;
