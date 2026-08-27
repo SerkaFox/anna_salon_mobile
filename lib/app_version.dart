@@ -1,7 +1,25 @@
-const appVersionName = '0.1.44';
-const appVersionBuild = 45;
+const appVersionName = '0.1.45';
+const appVersionBuild = 46;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.45',
+    build: 46,
+    changesRu: [
+      'Клиент видит расходы только за текущую неделю и месяц; сумма за всю историю скрыта.',
+      'Автоматические награды убраны из клиентского кабинета, скидку назначает салон.',
+      'В клиентской записи добавлен поиск услуги по нескольким буквам.',
+      'Клиенты без предоплаты получают подтверждённую запись без платёжного окна и автоотмены.',
+      'Сотрудник видит только свою карточку и личный заработок, а также может открыть и закрыть кассу без общей выручки.',
+    ],
+    changesEs: [
+      'El cliente ve el gasto de la semana y del mes, sin el total histórico.',
+      'Los premios automáticos se retiraron del portal del cliente; el salón decide los descuentos.',
+      'La reserva del cliente permite buscar servicios escribiendo varias letras.',
+      'Los clientes exentos de prepago reciben la reserva confirmada sin ventana de pago ni cancelación automática.',
+      'El empleado solo ve su ficha y sus ganancias, y puede usar y cerrar la caja sin ver la facturación total.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.44',
     build: 45,

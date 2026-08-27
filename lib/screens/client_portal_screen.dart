@@ -310,18 +310,18 @@ class _ClientSummaryCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               AnnaBadge('${_text(stats['total_visits']) ?? '0'} visitas'),
-              AnnaBadge('${_money(stats['total_spent'])} EUR gastado'),
-              AnnaBadge('${_text(data['available_rewards']) ?? '0'} premios'),
+              AnnaBadge('${_money(stats['week_spent'])} EUR esta semana'),
+              AnnaBadge('${_money(stats['month_spent'])} EUR este mes'),
             ],
           ),
-          const SizedBox(height: 12),
-          _RewardProgressSection(rewards: _mapList(data['rewards'])),
         ],
       ),
     );
   }
 }
 
+// Kept temporarily for backward-compatible rendering of old cached payloads.
+// ignore: unused_element
 class _RewardProgressSection extends StatelessWidget {
   const _RewardProgressSection({required this.rewards});
 
@@ -771,12 +771,9 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
   String? _serviceId;
   String? _employeeId;
   String? _zoneId;
-  String? _rewardRuleId;
   String? _slotValue;
   Future<ApiDocument>? _slotsFuture;
   String? _slotsKey;
-  Future<ApiCollection>? _rewardsFuture;
-  Object? _rewardsClientId;
   bool _saving = false;
   String? _error;
 
@@ -826,18 +823,6 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
     });
   }
 
-  void _syncRewards() {
-    final clientId = widget.profile['client_id'];
-    if (clientId == null) {
-      _rewardsFuture = null;
-      _rewardsClientId = null;
-      return;
-    }
-    if (_rewardsClientId == clientId) return;
-    _rewardsClientId = clientId;
-    _rewardsFuture = widget.api.clientRewards(clientId);
-  }
-
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -869,24 +854,29 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
         if (_zoneId != null) 'zone': int.tryParse(_zoneId!) ?? _zoneId,
         'start_at': _formatApiDateTime(_slotValue!),
         'notes': _notesController.text.trim(),
-        if (_rewardRuleId != null)
-          'reward_rule': int.tryParse(_rewardRuleId!) ?? _rewardRuleId,
       });
       if (!mounted) return;
       final bookingId = response.data['id'];
       final checkoutUrl =
           response.data['prepayment_checkout_url']?.toString() ?? '';
+      final prepaymentState = response.data['prepayment_state']?.toString();
       _notesController.clear();
       setState(() {
         _serviceId = null;
         _employeeId = null;
         _zoneId = null;
-        _rewardRuleId = null;
-        _rewardsClientId = null;
         _resetSlots();
       });
       widget.onCreated();
-      await _showRequiredPrepayment(bookingId, checkoutUrl);
+      if (prepaymentState == 'exempt' || prepaymentState == 'optional') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reserva confirmada sin prepago.')),
+          );
+        }
+      } else {
+        await _showRequiredPrepayment(bookingId, checkoutUrl);
+      }
     } on AnnaApiException catch (error) {
       setState(() => _error = formatApiError(error));
     } finally {
@@ -992,7 +982,6 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
           }
           final refs = snapshot.data!;
           _syncSlots(refs);
-          _syncRewards();
           final service = refs.optionById(refs.serviceOptions, _serviceId);
           return PanelCard(
             child: Column(
@@ -1006,6 +995,7 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
                   value: _serviceId,
                   options: refs.serviceOptions,
                   icon: Icons.spa_outlined,
+                  searchable: true,
                   onChanged: (value) => setState(() {
                     _serviceId = value;
                     final selected =
@@ -1056,12 +1046,6 @@ class _ClientBookingScreenState extends State<ClientBookingScreen> {
                   }),
                 ),
                 const SizedBox(height: 12),
-                _ClientRewardSelector(
-                  future: _rewardsFuture,
-                  value: _rewardRuleId,
-                  onChanged: (value) => setState(() => _rewardRuleId = value),
-                ),
-                const SizedBox(height: 12),
                 TextField(
                   controller: _notesController,
                   minLines: 3,
@@ -1104,6 +1088,7 @@ class _ClientDropdown extends StatelessWidget {
     required this.options,
     required this.icon,
     required this.onChanged,
+    this.searchable = false,
   });
 
   final String label;
@@ -1111,12 +1096,43 @@ class _ClientDropdown extends StatelessWidget {
   final List<_ClientBookingOption> options;
   final IconData icon;
   final ValueChanged<String?>? onChanged;
+  final bool searchable;
 
   @override
   Widget build(BuildContext context) {
-    final selected = options.any((option) => option.id == value) ? value : null;
+    _ClientBookingOption? selected;
+    for (final option in options) {
+      if (option.id == value) {
+        selected = option;
+        break;
+      }
+    }
+    if (searchable) {
+      return TextFormField(
+        key: ValueKey(value),
+        readOnly: true,
+        initialValue: selected?.label ?? '',
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: 'Escribe 2–3 letras para buscar',
+          prefixIcon: Icon(icon),
+          suffixIcon: const Icon(Icons.search),
+        ),
+        onTap: onChanged == null
+            ? null
+            : () async {
+                final picked = await _showClientOptionSearch(
+                  context,
+                  title: label,
+                  options: options,
+                );
+                if (picked != null) onChanged!(picked.id);
+              },
+      );
+    }
+    final selectedId = selected?.id;
     return DropdownButtonFormField<String>(
-      initialValue: selected,
+      initialValue: selectedId,
       isExpanded: true,
       dropdownColor: AnnaColors.accentDeep,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
@@ -1128,6 +1144,114 @@ class _ClientDropdown extends StatelessWidget {
           ),
       ],
       onChanged: onChanged,
+    );
+  }
+}
+
+Future<_ClientBookingOption?> _showClientOptionSearch(
+  BuildContext context, {
+  required String title,
+  required List<_ClientBookingOption> options,
+}) {
+  return showModalBottomSheet<_ClientBookingOption>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AnnaColors.bgSoft,
+    builder: (context) => _ClientOptionSearchSheet(
+      title: title,
+      options: options,
+    ),
+  );
+}
+
+class _ClientOptionSearchSheet extends StatefulWidget {
+  const _ClientOptionSearchSheet({required this.title, required this.options});
+
+  final String title;
+  final List<_ClientBookingOption> options;
+
+  @override
+  State<_ClientOptionSearchSheet> createState() =>
+      _ClientOptionSearchSheetState();
+}
+
+class _ClientOptionSearchSheetState extends State<_ClientOptionSearchSheet> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final filtered = widget.options
+        .where((option) =>
+            query.isEmpty || option.label.toLowerCase().contains(query))
+        .toList()
+      ..sort((a, b) {
+        final aStarts = a.label.toLowerCase().startsWith(query);
+        final bStarts = b.label.toLowerCase().startsWith(query);
+        if (aStarts != bStarts) return aStarts ? -1 : 1;
+        return a.label.compareTo(b.label);
+      });
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          18,
+          18,
+          18,
+          MediaQuery.viewInsetsOf(context).bottom + 18,
+        ),
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.72,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: 'Escribe 2–3 letras del servicio',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            _controller.clear();
+                            setState(() => _query = '');
+                          },
+                          icon: const Icon(Icons.close),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: filtered.isEmpty
+                    ? const Center(child: Text('No se encontraron servicios'))
+                    : ListView.builder(
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final option = filtered[index];
+                          return ListTile(
+                            leading: const Icon(Icons.spa_outlined),
+                            title: Text(option.label),
+                            onTap: () => Navigator.pop(context, option),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1394,6 +1518,7 @@ List<_TeamEmployeeItem> _teamEmployeeItems(Object? raw) {
   ];
 }
 
+// ignore: unused_element
 class _ClientRewardSelector extends StatelessWidget {
   const _ClientRewardSelector({
     required this.future,

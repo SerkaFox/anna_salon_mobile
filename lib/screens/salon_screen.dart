@@ -51,6 +51,26 @@ class SalonScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          _SalonActionCard(
+            icon: Icons.point_of_sale_outlined,
+            title: t.tr('Caja'),
+            subtitle: canManageStaff
+                ? t.tr('Cobros, documentos, caja del dia y cierres.')
+                : (t.isRussian
+                    ? 'Оплата заказов и закрытие кассы без общей выручки салона.'
+                    : 'Cobros y cierre de caja sin mostrar la facturación total del salón.'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => DecoratedBox(
+                  decoration: annaBackgroundDecoration(context),
+                  child: SafeArea(
+                    child: CashboxScreen(api: api),
+                  ),
+                ),
+              ),
+            ),
+          ),
           if (canManageStaff) ...[
             const SizedBox(height: 12),
             _SalonActionCard(
@@ -86,22 +106,6 @@ class SalonScreen extends StatelessWidget {
                         api: api,
                         canManageStaff: canManageStaff,
                       ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _SalonActionCard(
-              icon: Icons.point_of_sale_outlined,
-              title: t.tr('Caja'),
-              subtitle: t.tr('Cobros, documentos, caja del dia y cierres.'),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => DecoratedBox(
-                    decoration: annaBackgroundDecoration(context),
-                    child: SafeArea(
-                      child: CashboxScreen(api: api),
                     ),
                   ),
                 ),

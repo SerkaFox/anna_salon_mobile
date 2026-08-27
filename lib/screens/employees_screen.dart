@@ -89,10 +89,15 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             return ErrorState(error: snapshot.error!, onRetry: _reload);
           }
 
-          final employees = (snapshot.data?.items ?? const <ApiRecord>[])
+          var employees = (snapshot.data?.items ?? const <ApiRecord>[])
               .map(_EmployeeView.fromRecord)
               .whereType<_EmployeeView>()
               .toList();
+          if (!widget.canManageStaff && widget.currentEmployeeId != null) {
+            employees = employees
+                .where((item) => item.id == widget.currentEmployeeId)
+                .toList();
+          }
           final filtered = employees.where((employee) {
             if (_query.isEmpty) return true;
             return employee.searchText.contains(_query);
@@ -101,16 +106,18 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _EmployeeSearchCard(
-                controller: _queryController,
-                total: employees.length,
-                visible: filtered.length,
-                onChanged: (value) {
-                  setState(() => _query = value.trim().toLowerCase());
-                },
-                onClear: _clearSearch,
-              ),
-              const SizedBox(height: 14),
+              if (widget.canManageStaff) ...[
+                _EmployeeSearchCard(
+                  controller: _queryController,
+                  total: employees.length,
+                  visible: filtered.length,
+                  onChanged: (value) {
+                    setState(() => _query = value.trim().toLowerCase());
+                  },
+                  onClear: _clearSearch,
+                ),
+                const SizedBox(height: 14),
+              ],
               if (filtered.isEmpty)
                 EmptyState(
                   employees.isEmpty
@@ -624,7 +631,10 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                   onChanged: (range) => setState(() => _range = range),
                 ),
                 const SizedBox(height: 12),
-                _EmployeeStatsGrid(stats: detail.stats),
+                _EmployeeStatsGrid(
+                  stats: detail.stats,
+                  canManageStaff: canManageStaff,
+                ),
                 const SizedBox(height: 14),
                 _EmployeeDetailSection(
                   title: t.tr('Informacion'),
@@ -732,7 +742,8 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
                 _EmployeeCountListSection(
                     title: t.tr('Servicios mas realizados'),
                     items: detail.topServices),
-                _EmployeeClientListSection(items: detail.topClients),
+                if (canManageStaff)
+                  _EmployeeClientListSection(items: detail.topClients),
                 _EmployeeBookingHistorySection(bookings: detail.bookings),
               ],
             );
@@ -744,20 +755,27 @@ class _EmployeeDetailSheetState extends State<_EmployeeDetailSheet> {
 }
 
 class _EmployeeStatsGrid extends StatelessWidget {
-  const _EmployeeStatsGrid({required this.stats});
+  const _EmployeeStatsGrid({
+    required this.stats,
+    required this.canManageStaff,
+  });
 
   final Map<String, String> stats;
+  final bool canManageStaff;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final entries = [
+    final entries = <(String, String)>[
       (t.tr('Gana empleado'), '${stats['employee_earnings'] ?? '0.00'} EUR'),
-      (t.tr('Facturado'), '${stats['client_revenue'] ?? '0.00'} EUR'),
-      (t.tr('Salon'), '${stats['salon_revenue'] ?? '0.00'} EUR'),
+      if (canManageStaff) ...[
+        (t.tr('Facturado'), '${stats['client_revenue'] ?? '0.00'} EUR'),
+        (t.tr('Salon'), '${stats['salon_revenue'] ?? '0.00'} EUR'),
+      ],
       (t.tr('Visitas'), stats['bookings_count'] ?? '0'),
       (t.tr('Clientes'), stats['clients_count'] ?? '0'),
-      (t.tr('Ticket medio'), '${stats['avg_ticket'] ?? '0.00'} EUR'),
+      if (canManageStaff)
+        (t.tr('Ticket medio'), '${stats['avg_ticket'] ?? '0.00'} EUR'),
     ];
     return GridView.count(
       crossAxisCount: 2,
