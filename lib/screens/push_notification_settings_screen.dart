@@ -63,8 +63,7 @@ class _PushNotificationSettingsScreenState
         decoration: annaBackgroundDecoration(context),
         child: SafeArea(
           child: ScreenScaffold(
-            title:
-                russian ? 'Уведомления приложения' : 'Avisos de la aplicación',
+            title: russian ? 'Пуш-уведомления' : 'Notificaciones push',
             action: IconButton(
               tooltip: russian ? 'Обновить' : 'Actualizar',
               onPressed: _reload,

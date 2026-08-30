@@ -1,7 +1,21 @@
-const appVersionName = '0.1.47';
-const appVersionBuild = 48;
+const appVersionName = '0.1.48';
+const appVersionBuild = 49;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.48',
+    build: 49,
+    changesRu: [
+      'В форме заказа добавлена отдельная заметная кнопка «Уменьшить на 15 мин» рядом с кнопкой добавления времени.',
+      'Итоговую длительность услуги нельзя уменьшить ниже 15 минут.',
+      'Раздел уведомлений в настройках переименован в «Пуш-уведомления».',
+    ],
+    changesEs: [
+      'El formulario incluye botones visibles para reducir o añadir 15 minutos.',
+      'La duración final del servicio nunca puede ser inferior a 15 minutos.',
+      'La sección de avisos se llama ahora «Notificaciones push».',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.47',
     build: 48,

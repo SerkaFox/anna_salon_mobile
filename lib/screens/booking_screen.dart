@@ -975,6 +975,36 @@ class _BookingFormCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: creating ||
+                              extraDurationMinutes - 15 < minimumExtraDuration
+                          ? null
+                          : () => onExtraDurationChanged(
+                                extraDurationMinutes - 15,
+                              ),
+                      icon: const Icon(Icons.remove),
+                      label:
+                          Text(t.isRussian ? 'Уменьшить на 15 мин' : '-15 min'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: creating || extraDurationMinutes + 15 > 180
+                          ? null
+                          : () => onExtraDurationChanged(
+                                extraDurationMinutes + 15,
+                              ),
+                      icon: const Icon(Icons.add),
+                      label: Text(t.isRussian ? 'Добавить 15 мин' : '+15 min'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               Text(
                 t.isRussian
                     ? 'Занято: $totalDuration мин · ${totalPrice.toStringAsFixed(2)} EUR'

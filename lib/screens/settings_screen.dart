@@ -270,8 +270,8 @@ class _PushNotificationsCardState extends State<_PushNotificationsCard> {
             ? (russian ? 'Проверяем состояние…' : 'Comprobando el estado…')
             : active
                 ? (russian
-                    ? 'Включены. Этот телефон получает новые записи.'
-                    : 'Activados. Este teléfono recibe nuevas reservas.')
+                    ? 'Включены. Этот телефон получает пуш-уведомления.'
+                    : 'Activadas. Este teléfono recibe notificaciones push.')
                 : result?.error != null
                     ? (russian
                         ? 'Не удалось подключить уведомления. Нажмите «Повторить».'
@@ -294,9 +294,7 @@ class _PushNotificationsCardState extends State<_PushNotificationsCard> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      russian
-                          ? 'Уведомления о новых записях'
-                          : 'Avisos de nuevas reservas',
+                      russian ? 'Пуш-уведомления' : 'Notificaciones push',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
