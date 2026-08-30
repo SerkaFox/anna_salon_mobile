@@ -1,7 +1,19 @@
-const appVersionName = '0.1.48';
-const appVersionBuild = 49;
+const appVersionName = '0.1.49';
+const appVersionBuild = 50;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.49',
+    build: 50,
+    changesRu: [
+      'Кнопки −15 и +15 встроены прямо в строку длительности карточки заказа в календаре — открывать редактирование не нужно.',
+      'После сохранения занятый интервал заказа в календаре пересчитывается.',
+    ],
+    changesEs: [
+      'Los botones −15 y +15 están directamente en la duración de la ficha de reserva, sin abrir la edición.',
+      'Al guardar se recalcula el intervalo ocupado en el calendario.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.48',
     build: 49,

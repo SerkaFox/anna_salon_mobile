@@ -2786,6 +2786,9 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
   String? _zoneId;
   String _status = 'confirmed';
   String _source = 'manual';
+  int _extraDurationMinutes = 0;
+  int _cleanupDurationMinutes = 0;
+  int _baseServiceDurationMinutes = 0;
   bool _saving = false;
   String? _error;
 
@@ -2852,6 +2855,15 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
         _zoneId;
     _status = _textValue(data, 'status') ?? _status;
     _source = _textValue(data, 'source') ?? _source;
+    _extraDurationMinutes =
+        int.tryParse(data['extra_duration_minutes']?.toString() ?? '') ?? 0;
+    _cleanupDurationMinutes =
+        int.tryParse(data['cleanup_duration_minutes']?.toString() ?? '') ?? 0;
+    final totalDuration =
+        int.tryParse(data['duration_snapshot']?.toString() ?? '') ?? 0;
+    _baseServiceDurationMinutes =
+        (totalDuration - _extraDurationMinutes - _cleanupDurationMinutes)
+            .clamp(0, 1440);
     final start = DateTime.tryParse(_textValue(data, 'start_at') ?? '');
     if (start != null) {
       _date = start;
@@ -2902,9 +2914,13 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
       _serviceId = value;
       final service = _selectedService(refs);
       if (service == null) {
+        _baseServiceDurationMinutes = 0;
+        _extraDurationMinutes = 0;
         _zoneId = null;
         return;
       }
+      _baseServiceDurationMinutes = service.durationMinutes;
+      _extraDurationMinutes = 0;
       if (_employeeId != null &&
           !refs.employeeSupportsService(_employeeId, service)) {
         _employeeId = null;
@@ -2949,6 +2965,12 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
       );
       return false;
     }
+    if (_baseServiceDurationMinutes + _extraDurationMinutes < 15) {
+      setState(() => _error = AppLocalizations.of(context).isRussian
+          ? 'Длительность услуги должна быть не меньше 15 минут.'
+          : 'La duración del servicio debe ser de al menos 15 minutos.');
+      return false;
+    }
     if (!service.requiresZone && _zoneId != null && _zoneId!.isNotEmpty) {
       setState(() => _zoneId = null);
     }
@@ -2978,14 +3000,19 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
         _zoneId == null || _zoneId!.isEmpty ? null : _coerceId(_zoneId);
     final payload = <String, dynamic>{
       'client': _coerceId(_clientId),
-      'service': _coerceId(_serviceId),
       'employee': _coerceId(_employeeId),
       'zone': zone,
       'start_at': startAt,
       'status': _status,
       'source': _source,
       'notes': _notesController.text.trim(),
+      'extra_duration_minutes': _extraDurationMinutes,
+      'cleanup_duration_minutes': _cleanupDurationMinutes,
     };
+    if (widget.booking.serviceId == null ||
+        _serviceId != widget.booking.serviceId) {
+      payload['service'] = _coerceId(_serviceId);
+    }
 
     setState(() {
       _saving = true;
@@ -2997,6 +3024,9 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
         'employee': _coerceId(_employeeId),
         'start_at': startAt,
         'exclude_booking_id': _coerceId(id),
+        'duration_minutes': _baseServiceDurationMinutes +
+            _extraDurationMinutes +
+            _cleanupDurationMinutes,
         if (zone != null) 'zone': zone,
       });
       if (availability.data['available'] == false) {
@@ -3065,6 +3095,12 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
           final zoneOptions = selectedService?.requiresZone == true
               ? refs.zonesForService(selectedService!)
               : const <_EditOption>[];
+          final minimumExtraDuration = _baseServiceDurationMinutes <= 15
+              ? 0
+              : -((_baseServiceDurationMinutes - 15) ~/ 15) * 15;
+          final totalDuration = _baseServiceDurationMinutes +
+              _extraDurationMinutes +
+              _cleanupDurationMinutes;
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               18,
@@ -3087,6 +3123,47 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    t.isRussian
+                        ? 'Длительность заказа: $totalDuration мин'
+                        : 'Duración de la reserva: $totalDuration min',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _saving ||
+                                  _extraDurationMinutes - 15 <
+                                      minimumExtraDuration
+                              ? null
+                              : () => setState(
+                                    () => _extraDurationMinutes -= 15,
+                                  ),
+                          icon: const Icon(Icons.remove),
+                          label: Text(
+                            t.isRussian ? 'Уменьшить на 15 мин' : '-15 min',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _saving || _extraDurationMinutes + 15 > 180
+                              ? null
+                              : () => setState(
+                                    () => _extraDurationMinutes += 15,
+                                  ),
+                          icon: const Icon(Icons.add),
+                          label: Text(
+                            t.isRussian ? 'Добавить 15 мин' : '+15 min',
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -3303,6 +3380,10 @@ class _BookingEditReferences {
           labelBuilder(record),
           requiresZone:
               _boolValue(record, const ['requires_zone', 'zone_required']),
+          durationMinutes: int.tryParse(
+                record.valueAsText('duration_minutes') ?? '',
+              ) ??
+              0,
           allowedZoneIds: _idSet(
               record, const ['allowed_zone_ids', 'allowed_zones', 'zones']),
           serviceIds: _idSet(record, const ['service_ids', 'services']),
@@ -3402,6 +3483,7 @@ class _EditOption {
     this.id,
     this.label, {
     this.requiresZone = false,
+    this.durationMinutes = 0,
     this.allowedZoneIds = const {},
     this.serviceIds = const {},
     this.employeeIds = const {},
@@ -3410,6 +3492,7 @@ class _EditOption {
   final String id;
   final String label;
   final bool requiresZone;
+  final int durationMinutes;
   final Set<String> allowedZoneIds;
   final Set<String> serviceIds;
   final Set<String> employeeIds;
@@ -3496,6 +3579,9 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
   bool _showReschedule = false;
   bool _working = false;
   String? _error;
+  late int _durationMinutes =
+      int.tryParse(widget.booking.durationSnapshot ?? '') ?? 0;
+  late String? _displayEndAt = widget.booking.endAt;
 
   Future<void> _openScreen(Widget screen) {
     return Navigator.of(context).push(
@@ -3588,6 +3674,52 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
     await _runAction(() async {
       await widget.api.updateBookingPrepayment(id, required);
     });
+  }
+
+  Future<void> _adjustDuration(int delta) async {
+    final id = booking.id;
+    if (id == null || _working) return;
+    setState(() {
+      _working = true;
+      _error = null;
+    });
+    try {
+      final detail = await widget.api.bookingDetail(id);
+      final data = detail.data;
+      final currentExtra =
+          int.tryParse(data['extra_duration_minutes']?.toString() ?? '') ?? 0;
+      final cleanup =
+          int.tryParse(data['cleanup_duration_minutes']?.toString() ?? '') ?? 0;
+      final currentTotal =
+          int.tryParse(data['duration_snapshot']?.toString() ?? '') ??
+              _durationMinutes;
+      final serviceDuration = currentTotal - currentExtra - cleanup;
+      final nextExtra = currentExtra + delta;
+      if (serviceDuration + nextExtra < 15) {
+        setState(() => _error = AppLocalizations.of(context).isRussian
+            ? 'Длительность услуги нельзя уменьшить ниже 15 минут.'
+            : 'La duración del servicio no puede ser inferior a 15 minutos.');
+        return;
+      }
+      if (nextExtra > 180) return;
+      final updated = await widget.api.updateBooking(
+        id,
+        {'extra_duration_minutes': nextExtra},
+      );
+      if (!mounted) return;
+      setState(() {
+        _durationMinutes = int.tryParse(
+              updated.data['duration_snapshot']?.toString() ?? '',
+            ) ??
+            (serviceDuration + nextExtra + cleanup);
+        _displayEndAt = updated.data['end_at']?.toString() ?? _displayEndAt;
+      });
+      await widget.onChanged();
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = _apiErrorText(error));
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
   }
 
   Future<void> _createPrepaymentInvoice() async {
@@ -3808,7 +3940,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                     onTap: booking.employeeId == null ? null : _openEmployee),
                 _DetailRow(t.tr('Zona'), booking.zoneName),
                 _DetailRow(t.tr('Inicio'), _formatDateTime(booking.startAt)),
-                _DetailRow(t.tr('Fin'), _formatDateTime(booking.endAt)),
+                _DetailRow(t.tr('Fin'), _formatDateTime(_displayEndAt)),
                 _DetailRow(t.tr('Estado'), booking.statusLabel),
                 _DetailRow(t.tr('Pago'), booking.paymentStateLabel),
                 _DetailRow(t.tr('Prepago'), booking.prepaymentStateLabel),
@@ -3816,7 +3948,34 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                     _formatDateTime(booking.prepaymentDeadlineAt)),
                 _DetailRow(t.tr('Origen'), booking.sourceLabel),
                 _DetailRow(t.tr('Precio'), booking.priceSnapshot),
-                _DetailRow(t.tr('Duracion'), booking.durationSnapshot),
+                _DetailRow(
+                  t.tr('Duracion'),
+                  '$_durationMinutes min',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton.filledTonal(
+                        onPressed: _working || _durationMinutes <= 15
+                            ? null
+                            : () => _adjustDuration(-15),
+                        tooltip: t.isRussian
+                            ? 'Уменьшить на 15 минут'
+                            : 'Reducir 15 minutos',
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.remove, size: 18),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton.filledTonal(
+                        onPressed: _working ? null : () => _adjustDuration(15),
+                        tooltip: t.isRussian
+                            ? 'Добавить 15 минут'
+                            : 'Añadir 15 minutos',
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.add, size: 18),
+                      ),
+                    ],
+                  ),
+                ),
                 _DetailRow(t.tr('Notas'), booking.notes),
               ],
             ),
@@ -4150,11 +4309,12 @@ Future<Map<String, dynamic>?> _showPrepaymentInvoiceForm(
 }
 
 class _DetailRow {
-  const _DetailRow(this.label, this.value, {this.onTap});
+  const _DetailRow(this.label, this.value, {this.onTap, this.trailing});
 
   final String label;
   final String? value;
   final VoidCallback? onTap;
+  final Widget? trailing;
 }
 
 class _DetailGrid extends StatelessWidget {
@@ -4193,6 +4353,10 @@ class _DetailGrid extends StatelessWidget {
                   ),
                 ),
                 Expanded(child: _DetailValue(row: row)),
+                if (row.trailing != null) ...[
+                  const SizedBox(width: 8),
+                  row.trailing!,
+                ],
               ],
             ),
           ),
