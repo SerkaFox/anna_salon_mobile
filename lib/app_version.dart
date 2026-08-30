@@ -1,7 +1,21 @@
-const appVersionName = '0.1.46';
-const appVersionBuild = 47;
+const appVersionName = '0.1.47';
+const appVersionBuild = 48;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.47',
+    build: 48,
+    changesRu: [
+      'В карточке оплаченного заказа добавлена кнопка «Фактура на предоплату».',
+      'Фактура создаётся только на внесённую сумму и позволяет указать данные фактического плательщика.',
+      'Данные плательщика не изменяют имя и профиль клиентки.',
+    ],
+    changesEs: [
+      'La reserva con señal pagada incluye el botón «Factura del prepago».',
+      'La factura usa solo el importe anticipado y permite indicar los datos del pagador real.',
+      'Los datos del pagador no modifican el nombre ni el perfil de la clienta.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.46',
     build: 47,

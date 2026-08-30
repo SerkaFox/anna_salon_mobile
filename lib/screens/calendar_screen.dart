@@ -3590,6 +3590,35 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
     });
   }
 
+  Future<void> _createPrepaymentInvoice() async {
+    final id = booking.id;
+    if (id == null) {
+      setState(() => _error = 'No se encontro el identificador de la reserva.');
+      return;
+    }
+    final payload = await _showPrepaymentInvoiceForm(context, booking);
+    if (!mounted || payload == null) return;
+    setState(() {
+      _working = true;
+      _error = null;
+    });
+    try {
+      final response = await widget.api.createPrepaymentInvoice(id, payload);
+      if (!mounted) return;
+      await showCashDocumentSheet(
+        context,
+        api: widget.api,
+        documentId: response.data['id'].toString(),
+        onChanged: widget.onChanged,
+      );
+      await widget.onChanged();
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = _apiErrorText(error));
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
   Future<void> _openCheckoutDocument() async {
     final id = booking.id;
     if (id == null) {
@@ -3858,6 +3887,17 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                                   .bodySmall
                                   ?.copyWith(color: AnnaColors.muted),
                             ),
+                            const SizedBox(height: 10),
+                            FilledButton.tonalIcon(
+                              onPressed:
+                                  _working ? null : _createPrepaymentInvoice,
+                              icon: Icon(Icons.request_quote_outlined),
+                              label: Text(
+                                t.isRussian
+                                    ? 'Фактура на предоплату'
+                                    : 'Factura del prepago',
+                              ),
+                            ),
                           ],
                         )
                       : FilledButton.tonalIcon(
@@ -3964,6 +4004,149 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
       ),
     );
   }
+}
+
+Future<Map<String, dynamic>?> _showPrepaymentInvoiceForm(
+  BuildContext context,
+  _BookingView booking,
+) async {
+  final t = AppLocalizations.of(context);
+  final formKey = GlobalKey<FormState>();
+  final name = TextEditingController(text: booking.clientName ?? '');
+  final fiscalId = TextEditingController();
+  final address = TextEditingController();
+  final city = TextEditingController();
+  final postcode = TextEditingController();
+  final email = TextEditingController();
+  final phone = TextEditingController();
+  String? requiredValue(String? value) {
+    if ((value ?? '').trim().isEmpty) {
+      return t.isRussian ? 'Обязательное поле' : 'Campo obligatorio';
+    }
+    return null;
+  }
+
+  final result = await showDialog<Map<String, dynamic>>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(
+        t.isRussian ? 'Фактура на предоплату' : 'Factura del prepago',
+      ),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t.isRussian
+                      ? 'Укажите данные того, на кого должна быть выписана фактура. Это может быть клиент или человек, оплативший предоплату.'
+                      : 'Indica los datos de la persona a la que debe emitirse la factura. Puede ser el cliente o quien pagó el anticipo.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AnnaColors.muted),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: name,
+                  validator: requiredValue,
+                  decoration: InputDecoration(
+                    labelText:
+                        t.isRussian ? 'Имя плательщика' : 'Nombre fiscal',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: fiscalId,
+                  validator: requiredValue,
+                  decoration:
+                      const InputDecoration(labelText: 'NIF / NIE / CIF'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: address,
+                  validator: requiredValue,
+                  decoration: InputDecoration(
+                    labelText:
+                        t.isRussian ? 'Фискальный адрес' : 'Dirección fiscal',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: city,
+                        decoration: InputDecoration(
+                          labelText: t.isRussian ? 'Город' : 'Ciudad',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        controller: postcode,
+                        decoration: InputDecoration(
+                          labelText: t.isRussian ? 'Индекс' : 'Código postal',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: t.isRussian ? 'Телефон WhatsApp' : 'WhatsApp',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: Text(t.isRussian ? 'Отмена' : 'Cancelar'),
+        ),
+        FilledButton.icon(
+          onPressed: () {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            Navigator.pop(dialogContext, {
+              'billing_name': name.text.trim(),
+              'fiscal_id': fiscalId.text.trim(),
+              'fiscal_address': address.text.trim(),
+              'fiscal_city': city.text.trim(),
+              'fiscal_postcode': postcode.text.trim(),
+              'email': email.text.trim(),
+              'phone': phone.text.trim(),
+            });
+          },
+          icon: const Icon(Icons.request_quote_outlined),
+          label: Text(t.isRussian ? 'Создать фактуру' : 'Crear factura'),
+        ),
+      ],
+    ),
+  );
+  name.dispose();
+  fiscalId.dispose();
+  address.dispose();
+  city.dispose();
+  postcode.dispose();
+  email.dispose();
+  phone.dispose();
+  return result;
 }
 
 class _DetailRow {

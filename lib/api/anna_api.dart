@@ -512,6 +512,15 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> createPrepaymentInvoice(
+    Object bookingId,
+    Map<String, dynamic> payload,
+  ) async {
+    return ApiDocument.fromJson(
+      await _post('bookings/$bookingId/prepayment-invoice/', payload),
+    );
+  }
+
   Future<ApiDocument> cashbox({
     DateTime? date,
     DateTime? dateFrom,
