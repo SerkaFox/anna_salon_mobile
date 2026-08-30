@@ -467,7 +467,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _freeScheduleSlot(CalendarSlotDraft draft) async {
     final employeeId = draft.employeeId;
     if (employeeId == null) return;
-    final slotEnd = draft.startAt.add(const Duration(minutes: _slotStepMinutes));
+    final slotEnd =
+        draft.startAt.add(const Duration(minutes: _slotStepMinutes));
     try {
       await widget.api.extendEmployeeScheduleSlot(
         employeeId,
@@ -3837,12 +3838,34 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                       label:
                           Text(t.tr('No requerir prepago · pago en el salon')),
                     )
-                  : FilledButton.tonalIcon(
-                      onPressed:
-                          _working ? null : () => _updatePrepayment(true),
-                      icon: Icon(Icons.send_outlined),
-                      label: Text(t.tr('Enviar enlace de prepago')),
-                    ),
+                  : booking.prepaymentState == 'paid'
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: null,
+                              icon: Icon(Icons.verified_outlined),
+                              label: Text(t.tr('Prepago ya realizado')),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              t.tr(
+                                'No se puede enviar otro enlace para evitar un cobro duplicado.',
+                              ),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: AnnaColors.muted),
+                            ),
+                          ],
+                        )
+                      : FilledButton.tonalIcon(
+                          onPressed:
+                              _working ? null : () => _updatePrepayment(true),
+                          icon: Icon(Icons.send_outlined),
+                          label: Text(t.tr('Enviar enlace de prepago')),
+                        ),
             ),
             const SizedBox(height: 12),
             Wrap(

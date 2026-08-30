@@ -241,6 +241,9 @@ class AppLocalizations {
     'No requerir prepago · pago en el salon':
         'Не требовать предоплату · оплата на месте',
     'Enviar enlace de prepago': 'Отправить ссылку на предоплату',
+    'Prepago ya realizado': 'Предоплата уже внесена',
+    'No se puede enviar otro enlace para evitar un cobro duplicado.':
+        'Повторную ссылку нельзя отправить, чтобы не списать деньги дважды.',
     'Nombre, apellido, telefono, email o login':
         'Имя, фамилия, телефон, email или логин',
     'Este empleado no tiene servicios disponibles':

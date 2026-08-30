@@ -1,7 +1,19 @@
-const appVersionName = '0.1.45';
-const appVersionBuild = 46;
+const appVersionName = '0.1.46';
+const appVersionBuild = 47;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.46',
+    build: 47,
+    changesRu: [
+      'После успешной предоплаты повторная ссылка блокируется, чтобы не списать деньги дважды.',
+      'В карточке заказа показывается понятное объяснение, что предоплата уже внесена.',
+    ],
+    changesEs: [
+      'Después de un prepago correcto se bloquea otro enlace para evitar un cobro duplicado.',
+      'La ficha de la reserva explica claramente que el prepago ya está realizado.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.45',
     build: 46,

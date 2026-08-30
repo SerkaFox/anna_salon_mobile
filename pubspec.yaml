@@ -1,7 +1,7 @@
 name: anna_salon_mobile
 description: BRIMOON Studio mobile app connected to the Django API.
 publish_to: "none"
-version: 0.1.45+46
+version: 0.1.46+47
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
