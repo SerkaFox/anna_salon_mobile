@@ -252,13 +252,19 @@ class _WaitlistCreateSheetState extends State<_WaitlistCreateSheet> {
   String _label(ApiRecord item) {
     final data = item.data;
     final full = data['full_name']?.toString().trim();
-    if (full != null && full.isNotEmpty) return full;
     final name = [data['first_name'], data['last_name']]
         .where((value) => value?.toString().trim().isNotEmpty == true)
         .join(' ');
-    return name.isNotEmpty
-        ? name
-        : (data['name']?.toString() ?? '#${_id(item)}');
+    final displayName = full != null && full.isNotEmpty
+        ? full
+        : (name.isNotEmpty
+            ? name
+            : (data['name']?.toString() ?? '#${_id(item)}'));
+    final phone = data['phone']?.toString().trim();
+    final marker = data['is_employee_profile'] == true ? '👩‍💼 ' : '';
+    return phone == null || phone.isEmpty
+        ? '$marker$displayName'
+        : '$marker$displayName · $phone';
   }
 
   bool _employeeSupports(ApiRecord employee, String serviceId) {

@@ -119,7 +119,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'mar');
     await tester.pumpAndSettle();
 
-    expect(find.text('Maria Garcia'), findsOneWidget);
+    expect(find.text('Maria Garcia · 600111222'), findsOneWidget);
     expect(find.text('Elena Lopez'), findsNothing);
     expect(tester.takeException(), isNull);
   });

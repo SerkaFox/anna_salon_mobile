@@ -1953,11 +1953,17 @@ class _BookingReferences {
   static String _clientLabel(ApiRecord record) {
     final full =
         _textValue(record, const ['full_name', 'name', 'display_name']);
-    if (full != null) return full;
     final first = _textValue(record, const ['first_name']) ?? '';
     final last = _textValue(record, const ['last_name']) ?? '';
     final combined = '$first $last'.trim();
-    return combined.isNotEmpty ? combined : 'Cliente ${_id(record)}';
+    final name =
+        full ?? (combined.isNotEmpty ? combined : 'Cliente ${_id(record)}');
+    final phone = _textValue(record, const ['phone', 'alternate_phone']);
+    final employeeMarker =
+        _boolValue(record, const ['is_employee_profile']) ? '👩‍💼 ' : '';
+    return phone == null
+        ? '$employeeMarker$name'
+        : '$employeeMarker$name · $phone';
   }
 
   static String _serviceLabel(ApiRecord record) {

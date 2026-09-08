@@ -1,7 +1,21 @@
-const appVersionName = '0.1.49';
-const appVersionBuild = 50;
+const appVersionName = '0.1.50';
+const appVersionBuild = 51;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.50',
+    build: 51,
+    changesRu: [
+      'В списке выбора клиента теперь показывается номер телефона.',
+      'Профили сотрудников отмечены значком 👩‍💼, чтобы их нельзя было перепутать с клиентами.',
+      'Точные дубли записей Treatwell больше не создают повторные WhatsApp-напоминания.',
+    ],
+    changesEs: [
+      'La selección de clientes ahora muestra el número de teléfono.',
+      'Los perfiles del personal llevan el icono 👩‍💼 para diferenciarlos de los clientes.',
+      'Los duplicados exactos de Treatwell ya no generan avisos repetidos por WhatsApp.',
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.49',
     build: 50,

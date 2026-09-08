@@ -3297,9 +3297,14 @@ class _BookingEditReferences {
   final ApiCollection zones;
 
   List<_EditOption> get clientOptions => _options(clients.items, (record) {
-        return record.valueAsText('full_name') ??
+        final name = record.valueAsText('full_name') ??
             record.valueAsText('name') ??
             'Cliente ${record.valueAsText('id') ?? ''}';
+        final phone = record.valueAsText('phone') ??
+            record.valueAsText('alternate_phone');
+        final marker =
+            record.data['is_employee_profile'] == true ? '👩‍💼 ' : '';
+        return phone == null ? '$marker$name' : '$marker$name · $phone';
       });
 
   List<_EditOption> get serviceOptions => _options(services.items, (record) {
