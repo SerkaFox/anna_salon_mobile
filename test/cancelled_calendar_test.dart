@@ -11,6 +11,14 @@ import 'package:anna_salon_mobile/l10n/app_localizations.dart';
 import 'package:anna_salon_mobile/theme/app_theme.dart';
 
 class CalendarApi extends AnnaApi {
+  final restored = <Map<String, dynamic>>[];
+  @override
+  Future<ApiCollection> employees() async => ApiCollection.fromJson({'results': [{'id': 1, 'full_name': 'Anna'}]});
+  @override
+  Future<ApiDocument> restoreBooking(Object bookingId, Map<String, dynamic> payload) async {
+    restored.add(payload);
+    return ApiDocument.fromJson({'id': bookingId, 'status': 'confirmed'});
+  }
   final calls = <String?>[];
   final dates = <DateTime>[];
   @override
@@ -84,27 +92,36 @@ void main() {
     expect(api.calls.last, 'all');
     expect(find.text('Modo de reservas canceladas'), findsOneWidget);
     expect(find.text('Active client'), findsNothing);
-    await tester.tap(find.text('Fechas con canceladas'));
+    expect(find.byType(ChoiceChip), findsNothing);
+    expect(tester.getTopLeft(find.text('Fechas')).dy, tester.getTopLeft(find.text('Lista')).dy);
+    await tester.tap(find.byTooltip('Ocultar ayuda'));
+    await tester.pumpAndSettle();
+    expect(await const FlutterSecureStorage().read(key: 'anna_calendar_cancelled_hint_hidden'), '1');
+    expect(find.byTooltip('Ocultar ayuda'), findsNothing);
+    await tester.tap(find.text('Fechas'));
     await tester.pumpAndSettle();
     final future = DateTime.now().add(const Duration(days: 31));
     await tester.tap(find.text(DateFormat('dd.MM.yyyy').format(future)));
     await tester.pumpAndSettle();
     expect(api.dates.any((date) => date.year == future.year && date.month == future.month && date.day == future.day), isTrue);
-    await tester.tap(find.text('Canceladas hoy'));
-    await tester.pumpAndSettle();
-    expect(api.calls.last, 'today');
-    await tester.tap(find.text('Lista de canceladas en los días visibles'));
+    expect(api.calls.last, 'all');
+    await tester.tap(find.text('Lista'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, 'Cancelled client').first);
     await tester.pumpAndSettle();
     expect(find.text('Fecha y hora original'), findsOneWidget);
     expect(find.text('Confirmar'), findsNothing);
     expect(find.text('Cancelar'), findsNothing);
-    await tester.ensureVisible(find.text('Cerrar'));
-    await tester.tap(find.text('Cerrar'));
+    await tester.ensureVisible(find.text('Restaurar reserva'));
+    await tester.tap(find.text('Restaurar reserva'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Reservas canceladas'));
+    expect(find.text('Nueva fecha'), findsOneWidget);
+    expect(find.text('Nueva hora'), findsOneWidget);
+    await tester.ensureVisible(find.text('Restaurar'));
+    await tester.tap(find.text('Restaurar'));
     await tester.pumpAndSettle();
+    expect(api.restored.single['employee'], 1);
+    expect(api.restored.single['start_at'], isNotEmpty);
     expect(api.calls.last, isNull);
     expect(find.text('Modo de reservas canceladas'), findsNothing);
     await tester.pumpWidget(const SizedBox());

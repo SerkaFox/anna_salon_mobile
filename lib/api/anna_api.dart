@@ -482,6 +482,12 @@ class AnnaApi {
     );
   }
 
+  Future<ApiDocument> restoreBooking(
+      Object bookingId, Map<String, dynamic> payload) async {
+    return ApiDocument.fromJson(
+        await _post('bookings/$bookingId/restore/', payload));
+  }
+
   Future<ApiDocument> bookingStripeCheckout(Object bookingId) async {
     return ApiDocument.fromJson(
       await _post('bookings/$bookingId/stripe-checkout/', const {}),

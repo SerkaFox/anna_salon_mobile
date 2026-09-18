@@ -87,7 +87,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _startDate = DateTime.now();
   _CalendarMode _mode = _CalendarMode.days;
   bool _showCancelled = false;
-  String _cancelledPeriod = 'all';
+  static const _cancelledHintKey = 'anna_calendar_cancelled_hint_hidden';
+  bool _cancelledHintHidden = true;
   Set<String>? _selectedEmployeeIds;
   Map<String, String> _cachedEmployeeColors = const {};
   Map<String, String> _cachedServiceColors = const {};
@@ -112,6 +113,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _future = _loadVisibleDays();
     }
     unawaited(_restoreSelectedEmployeeIds());
+    unawaited(_restoreCancelledHint());
     unawaited(_restoreCalendarColorCache());
     _setHighlight(widget.highlightBookingId, notify: false);
   }
@@ -152,7 +154,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<List<_CalendarDayData>> _loadVisibleDays() async {
-    final cancelled = _showCancelled ? _cancelledPeriod : null;
+    final cancelled = _showCancelled ? 'all' : null;
     final results = await Future.wait(
       _visibleDates.map((date) async {
         final collection =
@@ -444,6 +446,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  Future<void> _restoreCancelledHint() async {
+    final hidden = await _storage.read(key: _cancelledHintKey);
+    if (mounted) setState(() => _cancelledHintHidden = hidden == '1');
+  }
+
+  Future<void> _hideCancelledHint() async {
+    setState(() => _cancelledHintHidden = true);
+    await _storage.write(key: _cancelledHintKey, value: '1');
+  }
+
   Widget _cancelledBanner(List<_CalendarDayData> days) {
     final russian = AppLocalizations.of(context).isRussian;
     return Padding(
@@ -455,43 +467,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 : 'Modo de reservas canceladas',
             style: const TextStyle(
                 color: AnnaColors.danger, fontWeight: FontWeight.bold)),
-        Wrap(spacing: 6, children: [
-          for (final period in ['all', 'today', 'week'])
-            ChoiceChip(
-              label: Text(period == 'all'
-                  ? (russian ? 'Все' : 'Todas')
-                  : period == 'today'
-                      ? (russian ? 'Отменены сегодня' : 'Canceladas hoy')
-                      : (russian ? 'Эта неделя' : 'Esta semana')),
-              selected: _cancelledPeriod == period,
-              onSelected: (_) => setState(() {
-                _cancelledPeriod = period;
-                _future = _loadVisibleDays();
-              }),
-            ),
-        ]),
-        Text(
-            russian
-                ? 'Показаны на прежних датах визита. Обычные записи скрыты.'
-                : 'Se muestran en la fecha original de la cita. Las reservas activas están ocultas.',
-            style: const TextStyle(fontSize: 12)),
+        if (!_cancelledHintHidden)
+          Row(children: [
+            Expanded(
+                child: Text(
+                    russian
+                        ? 'Показаны на прежних датах визита. Обычные записи скрыты.'
+                        : 'Se muestran en la fecha original de la cita. Las reservas activas están ocultas.',
+                    style: const TextStyle(fontSize: 12))),
+            IconButton(
+              tooltip: russian ? 'Скрыть подсказку' : 'Ocultar ayuda',
+              onPressed: _hideCancelledHint,
+              icon: const Icon(Icons.close, size: 18),
+              visualDensity: VisualDensity.compact,
+            )
+          ]),
         // A list also makes overlapping cancellations and dates outside the
         // visible time scale accessible without changing calendar geometry.
         if (days.isNotEmpty)
-          TextButton.icon(
-            icon: const Icon(Icons.date_range),
-            label: Text(russian ? 'Даты с отменами' : 'Fechas con canceladas'),
-            onPressed: () =>
-                _openCancellationDates(days.first.cancellationDates),
-          ),
-        if (days.isNotEmpty)
-          TextButton.icon(
-            icon: const Icon(Icons.list_alt),
-            label: Text(russian
-                ? 'Список отмен в выбранных днях'
-                : 'Lista de canceladas en los días visibles'),
-            onPressed: () => _openCancelledList(days),
-          ),
+          Row(children: [
+            Expanded(
+                child: TextButton.icon(
+              icon: const Icon(Icons.date_range),
+              label: Text(russian ? 'Даты' : 'Fechas'),
+              onPressed: () =>
+                  _openCancellationDates(days.first.cancellationDates),
+            )),
+            Expanded(
+                child: TextButton.icon(
+              icon: const Icon(Icons.list_alt),
+              label: Text(russian ? 'Список' : 'Lista'),
+              onPressed: () => _openCancelledList(days),
+            ))
+          ]),
       ]),
     );
   }
@@ -504,29 +512,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
         builder: (sheetContext) => SafeArea(
                 child: SizedBox(
               height: MediaQuery.sizeOf(context).height * .65,
-              child: dates.isEmpty
-                  ? Center(
-                      child: Text(russian
-                          ? 'Нет отмен за выбранный период'
-                          : 'No hay canceladas en este periodo'))
-                  : ListView.builder(
-                      itemCount: dates.length,
-                      itemBuilder: (_, index) {
-                        final item = dates[index];
-                        final date = DateTime.parse(item['date'].toString());
-                        return ListTile(
-                            leading: const Icon(Icons.event_busy),
-                            title: Text(DateFormat('dd.MM.yyyy').format(date)),
-                            subtitle: Text(
-                                '${item['count']} ${russian ? 'отменённых записей · все сотрудники' : 'reservas canceladas · todo el personal'}'),
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              setState(() {
-                                _startDate = date;
-                                _future = _loadVisibleDays();
-                              });
-                            });
-                      }),
+              child: Column(children: [
+                Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                        russian ? 'Даты с отменами' : 'Fechas con canceladas',
+                        style: Theme.of(context).textTheme.titleMedium)),
+                Expanded(
+                    child: dates.isEmpty
+                        ? Center(
+                            child: Text(russian
+                                ? 'Нет отмен за выбранный период'
+                                : 'No hay canceladas en este periodo'))
+                        : ListView.builder(
+                            itemCount: dates.length,
+                            itemBuilder: (_, index) {
+                              final item = dates[index];
+                              final date =
+                                  DateTime.parse(item['date'].toString());
+                              return ListTile(
+                                  leading: const Icon(Icons.event_busy),
+                                  title: Text(
+                                      DateFormat('dd.MM.yyyy').format(date)),
+                                  subtitle: Text(
+                                      '${item['count']} ${russian ? 'отменённых записей · все сотрудники' : 'reservas canceladas · todo el personal'}'),
+                                  onTap: () {
+                                    Navigator.pop(sheetContext);
+                                    setState(() {
+                                      _startDate = date;
+                                      _future = _loadVisibleDays();
+                                    });
+                                  });
+                            })),
+              ]),
             )));
   }
 
@@ -548,25 +566,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
       builder: (sheetContext) => SafeArea(
           child: SizedBox(
         height: MediaQuery.sizeOf(context).height * .65,
-        child: bookings.isEmpty
-            ? Center(
-                child: Text(russian
-                    ? 'Нет отменённых записей'
-                    : 'No hay reservas canceladas'))
-            : ListView.builder(
-                itemCount: bookings.length,
-                itemBuilder: (_, index) {
-                  final booking = bookings[index];
-                  return ListTile(
-                      leading: const Icon(Icons.event_busy),
-                      title: Text(booking.clientName ?? ''),
-                      subtitle: Text(
-                          '${booking.startAt ?? ''}\n${booking.serviceName ?? ''} · ${booking.employeeName ?? ''}'),
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        _openCancelledDetails(booking);
-                      });
-                }),
+        child: Column(children: [
+          Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                  russian
+                      ? 'Список отмен в выбранных днях'
+                      : 'Lista de canceladas en los días visibles',
+                  style: Theme.of(context).textTheme.titleMedium)),
+          Expanded(
+              child: bookings.isEmpty
+                  ? Center(
+                      child: Text(russian
+                          ? 'Нет отменённых записей'
+                          : 'No hay reservas canceladas'))
+                  : ListView.builder(
+                      itemCount: bookings.length,
+                      itemBuilder: (_, index) {
+                        final booking = bookings[index];
+                        return ListTile(
+                            leading: const Icon(Icons.event_busy),
+                            title: Text(booking.clientName ?? ''),
+                            subtitle: Text(
+                                '${booking.startAt ?? ''}\n${booking.serviceName ?? ''} · ${booking.employeeName ?? ''}'),
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              _openCancelledDetails(booking);
+                            });
+                      })),
+        ]),
       )),
     );
   }
@@ -615,9 +643,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ? 'Дата отмены приблизительная: по последнему изменению старой записи.'
                           : 'Fecha aproximada: última modificación de una reserva antigua.'),
                     const SizedBox(height: 12),
-                    Text(russian
-                        ? 'Просмотр истории. Перезапись будет добавлена следующим этапом.'
-                        : 'Consulta del historial. La nueva reserva se añadirá en una próxima actualización.'),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.restore),
+                      label: Text(russian
+                          ? 'Восстановить запись'
+                          : 'Restaurar reserva'),
+                      onPressed: () {
+                        Navigator.pop(sheetContext);
+                        _RestoreBookingSheet.show(context,
+                            api: widget.api,
+                            booking: booking, onRestored: (date) async {
+                          setState(() {
+                            _showCancelled = false;
+                            _startDate = _dateOnly(date);
+                            _future = _loadVisibleDays();
+                          });
+                        });
+                      },
+                    ),
                     TextButton(
                         onPressed: () => Navigator.pop(sheetContext),
                         child: Text(russian ? 'Закрыть' : 'Cerrar')),
@@ -2964,6 +3007,152 @@ class _SmallStatusDot extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _RestoreBookingSheet extends StatefulWidget {
+  const _RestoreBookingSheet(
+      {required this.api, required this.booking, required this.onRestored});
+  final AnnaApi api;
+  final _BookingView booking;
+  final Future<void> Function(DateTime) onRestored;
+  static void show(BuildContext context,
+      {required AnnaApi api,
+      required _BookingView booking,
+      required Future<void> Function(DateTime) onRestored}) {
+    showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _RestoreBookingSheet(
+            api: api, booking: booking, onRestored: onRestored));
+  }
+
+  @override
+  State<_RestoreBookingSheet> createState() => _RestoreBookingSheetState();
+}
+
+class _RestoreBookingSheetState extends State<_RestoreBookingSheet> {
+  late final Future<ApiCollection> _employees = widget.api.employees();
+  late String? _employee = widget.booking.employeeId;
+  DateTime _date = DateTime.now().add(const Duration(days: 1));
+  TimeOfDay _time = const TimeOfDay(hour: 10, minute: 0);
+  bool _saving = false;
+  String? _error;
+  Future<void> _save() async {
+    if (_employee == null || widget.booking.id == null) return;
+    final start =
+        DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.api.restoreBooking(widget.booking.id!, {
+        'employee': _coerceId(_employee),
+        'start_at': _formatApiDateTime(start)
+      });
+      if (!mounted) return;
+      Navigator.pop(context);
+      await widget.onRestored(start);
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = _apiErrorText(error));
+    } catch (_) {
+      if (mounted)
+        setState(() => _error = AppLocalizations.of(context).isRussian
+            ? 'Не удалось восстановить запись. Попробуйте ещё раз.'
+            : 'No se pudo restaurar la reserva. Inténtalo de nuevo.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ru = AppLocalizations.of(context).isRussian;
+    return SafeArea(
+        child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+                20, 20, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(ru ? 'Восстановить запись' : 'Restaurar reserva',
+                      style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                      '${widget.booking.clientName ?? ''} · ${widget.booking.serviceName ?? ''}'),
+                  const SizedBox(height: 12),
+                  Text(ru
+                      ? 'Запись будет подтверждена сотрудником без новой предоплаты. Прежние услуги и платежи сохраняются; возвращённые деньги не считаются оплатой.'
+                      : 'El personal confirmará la reserva sin un nuevo prepago. Se conservan los servicios y pagos; los reembolsos no cuentan como pagos.'),
+                  FutureBuilder<ApiCollection>(
+                      future: _employees,
+                      builder: (_, snapshot) {
+                        if (snapshot.hasError)
+                          return Text(ru
+                              ? 'Не удалось загрузить сотрудников. Закройте окно и попробуйте снова.'
+                              : 'No se pudo cargar el personal. Cierra y vuelve a intentarlo.');
+                        if (!snapshot.hasData)
+                          return const LinearProgressIndicator();
+                        final items = snapshot.data!.items;
+                        return DropdownButtonFormField<String>(
+                          value:
+                              items.any((e) => e.valueAsText('id') == _employee)
+                                  ? _employee
+                                  : null,
+                          decoration: InputDecoration(
+                              labelText: ru ? 'Сотрудник' : 'Especialista'),
+                          items: items
+                              .map((e) => DropdownMenuItem(
+                                  value: e.valueAsText('id'),
+                                  child: Text(e.valueAsText('full_name') ??
+                                      e.valueAsText('name') ??
+                                      '')))
+                              .toList(),
+                          onChanged: _saving
+                              ? null
+                              : (value) => setState(() => _employee = value),
+                        );
+                      }),
+                  ListTile(
+                      title: Text(ru ? 'Новая дата' : 'Nueva fecha'),
+                      subtitle: Text(DateFormat('dd.MM.yyyy').format(_date)),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: _saving
+                          ? null
+                          : () async {
+                              final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _date,
+                                  firstDate: _dateOnly(DateTime.now()),
+                                  lastDate: DateTime.now()
+                                      .add(const Duration(days: 3650)));
+                              if (picked != null && mounted)
+                                setState(() => _date = picked);
+                            }),
+                  ListTile(
+                      title: Text(ru ? 'Новое время' : 'Nueva hora'),
+                      subtitle: Text(_time.format(context)),
+                      trailing: const Icon(Icons.schedule),
+                      onTap: _saving
+                          ? null
+                          : () async {
+                              final picked = await showTimePicker(
+                                  context: context, initialTime: _time);
+                              if (picked != null && mounted)
+                                setState(() => _time = picked);
+                            }),
+                  if (_error != null)
+                    Text(_error!,
+                        style: const TextStyle(color: AnnaColors.danger)),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                      onPressed: _saving || _employee == null ? null : _save,
+                      icon: const Icon(Icons.restore),
+                      label: Text(_saving
+                          ? (ru ? 'Сохранение…' : 'Guardando…')
+                          : (ru ? 'Восстановить' : 'Restaurar'))),
+                ])));
   }
 }
 
