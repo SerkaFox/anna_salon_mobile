@@ -506,46 +506,94 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _openCancellationDates(List<Map<String, dynamic>> dates) {
     final russian = AppLocalizations.of(context).isRussian;
+    final sorted = List<Map<String, dynamic>>.of(dates);
+    bool newestFirst = true;
+    int page = 0;
+    const pageSize = 10;
+    void sortDates() {
+      sorted.sort((a, b) => newestFirst
+          ? b['date'].toString().compareTo(a['date'].toString())
+          : a['date'].toString().compareTo(b['date'].toString()));
+    }
+
+    sortDates();
     showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (sheetContext) => SafeArea(
-                child: SizedBox(
-              height: MediaQuery.sizeOf(context).height * .65,
-              child: Column(children: [
-                Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                        russian ? 'Даты с отменами' : 'Fechas con canceladas',
-                        style: Theme.of(context).textTheme.titleMedium)),
-                Expanded(
-                    child: dates.isEmpty
-                        ? Center(
-                            child: Text(russian
-                                ? 'Нет отмен за выбранный период'
-                                : 'No hay canceladas en este periodo'))
-                        : ListView.builder(
-                            itemCount: dates.length,
-                            itemBuilder: (_, index) {
-                              final item = dates[index];
-                              final date =
-                                  DateTime.parse(item['date'].toString());
-                              return ListTile(
-                                  leading: const Icon(Icons.event_busy),
-                                  title: Text(
-                                      DateFormat('dd.MM.yyyy').format(date)),
-                                  subtitle: Text(
-                                      '${item['count']} ${russian ? 'отменённых записей · все сотрудники' : 'reservas canceladas · todo el personal'}'),
-                                  onTap: () {
-                                    Navigator.pop(sheetContext);
-                                    setState(() {
-                                      _startDate = date;
-                                      _future = _loadVisibleDays();
-                                    });
-                                  });
-                            })),
-              ]),
-            )));
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(builder: (_, updateSheet) {
+        final pages = sorted.isEmpty ? 1 : (sorted.length / pageSize).ceil();
+        final items = sorted.skip(page * pageSize).take(pageSize).toList();
+        return SafeArea(
+            child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .65,
+          child: Column(children: [
+            Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                child: Row(children: [
+                  Expanded(
+                      child: Text(
+                          russian ? 'Даты с отменами' : 'Fechas con canceladas',
+                          style: Theme.of(context).textTheme.titleMedium)),
+                  IconButton(
+                    tooltip: newestFirst
+                        ? (russian ? 'Сначала новые' : 'Más recientes primero')
+                        : (russian ? 'Сначала старые' : 'Más antiguas primero'),
+                    icon: Icon(newestFirst
+                        ? Icons.arrow_downward
+                        : Icons.arrow_upward),
+                    onPressed: () => updateSheet(() {
+                      newestFirst = !newestFirst;
+                      page = 0;
+                      sortDates();
+                    }),
+                  ),
+                ])),
+            Expanded(
+                child: items.isEmpty
+                    ? Center(
+                        child: Text(russian
+                            ? 'Нет отменённых записей'
+                            : 'No hay reservas canceladas'))
+                    : ListView.builder(
+                        key: ValueKey('$page-$newestFirst'),
+                        itemCount: items.length,
+                        itemBuilder: (_, index) {
+                          final item = items[index];
+                          final date = DateTime.parse(item['date'].toString());
+                          return ListTile(
+                            leading: const Icon(Icons.event_busy),
+                            title: Text(DateFormat('dd.MM.yyyy').format(date)),
+                            subtitle: Text(
+                                '${item['count']} ${russian ? 'отменённых записей · все сотрудники' : 'reservas canceladas · todo el personal'}'),
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              setState(() {
+                                _startDate = date;
+                                _future = _loadVisibleDays();
+                              });
+                            },
+                          );
+                        })),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              IconButton(
+                  tooltip: russian ? 'Предыдущая страница' : 'Página anterior',
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed:
+                      page == 0 ? null : () => updateSheet(() => page--)),
+              Text(russian
+                  ? 'Страница ${page + 1} из $pages'
+                  : 'Página ${page + 1} de $pages'),
+              IconButton(
+                  tooltip: russian ? 'Следующая страница' : 'Página siguiente',
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: page + 1 >= pages
+                      ? null
+                      : () => updateSheet(() => page++)),
+            ]),
+          ]),
+        ));
+      }),
+    );
   }
 
   void _openCancelledList(List<_CalendarDayData> days) {

@@ -11,6 +11,7 @@ import 'package:anna_salon_mobile/l10n/app_localizations.dart';
 import 'package:anna_salon_mobile/theme/app_theme.dart';
 
 class CalendarApi extends AnnaApi {
+  List<Map<String, dynamic>>? cancellationDates;
   bool available = false;
   @override
   Future<ApiCollection> clients(
@@ -46,7 +47,10 @@ class CalendarApi extends AnnaApi {
       });
   @override
   Future<ApiDocument> checkAvailability(Map<String, dynamic> payload) async =>
-      ApiDocument.fromJson({'available': available, 'message': 'Ese horario no esta disponible.'});
+      ApiDocument.fromJson({
+        'available': available,
+        'message': 'Ese horario no esta disponible.'
+      });
   @override
   Future<ApiDocument> availabilitySlots(Map<String, String> query) async =>
       ApiDocument.fromJson({
@@ -79,13 +83,14 @@ class CalendarApi extends AnnaApi {
       'date': date.toIso8601String(),
       'cancellation_dates': cancelled == null
           ? []
-          : [
-              {
-                'date': DateFormat('yyyy-MM-dd')
-                    .format(DateTime.now().add(const Duration(days: 31))),
-                'count': 1
-              },
-            ],
+          : cancellationDates ??
+              [
+                {
+                  'date': DateFormat('yyyy-MM-dd')
+                      .format(DateTime.now().add(const Duration(days: 31))),
+                  'count': 1
+                },
+              ],
       'employees': [
         {
           'employee': {
@@ -121,6 +126,68 @@ void main() {
   setUp(() async {
     FlutterSecureStorage.setMockInitialValues({});
     await initializeDateFormatting('es');
+  });
+  testWidgets('Cancellation dates are newest first, paginated and reversible',
+      (tester) async {
+    final api = CalendarApi()
+      ..cancellationDates = List.generate(
+          21,
+          (i) => {
+                'date':
+                    DateFormat('yyyy-MM-dd').format(DateTime(2022, 1, i + 1)),
+                'count': 1
+              });
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(MaterialApp(
+      theme: buildAnnaTheme(),
+      locale: const Locale('es'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate
+      ],
+      home: Scaffold(body: CalendarScreen(api: api, canManageStaff: true)),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Reservas canceladas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fechas'));
+    await tester.pumpAndSettle();
+    expect(find.text('21.01.2022'), findsOneWidget);
+    expect(find.text('Página 1 de 3'), findsOneWidget);
+    expect(
+        tester
+            .widget<ListView>(find.byKey(const ValueKey('0-true')))
+            .semanticChildCount,
+        10);
+    await tester.tap(find.byTooltip('Página siguiente'));
+    await tester.pumpAndSettle();
+    expect(find.text('11.01.2022'), findsOneWidget);
+    expect(find.text('Página 2 de 3'), findsOneWidget);
+    await tester.tap(find.byTooltip('Página siguiente'));
+    await tester.pumpAndSettle();
+    expect(find.text('01.01.2022'), findsOneWidget);
+    expect(find.text('Página 3 de 3'), findsOneWidget);
+    expect(
+        tester
+            .widget<IconButton>(find.byWidgetPredicate((widget) =>
+                widget is IconButton && widget.tooltip == 'Página siguiente'))
+            .onPressed,
+        isNull);
+    await tester.tap(find.byTooltip('Más recientes primero'));
+    await tester.pumpAndSettle();
+    expect(find.text('Página 1 de 3'), findsOneWidget);
+    expect(find.text('01.01.2022'), findsOneWidget);
+    expect(
+        tester
+            .widget<IconButton>(find.byWidgetPredicate((widget) =>
+                widget is IconButton && widget.tooltip == 'Página anterior'))
+            .onPressed,
+        isNull);
+    await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
       'Cancelled toggle filters and read-only cards do not alter live bookings',

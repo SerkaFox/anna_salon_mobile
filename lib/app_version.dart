@@ -1,7 +1,17 @@
-const appVersionName = '0.1.53';
-const appVersionBuild = 54;
+const appVersionName = '0.1.54';
+const appVersionBuild = 55;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.54',
+    build: 55,
+    changesRu: [
+      'Даты с отменами: сначала новые, смена сортировки стрелкой и страницы по 10 дат.'
+    ],
+    changesEs: [
+      'Fechas con canceladas: más recientes primero, orden reversible y páginas de 10 fechas.'
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.53',
     build: 54,
