@@ -160,10 +160,13 @@ class AnnaApi {
     return document;
   }
 
-  Future<ApiCollection> calendarDay(DateTime date) async {
+  Future<ApiCollection> calendarDay(DateTime date, {String? cancelled}) async {
     final formatted = DateFormat('yyyy-MM-dd').format(date);
     return ApiCollection.fromJson(
-      await _get('calendar/day/', query: {'date': formatted}),
+      await _get('calendar/day/', query: {
+        'date': formatted,
+        if (cancelled != null) 'cancelled': cancelled
+      }),
     );
   }
 

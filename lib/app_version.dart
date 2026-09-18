@@ -1,7 +1,19 @@
-const appVersionName = '0.1.50';
-const appVersionBuild = 51;
+const appVersionName = '0.1.51';
+const appVersionBuild = 52;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.51',
+    build: 52,
+    changesRu: [
+      'В календаре появился режим отменённых записей с фильтрами и просмотром карточек.',
+      'Пересекающиеся отмены доступны также в списке.'
+    ],
+    changesEs: [
+      'Modo de reservas canceladas en el calendario, con filtros y consulta de fichas.',
+      'Las canceladas superpuestas están disponibles también en una lista.'
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.50',
     build: 51,

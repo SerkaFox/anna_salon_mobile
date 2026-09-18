@@ -86,6 +86,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   DateTime _startDate = DateTime.now();
   _CalendarMode _mode = _CalendarMode.days;
+  bool _showCancelled = false;
+  String _cancelledPeriod = 'all';
   Set<String>? _selectedEmployeeIds;
   Map<String, String> _cachedEmployeeColors = const {};
   Map<String, String> _cachedServiceColors = const {};
@@ -150,9 +152,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<List<_CalendarDayData>> _loadVisibleDays() async {
+    final cancelled = _showCancelled ? _cancelledPeriod : null;
     final results = await Future.wait(
       _visibleDates.map((date) async {
-        final collection = await widget.api.calendarDay(date);
+        final collection =
+            await widget.api.calendarDay(date, cancelled: cancelled);
         return _CalendarDayData.fromCollection(
           collection,
           fallbackDate: date,
@@ -350,10 +354,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 onNext: () => _moveDays(_mode == _CalendarMode.days ? 3 : 1),
                 onPickDate: _pickDate,
                 onRefresh: _reload,
+                showCancelled: _showCancelled,
+                onCancelledToggle: () => setState(() {
+                  _showCancelled = !_showCancelled;
+                  _future = _loadVisibleDays();
+                }),
                 onAllEmployeesSelected: () => _setSelectedEmployeeIds(null),
                 onEmployeeToggled: (id) => _toggleEmployee(id, employees),
               ),
               const SizedBox(height: 8),
+              if (_showCancelled) _cancelledBanner(days),
               Expanded(
                 child: Builder(
                   builder: (context) {
@@ -396,9 +406,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       highlightBookingId: _highlightBookingId,
                       onToday: _goToday,
                       onBookingTap: (booking) => _openBookingActions(booking),
-                      onTimeBlockTap: _openTimeBlockDetails,
-                      onEmptySlotTap: _openCreateFromSlot,
-                      onBookingDrop: _openDragReschedule,
+                      onTimeBlockTap:
+                          _showCancelled ? (_) {} : _openTimeBlockDetails,
+                      onEmptySlotTap:
+                          _showCancelled ? (_) {} : _openCreateFromSlot,
+                      onBookingDrop:
+                          _showCancelled ? (_) {} : _openDragReschedule,
                     );
                   },
                 ),
@@ -411,6 +424,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _openBookingActions(_BookingView booking) {
+    if (booking.status == 'cancelled') {
+      _openCancelledDetails(booking);
+      return;
+    }
     _BookingActionsSheet.show(
       context,
       api: widget.api,
@@ -425,6 +442,194 @@ class _CalendarScreenState extends State<CalendarScreen> {
         onChanged: _refresh,
       ),
     );
+  }
+
+  Widget _cancelledBanner(List<_CalendarDayData> days) {
+    final russian = AppLocalizations.of(context).isRussian;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+            russian
+                ? 'Режим отменённых записей'
+                : 'Modo de reservas canceladas',
+            style: const TextStyle(
+                color: AnnaColors.danger, fontWeight: FontWeight.bold)),
+        Wrap(spacing: 6, children: [
+          for (final period in ['all', 'today', 'week'])
+            ChoiceChip(
+              label: Text(period == 'all'
+                  ? (russian ? 'Все' : 'Todas')
+                  : period == 'today'
+                      ? (russian ? 'Отменены сегодня' : 'Canceladas hoy')
+                      : (russian ? 'Эта неделя' : 'Esta semana')),
+              selected: _cancelledPeriod == period,
+              onSelected: (_) => setState(() {
+                _cancelledPeriod = period;
+                _future = _loadVisibleDays();
+              }),
+            ),
+        ]),
+        Text(
+            russian
+                ? 'Показаны на прежних датах визита. Обычные записи скрыты.'
+                : 'Se muestran en la fecha original de la cita. Las reservas activas están ocultas.',
+            style: const TextStyle(fontSize: 12)),
+        // A list also makes overlapping cancellations and dates outside the
+        // visible time scale accessible without changing calendar geometry.
+        if (days.isNotEmpty)
+          TextButton.icon(
+            icon: const Icon(Icons.date_range),
+            label: Text(russian ? 'Даты с отменами' : 'Fechas con canceladas'),
+            onPressed: () =>
+                _openCancellationDates(days.first.cancellationDates),
+          ),
+        if (days.isNotEmpty)
+          TextButton.icon(
+            icon: const Icon(Icons.list_alt),
+            label: Text(russian
+                ? 'Список отмен в выбранных днях'
+                : 'Lista de canceladas en los días visibles'),
+            onPressed: () => _openCancelledList(days),
+          ),
+      ]),
+    );
+  }
+
+  void _openCancellationDates(List<Map<String, dynamic>> dates) {
+    final russian = AppLocalizations.of(context).isRussian;
+    showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (sheetContext) => SafeArea(
+                child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * .65,
+              child: dates.isEmpty
+                  ? Center(
+                      child: Text(russian
+                          ? 'Нет отмен за выбранный период'
+                          : 'No hay canceladas en este periodo'))
+                  : ListView.builder(
+                      itemCount: dates.length,
+                      itemBuilder: (_, index) {
+                        final item = dates[index];
+                        final date = DateTime.parse(item['date'].toString());
+                        return ListTile(
+                            leading: const Icon(Icons.event_busy),
+                            title: Text(DateFormat('dd.MM.yyyy').format(date)),
+                            subtitle: Text(
+                                '${item['count']} ${russian ? 'отменённых записей · все сотрудники' : 'reservas canceladas · todo el personal'}'),
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              setState(() {
+                                _startDate = date;
+                                _future = _loadVisibleDays();
+                              });
+                            });
+                      }),
+            )));
+  }
+
+  void _openCancelledList(List<_CalendarDayData> days) {
+    final selected = _effectiveSelectedEmployeeIds(_mergeEmployees(days));
+    final visibleDays = _mode == _CalendarMode.team ? days.take(1) : days;
+    final byId = <String, _BookingView>{};
+    for (final day in visibleDays) {
+      for (final booking in day.filteredByEmployees(selected).bookings) {
+        byId[booking.id ?? '${booking.startAt}-${booking.clientName}'] =
+            booking;
+      }
+    }
+    final bookings = byId.values.toList();
+    final russian = AppLocalizations.of(context).isRussian;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+          child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * .65,
+        child: bookings.isEmpty
+            ? Center(
+                child: Text(russian
+                    ? 'Нет отменённых записей'
+                    : 'No hay reservas canceladas'))
+            : ListView.builder(
+                itemCount: bookings.length,
+                itemBuilder: (_, index) {
+                  final booking = bookings[index];
+                  return ListTile(
+                      leading: const Icon(Icons.event_busy),
+                      title: Text(booking.clientName ?? ''),
+                      subtitle: Text(
+                          '${booking.startAt ?? ''}\n${booking.serviceName ?? ''} · ${booking.employeeName ?? ''}'),
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        _openCancelledDetails(booking);
+                      });
+                }),
+      )),
+    );
+  }
+
+  void _openCancelledDetails(_BookingView booking) {
+    final russian = AppLocalizations.of(context).isRussian;
+    final recorded = booking.record.valueAsText('cancellation_recorded_at');
+    final estimated =
+        booking.record.data['cancellation_date_is_estimated'] == true;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+          child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(booking.clientName ?? '',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 12),
+                    _DetailGrid(rows: [
+                      _DetailRow(russian ? 'Статус' : 'Estado',
+                          russian ? 'Отменено' : 'Cancelada'),
+                      _DetailRow(
+                          russian
+                              ? 'Прежняя дата и время'
+                              : 'Fecha y hora original',
+                          _cancelledDateLabel(booking.startAt)),
+                      _DetailRow(russian ? 'До' : 'Hasta',
+                          _cancelledDateLabel(booking.endAt)),
+                      _DetailRow(russian ? 'Услуги' : 'Servicios',
+                          booking.serviceName),
+                      _DetailRow(russian ? 'Сотрудник' : 'Especialista',
+                          booking.employeeName),
+                      _DetailRow(russian ? 'Источник записи' : 'Origen',
+                          booking.sourceLabel ?? booking.source),
+                      _DetailRow(russian ? 'Отменено' : 'Cancelada',
+                          _cancelledDateLabel(recorded)),
+                      _DetailRow(
+                          russian ? 'Примечания' : 'Notas', booking.notes),
+                    ]),
+                    if (estimated)
+                      Text(russian
+                          ? 'Дата отмены приблизительная: по последнему изменению старой записи.'
+                          : 'Fecha aproximada: última modificación de una reserva antigua.'),
+                    const SizedBox(height: 12),
+                    Text(russian
+                        ? 'Просмотр истории. Перезапись будет добавлена следующим этапом.'
+                        : 'Consulta del historial. La nueva reserva se añadirá en una próxima actualización.'),
+                    TextButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        child: Text(russian ? 'Закрыть' : 'Cerrar')),
+                  ]))),
+    );
+  }
+
+  String? _cancelledDateLabel(String? value) {
+    final parsed = _parseDateTime(value);
+    return parsed == null
+        ? value
+        : DateFormat('dd.MM.yyyy HH:mm').format(parsed);
   }
 
   void _openTimeBlockDetails(_TimeBlockView block) {
@@ -572,6 +777,8 @@ class _CalendarToolbar extends StatelessWidget {
     required this.onNext,
     required this.onPickDate,
     required this.onRefresh,
+    required this.showCancelled,
+    required this.onCancelledToggle,
     required this.onAllEmployeesSelected,
     required this.onEmployeeToggled,
   });
@@ -585,6 +792,8 @@ class _CalendarToolbar extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onPickDate;
   final VoidCallback onRefresh;
+  final bool showCancelled;
+  final VoidCallback onCancelledToggle;
   final VoidCallback onAllEmployeesSelected;
   final ValueChanged<String> onEmployeeToggled;
 
@@ -637,6 +846,19 @@ class _CalendarToolbar extends StatelessWidget {
                 tooltip: t.refresh,
                 onPressed: onRefresh,
                 icon: Icon(Icons.refresh),
+              ),
+              IconButton(
+                tooltip:
+                    t.isRussian ? 'Отменённые записи' : 'Reservas canceladas',
+                isSelected: showCancelled,
+                style: IconButton.styleFrom(
+                    foregroundColor: showCancelled ? AnnaColors.danger : null,
+                    backgroundColor: showCancelled
+                        ? AnnaColors.danger.withValues(alpha: .15)
+                        : null),
+                onPressed: onCancelledToggle,
+                icon: const Icon(Icons.event_busy_outlined),
+                selectedIcon: const Icon(Icons.event_busy),
               ),
             ],
           ),
@@ -781,8 +1003,6 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
               width: contentWidth,
               child: LayoutBuilder(
                 builder: (context, gridConstraints) {
-                  final bodyHeight =
-                      (gridConstraints.maxHeight - 48).clamp(260.0, 2000.0);
                   return Column(
                     children: [
                       Row(
@@ -798,8 +1018,7 @@ class _ResponsiveCalendarGrid extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      SizedBox(
-                        height: bodyHeight,
+                      Expanded(
                         child: SingleChildScrollView(
                           child: Stack(
                             children: [
@@ -1472,6 +1691,7 @@ class _PositionedBookingCard extends StatelessWidget {
       right: 4,
       height: height,
       child: LongPressDraggable<_BookingView>(
+        maxSimultaneousDrags: booking.status == 'cancelled' ? 0 : 1,
         data: booking,
         feedback: SizedBox(
           width: 190,
@@ -1510,9 +1730,17 @@ class _BookingCardSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final employeeColor = _calendarCardColor(booking.employeeColor);
     final isPaid = booking.paymentState?.trim().toLowerCase() == 'paid';
-    final cardColor = isPaid ? const Color(0xFFE1E4E2) : employeeColor;
-    final borderColor =
-        isPaid ? const Color(0xFF9EA6A1) : booking.employeeColor;
+    final isCancelled = booking.status == 'cancelled';
+    final cardColor = isCancelled
+        ? const Color(0xFFFFE5E5)
+        : isPaid
+            ? const Color(0xFFE1E4E2)
+            : employeeColor;
+    final borderColor = isCancelled
+        ? AnnaColors.danger
+        : isPaid
+            ? const Color(0xFF9EA6A1)
+            : booking.employeeColor;
     final textColor = highlighted
         ? const Color(0xFF2F2300)
         : isPaid
@@ -2585,6 +2813,9 @@ class _CompactBookingCardContent extends StatelessWidget {
                         fontSize: 10.8,
                         height: 1.08,
                         fontWeight: FontWeight.w900,
+                        decoration: booking.status == 'cancelled'
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
                     ),
                   ),
@@ -4504,11 +4735,13 @@ class _CalendarDayData {
     required this.date,
     required this.bookings,
     required this.employees,
+    this.cancellationDates = const [],
   });
 
   final DateTime date;
   final List<_BookingView> bookings;
   final List<_CalendarEmployee> employees;
+  final List<Map<String, dynamic>> cancellationDates;
 
   factory _CalendarDayData.fromCollection(
     ApiCollection collection, {
@@ -4548,6 +4781,13 @@ class _CalendarDayData {
       date: date,
       bookings: bookings,
       employees: employees,
+      cancellationDates:
+          raw is Map<String, dynamic> && raw['cancellation_dates'] is List
+              ? (raw['cancellation_dates'] as List)
+                  .whereType<Map>()
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList()
+              : const [],
     );
   }
 
