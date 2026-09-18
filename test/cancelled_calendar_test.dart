@@ -11,14 +11,63 @@ import 'package:anna_salon_mobile/l10n/app_localizations.dart';
 import 'package:anna_salon_mobile/theme/app_theme.dart';
 
 class CalendarApi extends AnnaApi {
+  bool available = false;
+  @override
+  Future<ApiCollection> clients(
+          {int? page,
+          String search = '',
+          String filter = '',
+          String ordering = 'name'}) async =>
+      ApiCollection.fromJson({
+        'results': [
+          {'id': 1, 'full_name': 'Cancelled client'}
+        ]
+      });
+  @override
+  Future<ApiCollection> services() async => ApiCollection.fromJson({
+        'results': [
+          {'id': 1, 'name': 'Manicura', 'duration_minutes': 60}
+        ]
+      });
+  @override
+  Future<ApiCollection> zones() async =>
+      ApiCollection.fromJson({'results': []});
+  @override
+  Future<ApiDocument> bookingDetail(Object bookingId) async =>
+      ApiDocument.fromJson({
+        'id': bookingId,
+        'client_id': 1,
+        'service_id': 1,
+        'employee_id': 1,
+        'duration_snapshot': 60,
+        'status': 'cancelled',
+        'start_at':
+            DateTime.now().add(const Duration(days: 2)).toIso8601String()
+      });
+  @override
+  Future<ApiDocument> checkAvailability(Map<String, dynamic> payload) async =>
+      ApiDocument.fromJson({'available': available, 'message': 'Ese horario no esta disponible.'});
+  @override
+  Future<ApiDocument> availabilitySlots(Map<String, String> query) async =>
+      ApiDocument.fromJson({
+        'slots': [
+          {'label': '12:15', 'start_at': '${query['date']}T12:15:00'}
+        ]
+      });
   final restored = <Map<String, dynamic>>[];
   @override
-  Future<ApiCollection> employees() async => ApiCollection.fromJson({'results': [{'id': 1, 'full_name': 'Anna'}]});
+  Future<ApiCollection> employees() async => ApiCollection.fromJson({
+        'results': [
+          {'id': 1, 'full_name': 'Anna'}
+        ]
+      });
   @override
-  Future<ApiDocument> restoreBooking(Object bookingId, Map<String, dynamic> payload) async {
+  Future<ApiDocument> restoreBooking(
+      Object bookingId, Map<String, dynamic> payload) async {
     restored.add(payload);
     return ApiDocument.fromJson({'id': bookingId, 'status': 'confirmed'});
   }
+
   final calls = <String?>[];
   final dates = <DateTime>[];
   @override
@@ -28,9 +77,15 @@ class CalendarApi extends AnnaApi {
     final start = DateTime(date.year, date.month, date.day, 10);
     return ApiCollection.fromJson({
       'date': date.toIso8601String(),
-      'cancellation_dates': cancelled == null ? [] : [
-        {'date': DateFormat('yyyy-MM-dd').format(DateTime.now().add(const Duration(days: 31))), 'count': 1},
-      ],
+      'cancellation_dates': cancelled == null
+          ? []
+          : [
+              {
+                'date': DateFormat('yyyy-MM-dd')
+                    .format(DateTime.now().add(const Duration(days: 31))),
+                'count': 1
+              },
+            ],
       'employees': [
         {
           'employee': {
@@ -93,17 +148,26 @@ void main() {
     expect(find.text('Modo de reservas canceladas'), findsOneWidget);
     expect(find.text('Active client'), findsNothing);
     expect(find.byType(ChoiceChip), findsNothing);
-    expect(tester.getTopLeft(find.text('Fechas')).dy, tester.getTopLeft(find.text('Lista')).dy);
+    expect(tester.getTopLeft(find.text('Fechas')).dy,
+        tester.getTopLeft(find.text('Lista')).dy);
     await tester.tap(find.byTooltip('Ocultar ayuda'));
     await tester.pumpAndSettle();
-    expect(await const FlutterSecureStorage().read(key: 'anna_calendar_cancelled_hint_hidden'), '1');
+    expect(
+        await const FlutterSecureStorage()
+            .read(key: 'anna_calendar_cancelled_hint_hidden'),
+        '1');
     expect(find.byTooltip('Ocultar ayuda'), findsNothing);
     await tester.tap(find.text('Fechas'));
     await tester.pumpAndSettle();
     final future = DateTime.now().add(const Duration(days: 31));
     await tester.tap(find.text(DateFormat('dd.MM.yyyy').format(future)));
     await tester.pumpAndSettle();
-    expect(api.dates.any((date) => date.year == future.year && date.month == future.month && date.day == future.day), isTrue);
+    expect(
+        api.dates.any((date) =>
+            date.year == future.year &&
+            date.month == future.month &&
+            date.day == future.day),
+        isTrue);
     expect(api.calls.last, 'all');
     await tester.tap(find.text('Lista'));
     await tester.pumpAndSettle();
@@ -115,10 +179,17 @@ void main() {
     await tester.ensureVisible(find.text('Restaurar reserva'));
     await tester.tap(find.text('Restaurar reserva'));
     await tester.pumpAndSettle();
-    expect(find.text('Nueva fecha'), findsOneWidget);
-    expect(find.text('Nueva hora'), findsOneWidget);
-    await tester.ensureVisible(find.text('Restaurar'));
-    await tester.tap(find.text('Restaurar'));
+    expect(find.text('Editar reserva'), findsOneWidget);
+    await tester.ensureVisible(find.text('12:15'));
+    await tester.tap(find.text('12:15'));
+    await tester.ensureVisible(find.text('Guardar cambios'));
+    await tester.tap(find.text('Guardar cambios'));
+    await tester.pumpAndSettle();
+    expect(api.restored, isEmpty);
+    expect(find.text('Ese horario no esta disponible.'), findsOneWidget);
+    api.available = true;
+    await tester.ensureVisible(find.text('Guardar cambios'));
+    await tester.tap(find.text('Guardar cambios'));
     await tester.pumpAndSettle();
     expect(api.restored.single['employee'], 1);
     expect(api.restored.single['start_at'], isNotEmpty);

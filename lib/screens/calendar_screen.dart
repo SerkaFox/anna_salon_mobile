@@ -650,9 +650,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           : 'Restaurar reserva'),
                       onPressed: () {
                         Navigator.pop(sheetContext);
-                        _RestoreBookingSheet.show(context,
+                        _BookingEditSheet.show(context,
                             api: widget.api,
-                            booking: booking, onRestored: (date) async {
+                            booking: booking,
+                            onChanged: _refresh, onRestored: (date) async {
                           setState(() {
                             _showCancelled = false;
                             _startDate = _dateOnly(date);
@@ -3010,168 +3011,25 @@ class _SmallStatusDot extends StatelessWidget {
   }
 }
 
-class _RestoreBookingSheet extends StatefulWidget {
-  const _RestoreBookingSheet(
-      {required this.api, required this.booking, required this.onRestored});
-  final AnnaApi api;
-  final _BookingView booking;
-  final Future<void> Function(DateTime) onRestored;
-  static void show(BuildContext context,
-      {required AnnaApi api,
-      required _BookingView booking,
-      required Future<void> Function(DateTime) onRestored}) {
-    showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => _RestoreBookingSheet(
-            api: api, booking: booking, onRestored: onRestored));
-  }
-
-  @override
-  State<_RestoreBookingSheet> createState() => _RestoreBookingSheetState();
-}
-
-class _RestoreBookingSheetState extends State<_RestoreBookingSheet> {
-  late final Future<ApiCollection> _employees = widget.api.employees();
-  late String? _employee = widget.booking.employeeId;
-  DateTime _date = DateTime.now().add(const Duration(days: 1));
-  TimeOfDay _time = const TimeOfDay(hour: 10, minute: 0);
-  bool _saving = false;
-  String? _error;
-  Future<void> _save() async {
-    if (_employee == null || widget.booking.id == null) return;
-    final start =
-        DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await widget.api.restoreBooking(widget.booking.id!, {
-        'employee': _coerceId(_employee),
-        'start_at': _formatApiDateTime(start)
-      });
-      if (!mounted) return;
-      Navigator.pop(context);
-      await widget.onRestored(start);
-    } on AnnaApiException catch (error) {
-      if (mounted) setState(() => _error = _apiErrorText(error));
-    } catch (_) {
-      if (mounted)
-        setState(() => _error = AppLocalizations.of(context).isRussian
-            ? 'Не удалось восстановить запись. Попробуйте ещё раз.'
-            : 'No se pudo restaurar la reserva. Inténtalo de nuevo.');
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ru = AppLocalizations.of(context).isRussian;
-    return SafeArea(
-        child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-                20, 20, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(ru ? 'Восстановить запись' : 'Restaurar reserva',
-                      style: Theme.of(context).textTheme.titleLarge),
-                  Text(
-                      '${widget.booking.clientName ?? ''} · ${widget.booking.serviceName ?? ''}'),
-                  const SizedBox(height: 12),
-                  Text(ru
-                      ? 'Запись будет подтверждена сотрудником без новой предоплаты. Прежние услуги и платежи сохраняются; возвращённые деньги не считаются оплатой.'
-                      : 'El personal confirmará la reserva sin un nuevo prepago. Se conservan los servicios y pagos; los reembolsos no cuentan como pagos.'),
-                  FutureBuilder<ApiCollection>(
-                      future: _employees,
-                      builder: (_, snapshot) {
-                        if (snapshot.hasError)
-                          return Text(ru
-                              ? 'Не удалось загрузить сотрудников. Закройте окно и попробуйте снова.'
-                              : 'No se pudo cargar el personal. Cierra y vuelve a intentarlo.');
-                        if (!snapshot.hasData)
-                          return const LinearProgressIndicator();
-                        final items = snapshot.data!.items;
-                        return DropdownButtonFormField<String>(
-                          value:
-                              items.any((e) => e.valueAsText('id') == _employee)
-                                  ? _employee
-                                  : null,
-                          decoration: InputDecoration(
-                              labelText: ru ? 'Сотрудник' : 'Especialista'),
-                          items: items
-                              .map((e) => DropdownMenuItem(
-                                  value: e.valueAsText('id'),
-                                  child: Text(e.valueAsText('full_name') ??
-                                      e.valueAsText('name') ??
-                                      '')))
-                              .toList(),
-                          onChanged: _saving
-                              ? null
-                              : (value) => setState(() => _employee = value),
-                        );
-                      }),
-                  ListTile(
-                      title: Text(ru ? 'Новая дата' : 'Nueva fecha'),
-                      subtitle: Text(DateFormat('dd.MM.yyyy').format(_date)),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: _saving
-                          ? null
-                          : () async {
-                              final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _date,
-                                  firstDate: _dateOnly(DateTime.now()),
-                                  lastDate: DateTime.now()
-                                      .add(const Duration(days: 3650)));
-                              if (picked != null && mounted)
-                                setState(() => _date = picked);
-                            }),
-                  ListTile(
-                      title: Text(ru ? 'Новое время' : 'Nueva hora'),
-                      subtitle: Text(_time.format(context)),
-                      trailing: const Icon(Icons.schedule),
-                      onTap: _saving
-                          ? null
-                          : () async {
-                              final picked = await showTimePicker(
-                                  context: context, initialTime: _time);
-                              if (picked != null && mounted)
-                                setState(() => _time = picked);
-                            }),
-                  if (_error != null)
-                    Text(_error!,
-                        style: const TextStyle(color: AnnaColors.danger)),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                      onPressed: _saving || _employee == null ? null : _save,
-                      icon: const Icon(Icons.restore),
-                      label: Text(_saving
-                          ? (ru ? 'Сохранение…' : 'Guardando…')
-                          : (ru ? 'Восстановить' : 'Restaurar'))),
-                ])));
-  }
-}
-
 class _BookingEditSheet extends StatefulWidget {
   const _BookingEditSheet({
     required this.api,
     required this.booking,
     required this.onChanged,
+    this.onRestored,
   });
 
   final AnnaApi api;
   final _BookingView booking;
   final Future<void> Function() onChanged;
+  final Future<void> Function(DateTime)? onRestored;
 
   static void show(
     BuildContext context, {
     required AnnaApi api,
     required _BookingView booking,
     required Future<void> Function() onChanged,
+    Future<void> Function(DateTime)? onRestored,
   }) {
     showModalBottomSheet<void>(
       context: context,
@@ -3184,6 +3042,7 @@ class _BookingEditSheet extends StatefulWidget {
         api: api,
         booking: booking,
         onChanged: onChanged,
+        onRestored: onRestored,
       ),
     );
   }
@@ -3193,6 +3052,8 @@ class _BookingEditSheet extends StatefulWidget {
 }
 
 class _BookingEditSheetState extends State<_BookingEditSheet> {
+  Future<ApiDocument>? _slotsFuture;
+  String? _slotsKey;
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
 
@@ -3220,7 +3081,8 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
     _serviceId = booking.serviceId;
     _employeeId = booking.employeeId;
     _zoneId = booking.zoneId;
-    _status = booking.status ?? 'confirmed';
+    _status =
+        widget.onRestored != null ? 'confirmed' : booking.status ?? 'confirmed';
     _source = booking.source ?? 'manual';
     _notesController.text = booking.notes ?? '';
   }
@@ -3273,7 +3135,9 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
           _nestedText(data['zone'], 'id'),
         ]) ??
         _zoneId;
-    _status = _textValue(data, 'status') ?? _status;
+    _status = widget.onRestored != null
+        ? 'confirmed'
+        : _textValue(data, 'status') ?? _status;
     _source = _textValue(data, 'source') ?? _source;
     _extraDurationMinutes =
         int.tryParse(data['extra_duration_minutes']?.toString() ?? '') ?? 0;
@@ -3461,10 +3325,18 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
       if (availableZone != null && zone == null) {
         payload['zone'] = _coerceId(availableZone);
       }
-      await widget.api.updateBooking(id, payload);
+      if (widget.onRestored != null) {
+        await widget.api.restoreBooking(id, payload);
+      } else {
+        await widget.api.updateBooking(id, payload);
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
-      await widget.onChanged();
+      if (widget.onRestored != null) {
+        await widget.onRestored!(_date);
+      } else {
+        await widget.onChanged();
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -3521,6 +3393,22 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
           final totalDuration = _baseServiceDurationMinutes +
               _extraDurationMinutes +
               _cleanupDurationMinutes;
+          final slotsKey =
+              '${DateFormat('yyyy-MM-dd').format(_date)}|$_employeeId|$_serviceId|$_zoneId|$totalDuration';
+          if (_slotsKey != slotsKey) {
+            _slotsKey = slotsKey;
+            _slotsFuture = _employeeId == null || _serviceId == null
+                ? null
+                : widget.api.availabilitySlots({
+                    'date': DateFormat('yyyy-MM-dd').format(_date),
+                    'employee': _employeeId!,
+                    'service': _serviceId!,
+                    'booking': widget.booking.id!,
+                    'duration_minutes': '$totalDuration',
+                    if (_zoneId != null && _zoneId!.isNotEmpty)
+                      'zone': _zoneId!,
+                  });
+          }
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               18,
@@ -3647,14 +3535,64 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _EditDropdown(
-                    label: t.tr('Estado'),
-                    icon: Icons.flag_outlined,
-                    value: _status,
-                    options: _statusOptions,
-                    onChanged: (value) =>
-                        setState(() => _status = value ?? 'confirmed'),
-                  ),
+                  if (_slotsFuture != null)
+                    FutureBuilder<ApiDocument>(
+                        future: _slotsFuture,
+                        builder: (_, snapshot) {
+                          if (snapshot.hasError)
+                            return Text(t.isRussian
+                                ? 'Не удалось загрузить свободное время. Проверка будет повторена при сохранении.'
+                                : 'No se pudo cargar la disponibilidad. Se comprobará al guardar.');
+                          if (!snapshot.hasData)
+                            return const LinearProgressIndicator();
+                          final slots =
+                              (snapshot.data!.data['slots'] as List? ?? [])
+                                  .whereType<Map>();
+                          return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(t.isRussian
+                                    ? 'Свободное время'
+                                    : 'Horas disponibles'),
+                                if (slots.isEmpty)
+                                  Text(t.isRussian
+                                      ? 'Нет свободного времени на выбранную дату.'
+                                      : 'No hay horas disponibles para esta fecha.'),
+                                Wrap(
+                                    spacing: 6,
+                                    children: slots.map((slot) {
+                                      final start = _parseDateTime(
+                                          slot['start_at']?.toString());
+                                      if (start == null)
+                                        return const SizedBox.shrink();
+                                      return ChoiceChip(
+                                          label: Text(
+                                              slot['label']?.toString() ??
+                                                  DateFormat('HH:mm')
+                                                      .format(start)),
+                                          selected: _time.hour == start.hour &&
+                                              _time.minute == start.minute,
+                                          onSelected: _saving
+                                              ? null
+                                              : (_) => setState(() {
+                                                    _date = start;
+                                                    _time =
+                                                        TimeOfDay.fromDateTime(
+                                                            start);
+                                                  }));
+                                    }).toList()),
+                              ]);
+                        }),
+                  const SizedBox(height: 12),
+                  if (widget.onRestored == null)
+                    _EditDropdown(
+                      label: t.tr('Estado'),
+                      icon: Icons.flag_outlined,
+                      value: _status,
+                      options: _statusOptions,
+                      onChanged: (value) =>
+                          setState(() => _status = value ?? 'confirmed'),
+                    ),
                   const SizedBox(height: 12),
                   _EditDropdown(
                     label: t.tr('Origen'),

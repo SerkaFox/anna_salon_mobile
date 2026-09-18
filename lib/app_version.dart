@@ -1,11 +1,30 @@
-const appVersionName = '0.1.52';
-const appVersionBuild = 53;
+const appVersionName = '0.1.53';
+const appVersionBuild = 54;
 
 const appChangeLog = <AppChangeLogEntry>[
   AppChangeLogEntry(
-    version: '0.1.52', build: 53,
-    changesRu: ['Компактный режим отмен: даты и список в одну строку, подсказку можно скрыть навсегда.', 'Восстановление отменённой записи с выбором сотрудника, новой даты и времени.'],
-    changesEs: ['Modo de canceladas compacto; fechas y lista en una fila y ayuda ocultable.', 'Restauración de reservas canceladas con especialista, nueva fecha y hora.'],
+    version: '0.1.53',
+    build: 54,
+    changesRu: [
+      'Восстановление открывает обычную форму редактирования заказа, без отдельного окна.',
+      'В форме редактирования доступны свободные слоты и повторная проверка перед сохранением.'
+    ],
+    changesEs: [
+      'Restauración desde el formulario habitual de edición, sin una ventana independiente.',
+      'Horas disponibles en el editor y comprobación antes de guardar.'
+    ],
+  ),
+  AppChangeLogEntry(
+    version: '0.1.52',
+    build: 53,
+    changesRu: [
+      'Компактный режим отмен: даты и список в одну строку, подсказку можно скрыть навсегда.',
+      'Восстановление отменённой записи с выбором сотрудника, новой даты и времени.'
+    ],
+    changesEs: [
+      'Modo de canceladas compacto; fechas y lista en una fila y ayuda ocultable.',
+      'Restauración de reservas canceladas con especialista, nueva fecha y hora.'
+    ],
   ),
   AppChangeLogEntry(
     version: '0.1.51',
