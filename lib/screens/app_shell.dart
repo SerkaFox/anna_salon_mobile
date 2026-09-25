@@ -230,7 +230,7 @@ class _AppShellBody extends StatelessWidget {
         draftToken: bookingDraftToken,
         allowedEmployeeIds: calendarEmployeeIds,
       ),
-      ClientsScreen(api: api, canManagePhotos: canManageStaff),
+      ClientsScreen(api: api, canManagePhotos: true),
       SalonScreen(
         api: api,
         canManageStaff: canManageStaff,

@@ -91,6 +91,8 @@ class SalonScreen extends StatelessWidget {
                 ),
               ),
             ),
+          ],
+          ...[
             const SizedBox(height: 12),
             _SalonActionCard(
               icon: Icons.spa_outlined,
@@ -105,6 +107,7 @@ class SalonScreen extends StatelessWidget {
                       child: ServicesScreen(
                         api: api,
                         canManageStaff: canManageStaff,
+                        canEditCatalog: true,
                       ),
                     ),
                   ),

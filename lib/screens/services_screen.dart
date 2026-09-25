@@ -11,12 +11,15 @@ class ServicesScreen extends StatefulWidget {
   const ServicesScreen({
     required this.api,
     required this.canManageStaff,
+    this.canEditCatalog = false,
     this.initialServiceId,
     super.key,
   });
 
   final AnnaApi api;
   final bool canManageStaff;
+  // Employees may edit services and zones, but only admins delete them.
+  final bool canEditCatalog;
   final String? initialServiceId;
 
   @override
@@ -29,7 +32,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   void _openInitialService(_ServiceReferences refs) {
     final id = widget.initialServiceId;
-    if (_initialServiceOpened || id == null || !widget.canManageStaff) return;
+    if (_initialServiceOpened ||
+        id == null ||
+        !(widget.canManageStaff || widget.canEditCatalog)) {
+      return;
+    }
     _initialServiceOpened = true;
     ApiRecord? selected;
     for (final service in refs.services.items) {
@@ -106,12 +113,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
                         api: widget.api,
                         refs: refs,
                         canManageStaff: widget.canManageStaff,
+                        canEditCatalog: widget.canEditCatalog,
                         onChanged: _reload,
                       ),
                       _ZonesTab(
                         api: widget.api,
                         refs: refs,
                         canManageStaff: widget.canManageStaff,
+                        canEditCatalog: widget.canEditCatalog,
                         onChanged: _reload,
                       ),
                       _RewardsTab(
@@ -137,11 +146,13 @@ class _ServicesTab extends StatefulWidget {
       {required this.api,
       required this.refs,
       required this.canManageStaff,
+      this.canEditCatalog = false,
       required this.onChanged});
 
   final AnnaApi api;
   final _ServiceReferences refs;
   final bool canManageStaff;
+  final bool canEditCatalog;
   final VoidCallback onChanged;
 
   @override
@@ -214,7 +225,7 @@ class _ServicesTabState extends State<_ServicesTab> {
     final services = _filteredServices;
     return ListView(
       children: [
-        if (widget.canManageStaff) ...[
+        if (widget.canManageStaff || widget.canEditCatalog) ...[
           FilledButton.icon(
             onPressed: () async {
               final changed = await _ServiceFormSheet.show(context,
@@ -273,7 +284,7 @@ class _ServicesTabState extends State<_ServicesTab> {
                 t.tr('Con zona'),
             ],
             description: service.valueAsText('description'),
-            onTap: widget.canManageStaff
+            onTap: (widget.canManageStaff || widget.canEditCatalog)
                 ? () async {
                     final changed = await _ServiceFormSheet.show(context,
                         api: widget.api, refs: widget.refs, service: service);
@@ -296,11 +307,13 @@ class _ZonesTab extends StatelessWidget {
       {required this.api,
       required this.refs,
       required this.canManageStaff,
+      this.canEditCatalog = false,
       required this.onChanged});
 
   final AnnaApi api;
   final _ServiceReferences refs;
   final bool canManageStaff;
+  final bool canEditCatalog;
   final VoidCallback onChanged;
 
   Future<void> _deleteZone(BuildContext context, ApiRecord zone) async {
@@ -336,7 +349,7 @@ class _ZonesTab extends StatelessWidget {
     final t = AppLocalizations.of(context);
     return ListView(
       children: [
-        if (canManageStaff) ...[
+        if (canManageStaff || canEditCatalog) ...[
           FilledButton.icon(
             onPressed: () async {
               final changed =
@@ -362,7 +375,7 @@ class _ZonesTab extends StatelessWidget {
                   : 'Inactiva',
             ],
             description: zone.valueAsText('notes'),
-            onTap: canManageStaff
+            onTap: (canManageStaff || canEditCatalog)
                 ? () async {
                     final changed = await _ZoneFormSheet.show(context,
                         api: api, zone: zone);

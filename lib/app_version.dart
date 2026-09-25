@@ -1,7 +1,21 @@
-const appVersionName = '0.1.54';
-const appVersionBuild = 55;
+const appVersionName = '0.1.55';
+const appVersionBuild = 56;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.55',
+    build: 56,
+    changesRu: [
+      'Несколько услуг одного клиента теперь отдельными записями подряд, с одной общей предоплатой.',
+      'В записи показана сумма предоплаты в евро.',
+      'Мастера могут работать с фото клиентов, услугами, зонами и листом ожидания; общая выручка салона скрыта.'
+    ],
+    changesEs: [
+      'Varios servicios de un cliente ahora son reservas separadas seguidas, con un solo prepago común.',
+      'La reserva muestra el importe del prepago en euros.',
+      'El personal puede gestionar fotos de clientes, servicios, zonas y lista de espera; la facturación total del salón queda oculta.'
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.54',
     build: 55,

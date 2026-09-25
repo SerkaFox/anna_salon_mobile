@@ -4013,7 +4013,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
       api: widget.api,
       clientId: id,
       clientName: booking.clientName,
-      canManagePhotos: widget.canManageStaff,
+      canManagePhotos: true,
       onChanged: () => widget.onChanged(),
     );
   }
@@ -4025,6 +4025,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
       ServicesScreen(
         api: widget.api,
         canManageStaff: widget.canManageStaff,
+        canEditCatalog: true,
         initialServiceId: id,
       ),
     );
