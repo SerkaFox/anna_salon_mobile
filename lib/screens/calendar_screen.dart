@@ -1903,7 +1903,9 @@ class _PositionedTimeBlock extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: Text(
-                block.label,
+                (block.note ?? '').trim().isEmpty
+                    ? block.label
+                    : '${block.label} · ${block.note!.trim()}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -2134,6 +2136,8 @@ class _TimeBlockDetailsSheet extends StatelessWidget {
             _DetailGrid(
               rows: [
                 _DetailRow(t.tr('Motivo'), block.label),
+                if ((block.note ?? '').trim().isNotEmpty)
+                  _DetailRow(t.tr('Nota'), block.note),
                 _DetailRow(t.tr('Empleado'), block.employeeName),
                 _DetailRow(t.tr('Fecha'), block.date),
                 _DetailRow(t.tr('Inicio'), block.startTime),
@@ -2367,10 +2371,18 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
   late String? _employeeId =
       widget.block?.employeeId ?? widget.draft?.employeeId;
   late String _reason = _initialReason();
+  late final TextEditingController _noteController =
+      TextEditingController(text: widget.block?.note ?? '');
   _BlockRecurrence _recurrence = _BlockRecurrence.none;
   DateTime? _repeatUntil;
   bool _saving = false;
   String? _error;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
 
   bool get _isEditing => widget.block != null;
 
@@ -2499,6 +2511,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
         'start_time': _formatTimeOfDay(_startTime),
         'end_time': _formatTimeOfDay(_endTime),
         'reason': _reason,
+        'note': _noteController.text.trim(),
         'color': '#111111',
       };
     }
@@ -2507,6 +2520,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
       'start_at': _dateTimeText(_date, _startTime),
       'end_at': _dateTimeText(_date, _endTime),
       'reason': _reason,
+      'note': _noteController.text.trim(),
       'color': '#111111',
     };
   }
@@ -2519,6 +2533,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
           'start_at': _dateTimeText(_date, _startTime),
           'end_at': _dateTimeText(_date, _endTime),
           'reason': _reason,
+          'note': _noteController.text.trim(),
           'color': '#111111',
         }
       ];
@@ -2539,6 +2554,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
           if (_repeatUntil != null)
             'date_to': DateFormat('yyyy-MM-dd').format(_repeatUntil!),
           'reason': _reason,
+          'note': _noteController.text.trim(),
           'color': '#111111',
         }
     ];
@@ -2666,7 +2682,7 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                       for (final reason in _pauseReasons)
                         DropdownMenuItem(
                           value: reason,
-                          child: Text(reason),
+                          child: Text(t.tr(reason)),
                         ),
                     ],
                     validator: (value) =>
@@ -2675,6 +2691,20 @@ class _TimeBlockFormSheetState extends State<_TimeBlockFormSheet> {
                       if (value == null) return;
                       setState(() => _reason = value);
                     },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _noteController,
+                    maxLength: 300,
+                    maxLines: 2,
+                    minLines: 1,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: t.isRussian
+                          ? 'Заметка (с кем, что, детали)'
+                          : 'Nota (con quién, qué, detalles)',
+                      prefixIcon: const Icon(Icons.edit_note_outlined),
+                    ),
                   ),
                   if (!_isEditing) ...[
                     const SizedBox(height: 14),
@@ -5058,9 +5088,11 @@ class _TimeBlockView {
     this.date,
     this.startTime,
     this.endTime,
+    this.note,
   });
 
   final String label;
+  final String? note;
   final Color color;
   final double top;
   final double height;
@@ -5432,6 +5464,7 @@ List<_TimeBlockView> _timeBlocksFromEmployeeItem(
           startTime: _textFromMap(block, 'start_time'),
           endTime: _textFromMap(block, 'end_time'),
           label: _textFromMap(block, 'label') ?? 'Bloqueo',
+          note: _textFromMap(block, 'note'),
           color: _parseColor(_textFromMap(block, 'color')) ??
               const Color(0xFF111111),
           top: _minutesFromWorkStart(start),

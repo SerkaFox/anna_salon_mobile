@@ -1,7 +1,19 @@
-const appVersionName = '0.1.56';
-const appVersionBuild = 57;
+const appVersionName = '0.1.57';
+const appVersionBuild = 58;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.57',
+    build: 58,
+    changesRu: [
+      'Пауза в календаре: добавлено поле «Заметка» (с кем встреча, что за обед, детали болезни), заметка видна на блоке и в карточке.',
+      'Причины паузы переведены: Встреча, Болезнь, Обед.'
+    ],
+    changesEs: [
+      'Pausa en el calendario: nuevo campo «Nota» (con quién es la reunión, detalles), visible en el bloque y en la ficha.',
+      'Motivos de pausa traducidos.'
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.56',
     build: 57,
