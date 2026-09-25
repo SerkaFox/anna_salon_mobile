@@ -237,7 +237,7 @@ class AppLocalizations {
     'Sin enlace · la cita queda confirmada y se paga en el salon.':
         'Без ссылки · запись сразу подтверждена, оплата в салоне.',
     'Prepago': 'Предоплата',
-    'Limite de prepago': 'Оплатить до',
+    'Limite de prepago': 'Предоплатить до',
     'No requerir prepago · pago en el salon':
         'Не требовать предоплату · оплата на месте',
     'Enviar enlace de prepago': 'Отправить ссылку на предоплату',

@@ -1,7 +1,19 @@
-const appVersionName = '0.1.55';
-const appVersionBuild = 56;
+const appVersionName = '0.1.56';
+const appVersionBuild = 57;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.56',
+    build: 57,
+    changesRu: [
+      'Перевод карточки записи: статус, источник, оплата, даты и длительность на русском.',
+      'Срок предоплаты скрывается, когда предоплата уже внесена.'
+    ],
+    changesEs: [
+      'Ficha de la reserva traducida: estado, origen, pago, fechas y duración.',
+      'El límite de prepago se oculta cuando el prepago ya está realizado.'
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.55',
     build: 56,

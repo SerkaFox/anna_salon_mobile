@@ -4351,18 +4351,24 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                 _DetailRow(t.tr('Empleado'), booking.employeeName,
                     onTap: booking.employeeId == null ? null : _openEmployee),
                 _DetailRow(t.tr('Zona'), booking.zoneName),
-                _DetailRow(t.tr('Inicio'), _formatDateTime(booking.startAt)),
-                _DetailRow(t.tr('Fin'), _formatDateTime(_displayEndAt)),
+                _DetailRow(t.tr('Inicio'),
+                    _formatDateTime(booking.startAt, t.locale.languageCode)),
+                _DetailRow(t.tr('Fin'),
+                    _formatDateTime(_displayEndAt, t.locale.languageCode)),
                 _DetailRow(t.tr('Estado'), booking.statusLabel),
                 _DetailRow(t.tr('Pago'), booking.paymentStateLabel),
                 _DetailRow(t.tr('Prepago'), booking.prepaymentStateLabel),
-                _DetailRow(t.tr('Limite de prepago'),
-                    _formatDateTime(booking.prepaymentDeadlineAt)),
+                if (booking.prepaymentState != 'paid' &&
+                    booking.prepaymentDeadlineAt != null)
+                  _DetailRow(
+                      t.tr('Limite de prepago'),
+                      _formatDateTime(
+                          booking.prepaymentDeadlineAt, t.locale.languageCode)),
                 _DetailRow(t.tr('Origen'), booking.sourceLabel),
                 _DetailRow(t.tr('Precio'), booking.priceSnapshot),
                 _DetailRow(
                   t.tr('Duracion'),
-                  '$_durationMinutes min',
+                  '$_durationMinutes ${t.isRussian ? 'мин' : 'min'}',
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -5576,11 +5582,11 @@ void _showCalendarMessage(BuildContext context, String message) {
   );
 }
 
-String? _formatDateTime(String? value) {
+String? _formatDateTime(String? value, [String locale = 'es']) {
   if (value == null) return null;
   final parsed = DateTime.tryParse(value);
   if (parsed == null) return value;
-  return DateFormat('d MMM yyyy HH:mm', 'es').format(parsed);
+  return DateFormat('d MMM yyyy HH:mm', locale).format(parsed);
 }
 
 String _apiErrorText(AnnaApiException error) {
