@@ -4,15 +4,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_record.dart';
 import '../theme/app_theme.dart';
+import 'api_cached_image.dart';
 import 'cashbox_screen.dart';
 import 'clients_screen.dart';
 import 'employees_screen.dart';
+import 'photo_viewer.dart';
 import 'services_screen.dart';
 import 'shared.dart';
 
@@ -3305,6 +3308,11 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
           !refs.employeeSupportsService(employee.id, service)) {
         _serviceId = null;
         _zoneId = null;
+      } else if (employee != null && service?.requiresZone == true) {
+        final usableZones = refs.zonesForEmployee(employee);
+        if (!usableZones.any((zone) => zone.id == _zoneId)) {
+          _zoneId = usableZones.length == 1 ? usableZones.first.id : null;
+        }
       }
       _error = null;
     });
@@ -3463,7 +3471,14 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
               ? refs.employeeOptions
               : refs.employeesForService(selectedService);
           final zoneOptions = selectedService?.requiresZone == true
-              ? refs.zonesForService(selectedService!)
+              ? (selectedEmployee == null
+                  ? refs.zonesForService(selectedService!)
+                  : refs
+                      .zonesForService(selectedService!)
+                      .where((zone) => refs
+                          .zonesForEmployee(selectedEmployee)
+                          .any((allowed) => allowed.id == zone.id))
+                      .toList())
               : const <_EditOption>[];
           final minimumExtraDuration = _baseServiceDurationMinutes <= 15
               ? 0
@@ -3691,6 +3706,11 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
                       alignLabelWithHint: true,
                     ),
                   ),
+                  if (widget.booking.id != null) ...[
+                    const SizedBox(height: 16),
+                    _BookingPhotosSection(
+                        api: widget.api, bookingId: widget.booking.id!),
+                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 12),
                     _ErrorPanel(_error!),
@@ -3714,6 +3734,174 @@ class _BookingEditSheetState extends State<_BookingEditSheet> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _BookingPhotosSection extends StatefulWidget {
+  const _BookingPhotosSection({required this.api, required this.bookingId});
+
+  final AnnaApi api;
+  final String bookingId;
+
+  @override
+  State<_BookingPhotosSection> createState() => _BookingPhotosSectionState();
+}
+
+class _BookingPhotosSectionState extends State<_BookingPhotosSection> {
+  final _imagePicker = ImagePicker();
+  late Future<ApiCollection> _photosFuture = _load();
+  String? _uploadingType;
+
+  Future<ApiCollection> _load() {
+    return widget.api.bookingPhotos(widget.bookingId);
+  }
+
+  void _reload() {
+    setState(() => _photosFuture = _load());
+  }
+
+  Future<void> _addPhoto(String type) async {
+    final t = AppLocalizations.of(context);
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(t.tr('Camara')),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(t.tr('Galeria')),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final picked =
+        await _imagePicker.pickImage(source: source, imageQuality: 85);
+    if (picked == null) return;
+    setState(() => _uploadingType = type);
+    try {
+      await widget.api.uploadBookingPhoto(
+        bookingId: widget.bookingId,
+        imagePath: picked.path,
+        photoType: type,
+      );
+      if (!mounted) return;
+      _reload();
+    } on AnnaApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatApiError(error))),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingType = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(t.tr('Fotos'),
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(color: AnnaColors.muted)),
+        const SizedBox(height: 8),
+        FutureBuilder<ApiCollection>(
+          future: _photosFuture,
+          builder: (context, snapshot) {
+            final photos = snapshot.data?.items ?? const <ApiRecord>[];
+            if (photos.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final photo in photos)
+                    _BookingPhotoThumb(api: widget.api, photo: photo),
+                ],
+              ),
+            );
+          },
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _uploadingType != null
+                    ? null
+                    : () => _addPhoto('before'),
+                icon: _uploadingType == 'before'
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.photo_camera_outlined),
+                label: Text(t.tr('Foto antes')),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed:
+                    _uploadingType != null ? null : () => _addPhoto('after'),
+                icon: _uploadingType == 'after'
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.photo_library_outlined),
+                label: Text(t.tr('Foto despues')),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _BookingPhotoThumb extends StatelessWidget {
+  const _BookingPhotoThumb({required this.api, required this.photo});
+
+  final AnnaApi api;
+  final ApiRecord photo;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = photo.valueAsText('image_url');
+    if (url == null) return const SizedBox.shrink();
+    return InkWell(
+      borderRadius: BorderRadius.circular(AnnaRadii.md),
+      onTap: () => AnnaPhotoViewer.showNetwork(
+        context,
+        title: photo.valueAsText('photo_type_label') ?? '',
+        url: url,
+        api: api,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AnnaRadii.md),
+        child: SizedBox(
+          width: 64,
+          height: 64,
+          child: ApiCachedImage(api: api, url: url, fit: BoxFit.cover),
+        ),
       ),
     );
   }
@@ -3775,6 +3963,13 @@ class _BookingEditReferences {
     }).toList();
   }
 
+  List<_EditOption> zonesForEmployee(_EditOption employee) {
+    if (employee.allowedZoneIds.isEmpty) return zoneOptions;
+    return zoneOptions.where((zone) {
+      return employee.allowedZoneIds.contains(zone.id);
+    }).toList();
+  }
+
   List<_EditOption> employeesForService(_EditOption service) {
     final linkedEmployees = service.employeeIds;
     return employeeOptions.where((employee) {
@@ -3825,8 +4020,12 @@ class _BookingEditReferences {
                 record.valueAsText('duration_minutes') ?? '',
               ) ??
               0,
-          allowedZoneIds: _idSet(
-              record, const ['allowed_zone_ids', 'allowed_zones', 'zones']),
+          allowedZoneIds: _idSet(record, const [
+            'allowed_zone_ids',
+            'allowed_zones',
+            'zones',
+            'zone_ids',
+          ]),
           serviceIds: _idSet(record, const ['service_ids', 'services']),
           employeeIds: _idSet(record, const ['employee_ids', 'employees']),
         ),

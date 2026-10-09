@@ -433,6 +433,10 @@ class AnnaApi {
     return ApiDocument.fromJson(await _patch('bookings/$bookingId/', payload));
   }
 
+  Future<ApiCollection> bookingPhotos(Object bookingId) async {
+    return ApiCollection.fromJson(await _get('bookings/$bookingId/photos/'));
+  }
+
   Future<ApiDocument> uploadBookingPhoto({
     required Object bookingId,
     required String imagePath,

@@ -261,6 +261,7 @@ class AppLocalizations {
     'Zona': 'Зона',
     'Foto antes': 'Фото до',
     'Foto despues': 'Фото после',
+    'Fotos': 'Фото',
     'Camara': 'Камера',
     'Galeria': 'Галерея',
     'Nueva reserva': 'Новая запись',

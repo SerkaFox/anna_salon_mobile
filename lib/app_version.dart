@@ -1,7 +1,19 @@
-const appVersionName = '0.1.57';
-const appVersionBuild = 58;
+const appVersionName = '0.1.58';
+const appVersionBuild = 59;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.58',
+    build: 59,
+    changesRu: [
+      'Фото теперь можно добавлять и при редактировании уже созданной записи, не только при её создании.',
+      'Исправлен выбор зоны при смене мастера в форме редактирования: больше нельзя выбрать зону, где мастер не работает.'
+    ],
+    changesEs: [
+      'Ahora se pueden añadir fotos también al editar una reserva ya creada, no solo al crearla.',
+      'Arreglada la selección de zona al cambiar de empleado en el formulario de edición.'
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.57',
     build: 58,
