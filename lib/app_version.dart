@@ -1,7 +1,19 @@
-const appVersionName = '0.1.58';
-const appVersionBuild = 59;
+const appVersionName = '0.1.59';
+const appVersionBuild = 60;
 
 const appChangeLog = <AppChangeLogEntry>[
+  AppChangeLogEntry(
+    version: '0.1.59',
+    build: 60,
+    changesRu: [
+      'В карточке записи — кнопка «Сменить услугу»: предоплата переносится на новую услугу, ничего отменять и заводить заново не нужно.',
+      'Если новая услуга дороже — сразу открывается ссылка на доплату; если дешевле — показывается, что разницу нужно вернуть вручную.'
+    ],
+    changesEs: [
+      'Nuevo botón «Cambiar servicio» en la ficha de la reserva: el prepago se traslada al nuevo servicio sin cancelar ni crear una reserva nueva.',
+      'Si el nuevo servicio es más caro se abre el enlace de pago de la diferencia; si es más barato, se avisa de que hay que devolverla manualmente.'
+    ],
+  ),
   AppChangeLogEntry(
     version: '0.1.58',
     build: 59,

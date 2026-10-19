@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api/anna_api.dart';
 import '../l10n/app_localizations.dart';
@@ -4363,6 +4364,149 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
     }
   }
 
+  Future<void> _changeService() async {
+    final id = booking.id;
+    final employeeId = booking.employeeId;
+    if (id == null || employeeId == null) {
+      setState(
+        () => _error =
+            'No se encontro el empleado o el identificador de la reserva.',
+      );
+      return;
+    }
+    setState(() {
+      _working = true;
+      _error = null;
+    });
+    List<_EditOption> options = const [];
+    try {
+      final results = await Future.wait([
+        widget.api.services(),
+        widget.api.employees(),
+      ]);
+      final refs = _BookingEditReferences(
+        clients: ApiCollection(const []),
+        services: results[0],
+        employees: results[1],
+        zones: ApiCollection(const []),
+      );
+      final employee = refs.optionById(refs.employeeOptions, employeeId);
+      if (employee == null) {
+        setState(() => _error = 'No se encontro el empleado en el catalogo.');
+        return;
+      }
+      options = refs.servicesForEmployee(employee);
+      if (options.isEmpty) {
+        setState(
+          () => _error = 'Este empleado no tiene servicios asignados.',
+        );
+        return;
+      }
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = _apiErrorText(error));
+      return;
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+    if (!mounted) return;
+
+    final currentServiceId = booking.serviceId;
+    final selected = await showModalBottomSheet<_EditOption>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: AnnaColors.bgSoft,
+      builder: (sheetContext) {
+        final sheetT = AppLocalizations.of(sheetContext);
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
+                child: Text(
+                  sheetT.tr('Cambiar servicio'),
+                  style: Theme.of(sheetContext).textTheme.titleLarge,
+                ),
+              ),
+              for (final option in options)
+                ListTile(
+                  title: Text(option.label),
+                  trailing: option.id == currentServiceId
+                      ? Icon(
+                          Icons.check,
+                          color: Theme.of(sheetContext).colorScheme.primary,
+                        )
+                      : null,
+                  onTap: () => Navigator.pop(sheetContext, option),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted || selected == null || selected.id == currentServiceId) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    final t = AppLocalizations.of(context);
+    setState(() {
+      _working = true;
+      _error = null;
+    });
+    try {
+      final response = await widget.api.editBookingService(
+        id,
+        {'service': selected.id},
+      );
+      if (!mounted) return;
+      final data = response.data;
+      final extraDue =
+          double.tryParse(data['extra_due']?.toString() ?? '') ?? 0;
+      final manualRefund = data['manual_refund_required'] == true;
+      final checkoutUrl = data['checkout_url']?.toString();
+      Navigator.of(context).pop();
+      await widget.onChanged();
+      if (extraDue > 0 && checkoutUrl != null && checkoutUrl.isNotEmpty) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              t.isRussian
+                  ? 'Услуга изменена. К доплате ${extraDue.toStringAsFixed(2)} €, открываю ссылку на оплату.'
+                  : 'Servicio cambiado. Queda por pagar ${extraDue.toStringAsFixed(2)} €, abriendo el enlace de pago.',
+            ),
+          ),
+        );
+        await launchUrl(Uri.parse(checkoutUrl), mode: LaunchMode.externalApplication);
+      } else if (manualRefund) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              t.isRussian
+                  ? 'Услуга изменена. Новая услуга дешевле — разницу нужно вернуть клиенту вручную.'
+                  : 'Servicio cambiado. El nuevo servicio es mas barato: hay que devolver la diferencia manualmente.',
+            ),
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              t.isRussian
+                  ? 'Услуга изменена, предоплата перенесена.'
+                  : 'Servicio cambiado, el prepago se ha trasladado.',
+            ),
+          ),
+        );
+      }
+    } on AnnaApiException catch (error) {
+      if (mounted) setState(() => _error = _apiErrorText(error));
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
   Future<void> _createPrepaymentInvoice() async {
     final id = booking.id;
     if (id == null) {
@@ -4746,6 +4890,11 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                         },
                   icon: Icon(Icons.edit_outlined),
                   label: Text(t.tr('Editar')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _working ? null : _changeService,
+                  icon: Icon(Icons.swap_horiz),
+                  label: Text(t.tr('Cambiar servicio')),
                 ),
               ],
             ),
