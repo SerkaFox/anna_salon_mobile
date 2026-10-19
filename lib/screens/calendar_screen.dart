@@ -1727,7 +1727,12 @@ class _DropPreview extends StatelessWidget {
         .clamp(0, _calendarHeight - 30)
         .toDouble();
     final height = booking.height.clamp(30, _calendarHeight - top).toDouble();
-    final color = _parseColor(booking.serviceColor) ?? booking.employeeColor;
+    // El origen manda sobre el color del servicio: las reservas que entran solas
+    // desde la web publica salen en rojo vivo y el resto en verde (source_color
+    // lo decide el backend, igual que en la agenda web).
+    final color = _parseColor(booking.sourceColor) ??
+        _parseColor(booking.serviceColor) ??
+        booking.employeeColor;
 
     return Positioned(
       top: top,
@@ -1771,8 +1776,10 @@ class _PositionedBookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = booking.top.clamp(0, _calendarHeight - 30).toDouble();
     final height = booking.height.clamp(30, _calendarHeight - top).toDouble();
-    final serviceColor =
-        _parseColor(booking.serviceColor) ?? booking.employeeColor;
+    // Ver nota en _DropPreview: el origen de la reserva manda sobre el color.
+    final serviceColor = _parseColor(booking.sourceColor) ??
+        _parseColor(booking.serviceColor) ??
+        booking.employeeColor;
     final card = _BookingCardSurface(
       booking: booking,
       highlighted: highlighted,
@@ -5336,6 +5343,7 @@ class _BookingView {
     this.priceSnapshot,
     this.durationSnapshot,
     this.serviceColor,
+    this.sourceColor,
   });
 
   final ApiRecord record;
@@ -5364,6 +5372,7 @@ class _BookingView {
   final String? priceSnapshot;
   final String? durationSnapshot;
   final String? serviceColor;
+  final String? sourceColor;
   final Color employeeColor;
 
   String? get timeRange {
@@ -5493,6 +5502,7 @@ class _BookingView {
       durationSnapshot: record.valueAsText('duration_snapshot'),
       serviceColor: record.valueAsText('service_color') ??
           (serviceId == null ? null : serviceColorCache[serviceId]),
+      sourceColor: record.valueAsText('source_color'),
       employeeColor: employeeColor,
     );
   }
