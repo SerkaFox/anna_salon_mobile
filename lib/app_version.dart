@@ -1,17 +1,19 @@
-const appVersionName = '0.1.59';
-const appVersionBuild = 60;
+const appVersionName = '0.1.60';
+const appVersionBuild = 61;
 
 const appChangeLog = <AppChangeLogEntry>[
   AppChangeLogEntry(
-    version: '0.1.59',
-    build: 60,
+    version: '0.1.60',
+    build: 61,
     changesRu: [
       'В карточке записи — кнопка «Сменить услугу»: предоплата переносится на новую услугу, ничего отменять и заводить заново не нужно.',
-      'Если новая услуга дороже — сразу открывается ссылка на доплату; если дешевле — показывается, что разницу нужно вернуть вручную.'
+      'Если новая услуга дороже — сразу открывается ссылка на доплату; если дешевле — показывается, что разницу нужно вернуть вручную.',
+      'Записи с сайта (без участия салона) теперь выделяются красным цветом в календаре, остальные — зелёным.'
     ],
     changesEs: [
       'Nuevo botón «Cambiar servicio» en la ficha de la reserva: el prepago se traslada al nuevo servicio sin cancelar ni crear una reserva nueva.',
-      'Si el nuevo servicio es más caro se abre el enlace de pago de la diferencia; si es más barato, se avisa de que hay que devolverla manualmente.'
+      'Si el nuevo servicio es más caro se abre el enlace de pago de la diferencia; si es más barato, se avisa de que hay que devolverla manualmente.',
+      'Las reservas que llegan solas desde la web ahora se ven en rojo en el calendario; el resto, en verde.'
     ],
   ),
   AppChangeLogEntry(

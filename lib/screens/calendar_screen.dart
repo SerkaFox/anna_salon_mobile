@@ -4371,7 +4371,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
     }
   }
 
-  Future<void> _changeService() async {
+  Future<void> _swapBookingService() async {
     final id = booking.id;
     final employeeId = booking.employeeId;
     if (id == null || employeeId == null) {
@@ -4899,7 +4899,7 @@ class _BookingActionsSheetState extends State<_BookingActionsSheet> {
                   label: Text(t.tr('Editar')),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _working ? null : _changeService,
+                  onPressed: _working ? null : _swapBookingService,
                   icon: Icon(Icons.swap_horiz),
                   label: Text(t.tr('Cambiar servicio')),
                 ),
