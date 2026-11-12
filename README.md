@@ -4,6 +4,20 @@ Flutter mobile app for BRIMOON Studio, connected to the Django REST API.
 
 Base API URL: `https://brimoon.es/api/v1/`
 
+<!-- readme-screenshots -->
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/anna_mobile.jpg" alt="Calendar, client portal and owner dashboard (AI-generated illustration)" width="100%">
+</p>
+<p align="center"><em>Calendar, client portal and owner dashboard <sub>(AI-generated illustration)</sub></em></p>
+
+<p align="center">
+  <img src="docs/screenshots/anna-mobile.jpg" alt="Booking site the app connects to (brimoon.es)" width="100%">
+</p>
+<p align="center"><em>Booking site the app connects to (brimoon.es)</em></p>
+<!-- readme-screenshots -->
+
 ## Current Capabilities
 
 ### Authentication and Roles
